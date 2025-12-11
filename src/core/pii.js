@@ -111,7 +111,7 @@ export function validateNoPII(formData, options = {}) {
  * @param {object} options - Strip options
  * @returns {object} - Sanitized form data
  */
-export function stripPII(formData, options = {}) {
+export async function stripPII(formData, options = {}) {
   const {
     redactionMarker = '[REDACTED]',
     preserveFields = [],
