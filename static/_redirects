@@ -1,0 +1,7 @@
+# Redirects for VeilForms
+
+# Auth redirects
+/signup      /register/    301
+/sign-up     /register/    301
+/signup/     /register/    301
+/sign-up/    /register/    301
