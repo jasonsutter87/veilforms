@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+public/
+dist/
+static/js/*.min.js
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Hugo
+resources/_gen/
+.hugo_build.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Netlify
+.netlify/
+
+# Private keys (NEVER commit these)
+*private-key*.json

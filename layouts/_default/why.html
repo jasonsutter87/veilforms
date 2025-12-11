@@ -1,0 +1,498 @@
+{{ define "main" }}
+<style>
+  .hero-why {
+    padding: 100px 0 60px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-why h1 {
+    font-size: 3rem;
+    margin-bottom: 24px;
+  }
+  .hero-why .lead {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .manifesto {
+    padding: 80px 0;
+    background: var(--surface);
+  }
+  .manifesto-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .manifesto h2 {
+    font-size: 2rem;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+  .manifesto p {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    margin-bottom: 24px;
+    color: var(--text-muted);
+  }
+  .manifesto strong {
+    color: var(--text);
+  }
+  .client-first {
+    padding: 80px 0;
+  }
+  .client-first h2 {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .client-first .subtitle {
+    text-align: center;
+    color: var(--text-muted);
+    margin-bottom: 60px;
+  }
+  .architecture-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px;
+    margin-bottom: 60px;
+  }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  .flow-box {
+    padding: 20px 32px;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 160px;
+  }
+  .flow-box.user { background: #6366f120; border: 1px solid #6366f140; }
+  .flow-box.browser { background: #10b98120; border: 1px solid #10b98140; }
+  .flow-box.server { background: #8888a020; border: 1px solid #8888a040; }
+  .flow-box h4 { margin-bottom: 8px; }
+  .flow-box p { font-size: 0.875rem; color: var(--text-muted); margin: 0; }
+  .flow-arrow {
+    color: var(--text-muted);
+    font-size: 1.5rem;
+  }
+  .flow-label {
+    text-align: center;
+    font-size: 0.875rem;
+    color: #10b981;
+    margin-top: -20px;
+    margin-bottom: 20px;
+  }
+  .comparison {
+    padding: 80px 0;
+    background: var(--surface);
+  }
+  .comparison h2 {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 40px;
+  }
+  .comparison-table th, .comparison-table td {
+    padding: 16px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .comparison-table th {
+    background: var(--bg);
+    font-weight: 600;
+  }
+  .comparison-table th:first-child { border-radius: 8px 0 0 0; }
+  .comparison-table th:last-child { border-radius: 0 8px 0 0; }
+  .comparison-table td:first-child { color: var(--text-muted); }
+  .check { color: #10b981; }
+  .cross { color: #ef4444; }
+  .partial { color: #f59e0b; }
+  .highlight-row { background: #6366f110; }
+  .pillars {
+    padding: 80px 0;
+  }
+  .pillars h2 {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+  .pillars-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px;
+  }
+  .pillar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+  }
+  .pillar-number {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 40px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .pillar h3 { margin-bottom: 12px; }
+  .pillar p { color: var(--text-muted); margin-bottom: 16px; }
+  .pillar code {
+    display: block;
+    background: var(--bg);
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    overflow-x: auto;
+  }
+  .tech-deep-dive {
+    padding: 80px 0;
+    background: var(--surface);
+  }
+  .tech-deep-dive h2 {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .tech-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+  }
+  .tech-card h4 { margin-bottom: 12px; color: var(--primary); }
+  .tech-card p { font-size: 0.875rem; color: var(--text-muted); }
+  .cta-section {
+    padding: 100px 0;
+    text-align: center;
+  }
+  .cta-section h2 {
+    font-size: 2.5rem;
+    margin-bottom: 24px;
+  }
+  .cta-section p {
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    font-size: 1.125rem;
+  }
+  .trust-badges {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 60px;
+    flex-wrap: wrap;
+  }
+  .trust-badge {
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .trust-badge .icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+</style>
+
+<!-- Hero -->
+<section class="hero-why">
+  <div class="container">
+    <h1>We Are <span style="color: var(--primary);">Client-First</span></h1>
+    <p class="lead">
+      Other form builders encrypt your data on their servers. We encrypt it in your browser, before it ever leaves. That's not a feature—it's our architecture.
+    </p>
+  </div>
+</section>
+
+<!-- Manifesto -->
+<section class="manifesto">
+  <div class="container">
+    <div class="manifesto-content">
+      <h2>The Problem With "Secure" Form Builders</h2>
+      <p>
+        Every form builder claims to be secure. They tout <strong>SSL encryption</strong>, <strong>GDPR compliance</strong>, and <strong>SOC 2 certifications</strong>. But here's what they don't tell you:
+      </p>
+      <p>
+        <strong>Your data arrives at their servers in plaintext.</strong> They encrypt it after they receive it. They can read it. Their employees can read it. A breach exposes it. A subpoena compels it.
+      </p>
+      <p>
+        "Encryption at rest" means they have the keys. "Encryption in transit" means it's decrypted when it arrives. <strong>You're trusting them with everything.</strong>
+      </p>
+      <p>
+        We built VeilForms because we believe that's backwards. Your users' data should be encrypted <strong>before it leaves their browser</strong>. We should never be able to read it. Ever.
+      </p>
+      <p style="font-size: 1.5rem; color: var(--text); text-align: center; margin-top: 40px;">
+        <strong>Client-first isn't a feature. It's a promise.</strong>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Client-First Architecture -->
+<section class="client-first">
+  <div class="container">
+    <h2>Client-First Architecture</h2>
+    <p class="subtitle">Data is encrypted in the user's browser. We only ever see ciphertext.</p>
+
+    <div class="architecture-diagram">
+      <div class="flow-row">
+        <div class="flow-box user">
+          <h4>User</h4>
+          <p>Fills out form</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box browser">
+          <h4>Browser</h4>
+          <p>Encrypts + Strips PII</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box server">
+          <h4>VeilForms</h4>
+          <p>Stores encrypted blob</p>
+        </div>
+      </div>
+      <div class="flow-label">✓ Encrypted before transmission — We never see plaintext</div>
+
+      <div class="flow-row">
+        <div class="flow-box user">
+          <h4>You</h4>
+          <p>View submissions</p>
+        </div>
+        <span class="flow-arrow">←</span>
+        <div class="flow-box browser">
+          <h4>Your Browser</h4>
+          <p>Decrypts with your key</p>
+        </div>
+        <span class="flow-arrow">←</span>
+        <div class="flow-box server">
+          <h4>VeilForms</h4>
+          <p>Sends encrypted blob</p>
+        </div>
+      </div>
+      <div class="flow-label">✓ Decrypted in your browser — Your private key never leaves your device</div>
+    </div>
+
+    <div style="text-align: center; max-width: 700px; margin: 0 auto;">
+      <p style="color: var(--text-muted);">
+        Even if someone breaches our servers, they get encrypted blobs they cannot decrypt. Even if we wanted to read your data, we couldn't. <strong>That's zero trust.</strong>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Comparison -->
+<section class="comparison">
+  <div class="container">
+    <h2>How We Compare</h2>
+
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>VeilForms</th>
+          <th>Typeform</th>
+          <th>Jotform</th>
+          <th>Tally</th>
+          <th>Google Forms</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="highlight-row">
+          <td>Client-side encryption</td>
+          <td><span class="check">✓ Always</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="partial">◐ Optional</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+        </tr>
+        <tr>
+          <td>Provider can read data</td>
+          <td><span class="check">✗ Never</span></td>
+          <td><span class="cross">✓ Yes</span></td>
+          <td><span class="cross">✓ Yes</span></td>
+          <td><span class="cross">✓ Yes</span></td>
+          <td><span class="cross">✓ Yes</span></td>
+        </tr>
+        <tr class="highlight-row">
+          <td>Automatic PII detection</td>
+          <td><span class="check">✓</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+        </tr>
+        <tr>
+          <td>PII stripping before storage</td>
+          <td><span class="check">✓</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+        </tr>
+        <tr class="highlight-row">
+          <td>Anonymous submission IDs</td>
+          <td><span class="check">✓</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="partial">◐</span></td>
+          <td><span class="cross">✗</span></td>
+        </tr>
+        <tr>
+          <td>You control encryption keys</td>
+          <td><span class="check">✓</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+        </tr>
+        <tr class="highlight-row">
+          <td>Zero Trust architecture</td>
+          <td><span class="check">✓</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+        </tr>
+        <tr>
+          <td>Developer SDK</td>
+          <td><span class="check">✓</span></td>
+          <td><span class="partial">◐</span></td>
+          <td><span class="partial">◐</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+        </tr>
+        <tr>
+          <td>Starting price</td>
+          <td><strong>$19/mo</strong></td>
+          <td>$29/mo</td>
+          <td>$34/mo</td>
+          <td>$29/mo</td>
+          <td>Free*</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="text-align: center; color: var(--text-muted); font-size: 0.875rem;">
+      * Google Forms is free but Google has full access to all submissions and uses data for advertising profiles.
+    </p>
+  </div>
+</section>
+
+<!-- Four Pillars -->
+<section class="pillars">
+  <div class="container">
+    <h2>The Four Pillars of Client-First Privacy</h2>
+
+    <div class="pillars-grid">
+      <div class="pillar">
+        <div class="pillar-number">1</div>
+        <h3>Client-Side Encryption</h3>
+        <p>Data is encrypted in the user's browser using RSA-2048 + AES-256 before transmission. We receive ciphertext only.</p>
+        <code>await encryptSubmission(formData, publicKey);</code>
+      </div>
+
+      <div class="pillar">
+        <div class="pillar-number">2</div>
+        <h3>Automatic PII Stripping</h3>
+        <p>Our SDK detects emails, phone numbers, SSNs, and other PII patterns—stripping them before encryption.</p>
+        <code>validateNoPII(data); // Throws if PII detected</code>
+      </div>
+
+      <div class="pillar">
+        <div class="pillar-number">3</div>
+        <h3>Anonymous Identity Hashing</h3>
+        <p>Submissions get cryptographic IDs with no link to user identity. No IP logging. No fingerprinting. No tracking.</p>
+        <code>createIdentityHash(formId); // No PII inputs</code>
+      </div>
+
+      <div class="pillar">
+        <div class="pillar-number">4</div>
+        <h3>Your Keys, Your Data</h3>
+        <p>Private keys are generated in your browser and never leave your device. We cannot decrypt your data—ever.</p>
+        <code>// Private key stored in localStorage only</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Technical Deep Dive -->
+<section class="tech-deep-dive">
+  <div class="container">
+    <h2>Technical Deep Dive</h2>
+
+    <div class="tech-grid">
+      <div class="tech-card">
+        <h4>Hybrid Encryption</h4>
+        <p>Each submission generates a unique AES-256 key for data encryption. The AES key is then encrypted with your RSA-2048 public key. Only your private key can unlock it.</p>
+      </div>
+
+      <div class="tech-card">
+        <h4>Web Crypto API</h4>
+        <p>We use the browser's native Web Crypto API—no external crypto libraries. Keys never exist in JavaScript memory longer than necessary.</p>
+      </div>
+
+      <div class="tech-card">
+        <h4>Zero Knowledge Storage</h4>
+        <p>Our servers store encrypted blobs with anonymous IDs. No metadata links submissions to users. A breach exposes nothing useful.</p>
+      </div>
+
+      <div class="tech-card">
+        <h4>PII Pattern Matching</h4>
+        <p>Regex-based detection for emails, phones, SSNs, credit cards, IP addresses, and more. Configurable: warn, strip, or block.</p>
+      </div>
+
+      <div class="tech-card">
+        <h4>Multi-Tenant Isolation</h4>
+        <p>Each tenant's data is cryptographically isolated. Tenant A cannot access Tenant B's encrypted blobs, even with server access.</p>
+      </div>
+
+      <div class="tech-card">
+        <h4>Open Source Core</h4>
+        <p>Our encryption, PII detection, and identity modules are open source. Audit them yourself. Trust, but verify.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container">
+    <h2>Ready to Go Client-First?</h2>
+    <p>Join developers who believe privacy should be architecture, not policy.</p>
+    <div>
+      <a href="/signup" class="btn">Start Free</a>
+      <a href="/docs" class="btn btn-outline" style="margin-left: 16px;">Read the Docs</a>
+    </div>
+
+    <div class="trust-badges">
+      <div class="trust-badge">
+        <div class="icon">🔐</div>
+        <div>E2E Encrypted</div>
+      </div>
+      <div class="trust-badge">
+        <div class="icon">🇪🇺</div>
+        <div>GDPR Ready</div>
+      </div>
+      <div class="trust-badge">
+        <div class="icon">🛡️</div>
+        <div>Zero Trust</div>
+      </div>
+      <div class="trust-badge">
+        <div class="icon">👁️‍🗨️</div>
+        <div>We Can't See Your Data</div>
+      </div>
+    </div>
+  </div>
+</section>
+{{ end }}

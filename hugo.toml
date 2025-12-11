@@ -1,0 +1,10 @@
+baseURL = 'https://veilforms.com/'
+languageCode = 'en-us'
+title = 'VeilForms - Privacy-First Form Builder'
+
+[params]
+  description = "Client-side encrypted forms. Zero PII storage. GDPR compliant by design."
+  tagline = "Forms that forget faces"
+
+[build]
+  writeStats = true

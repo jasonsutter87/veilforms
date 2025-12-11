@@ -1,0 +1,417 @@
+{{ define "main" }}
+<style>
+  .dashboard { padding: 40px 0; }
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+  }
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 40px;
+  }
+  .sidebar {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    height: fit-content;
+  }
+  .sidebar-nav a {
+    display: block;
+    padding: 12px 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 8px;
+    margin-bottom: 4px;
+  }
+  .sidebar-nav a:hover, .sidebar-nav a.active {
+    background: var(--border);
+    color: var(--text);
+  }
+  .main-content {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 32px;
+    border: 1px solid var(--border);
+  }
+  .form-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .form-card h3 { margin-bottom: 8px; }
+  .form-card .meta { color: var(--text-muted); font-size: 0.875rem; }
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .badge-green { background: #10b98120; color: #10b981; }
+  .badge-yellow { background: #f59e0b20; color: #f59e0b; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-value { font-size: 2rem; font-weight: 700; color: var(--primary); }
+  .stat-label { color: var(--text-muted); font-size: 0.875rem; }
+  .security-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #10b98110;
+    border: 1px solid #10b98140;
+    border-radius: 8px;
+    margin-bottom: 24px;
+  }
+  .security-badge svg { color: #10b981; }
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .table th, .table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .table th { color: var(--text-muted); font-weight: 500; }
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 600px;
+    width: 90%;
+    border: 1px solid var(--border);
+  }
+  .modal h2 { margin-bottom: 24px; }
+  .form-group { margin-bottom: 20px; }
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+  }
+  .form-group input, .form-group textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+  }
+  .form-group input:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  .key-warning {
+    background: #f59e0b15;
+    border: 1px solid #f59e0b40;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 20px 0;
+  }
+  .key-warning h4 { color: #f59e0b; margin-bottom: 8px; }
+  code {
+    background: var(--bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+  pre {
+    background: var(--bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+</style>
+
+<div class="dashboard">
+  <div class="container">
+    <div class="dashboard-header">
+      <div>
+        <h1>Dashboard</h1>
+        <p style="color: var(--text-muted);">Client-first. Your keys, your data.</p>
+      </div>
+      <button class="btn" onclick="showCreateForm()">+ New Form</button>
+    </div>
+
+    <div class="security-badge">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path d="M9 12l2 2 4-4"/>
+      </svg>
+      <span><strong>Client-Side Encryption Active</strong> — Private keys stored locally in your browser. We never see your data.</span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-forms">0</div>
+        <div class="stat-label">Active Forms</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-submissions">0</div>
+        <div class="stat-label">Total Submissions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-encrypted">100%</div>
+        <div class="stat-label">Encrypted</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-pii">0</div>
+        <div class="stat-label">PII Blocked</div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          <a href="#" class="active" data-view="forms">Forms</a>
+          <a href="#" data-view="submissions">Submissions</a>
+          <a href="#" data-view="keys">Key Management</a>
+          <a href="#" data-view="settings">Settings</a>
+          <a href="#" data-view="api">API Keys</a>
+        </nav>
+
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
+          <h4 style="margin-bottom: 12px; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Security Status</h4>
+          <div style="font-size: 0.875rem;">
+            <div style="margin-bottom: 8px;">
+              <span style="color: #10b981;">●</span> Encryption: Active
+            </div>
+            <div style="margin-bottom: 8px;">
+              <span style="color: #10b981;">●</span> PII Detection: On
+            </div>
+            <div>
+              <span style="color: #10b981;">●</span> Keys: Local Only
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <!-- Forms View -->
+        <div id="view-forms">
+          <h2 style="margin-bottom: 24px;">Your Forms</h2>
+          <div id="forms-list">
+            <div class="empty-state">
+              <p>No forms yet. Create your first privacy-first form.</p>
+              <button class="btn" style="margin-top: 16px;" onclick="showCreateForm()">Create Form</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submissions View -->
+        <div id="view-submissions" style="display: none;">
+          <h2 style="margin-bottom: 24px;">Submissions</h2>
+          <p style="color: var(--text-muted); margin-bottom: 24px;">
+            Decrypted client-side in your browser. We never see plaintext data.
+          </p>
+          <div id="submissions-list">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Form</th>
+                  <th>Submitted</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="submissions-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Key Management View -->
+        <div id="view-keys" style="display: none;">
+          <h2 style="margin-bottom: 24px;">Key Management</h2>
+
+          <div class="key-warning">
+            <h4>Your Private Keys</h4>
+            <p style="font-size: 0.875rem;">Private keys are stored <strong>only in your browser</strong>. VeilForms cannot recover them. Export and backup your keys securely.</p>
+          </div>
+
+          <div id="keys-list"></div>
+
+          <div style="margin-top: 32px;">
+            <h3 style="margin-bottom: 16px;">Import Private Key</h3>
+            <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 0.875rem;">
+              Restore access to a form by importing its private key.
+            </p>
+            <div class="form-group">
+              <label>Form ID</label>
+              <input type="text" id="import-form-id" placeholder="vf-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            </div>
+            <div class="form-group">
+              <label>Private Key (JWK JSON)</label>
+              <textarea id="import-private-key" rows="4" placeholder='{"kty":"RSA",...}'></textarea>
+            </div>
+            <button class="btn" onclick="importKey()">Import Key</button>
+          </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="view-settings" style="display: none;">
+          <h2 style="margin-bottom: 24px;">Settings</h2>
+          <div class="form-group">
+            <label>Default PII Handling</label>
+            <select style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+              <option value="strip">Strip PII automatically</option>
+              <option value="warn">Warn but allow</option>
+              <option value="block">Block submissions with PII</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Data Retention</label>
+            <select style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+              <option value="30">30 days</option>
+              <option value="90">90 days</option>
+              <option value="365">1 year</option>
+              <option value="0">Forever</option>
+            </select>
+          </div>
+          <button class="btn">Save Settings</button>
+        </div>
+
+        <!-- API View -->
+        <div id="view-api" style="display: none;">
+          <h2 style="margin-bottom: 24px;">API Keys</h2>
+          <p style="color: var(--text-muted); margin-bottom: 24px;">
+            Use API keys to access submissions programmatically. Keys only access encrypted data.
+          </p>
+          <div id="api-keys-list"></div>
+          <button class="btn" style="margin-top: 16px;" onclick="generateApiKey()">Generate New Key</button>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- Create Form Modal -->
+<div class="modal-overlay" id="create-form-modal">
+  <div class="modal">
+    <h2>Create New Form</h2>
+    <p style="color: var(--text-muted); margin-bottom: 24px;">
+      A unique encryption key pair will be generated in your browser.
+    </p>
+
+    <div class="form-group">
+      <label>Form Name</label>
+      <input type="text" id="form-name" placeholder="Contact Form">
+    </div>
+
+    <div class="form-group">
+      <label>Fields (one per line)</label>
+      <textarea id="form-fields" rows="4" placeholder="name&#10;email&#10;message"></textarea>
+    </div>
+
+    <div class="key-warning">
+      <h4>Important: Save Your Private Key</h4>
+      <p style="font-size: 0.875rem;">After creation, you'll receive a private key. <strong>Store it securely.</strong> Without it, you cannot decrypt submissions. VeilForms cannot recover this key.</p>
+    </div>
+
+    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+      <button class="btn btn-outline" onclick="hideCreateForm()">Cancel</button>
+      <button class="btn" onclick="createForm()">Create Form</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import dashboard from '/js/dashboard.min.js';
+
+  // Navigation
+  document.querySelectorAll('.sidebar-nav a').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const view = e.target.dataset.view;
+
+      // Update active state
+      document.querySelectorAll('.sidebar-nav a').forEach(l => l.classList.remove('active'));
+      e.target.classList.add('active');
+
+      // Show view
+      document.querySelectorAll('[id^="view-"]').forEach(v => v.style.display = 'none');
+      document.getElementById(`view-${view}`).style.display = 'block';
+    });
+  });
+
+  // Modal functions
+  window.showCreateForm = () => {
+    document.getElementById('create-form-modal').style.display = 'flex';
+  };
+
+  window.hideCreateForm = () => {
+    document.getElementById('create-form-modal').style.display = 'none';
+  };
+
+  window.createForm = async () => {
+    const name = document.getElementById('form-name').value;
+    const fieldsText = document.getElementById('form-fields').value;
+    const fields = fieldsText.split('\n').filter(f => f.trim());
+
+    try {
+      const result = await dashboard.createForm({ name, fields });
+
+      // Show private key to user
+      alert(`Form created!\n\nIMPORTANT: Save this private key:\n\n${JSON.stringify(result.privateKey)}\n\nYou will NOT be able to decrypt submissions without it.`);
+
+      hideCreateForm();
+      loadForms();
+    } catch (e) {
+      alert('Failed to create form: ' + e.message);
+    }
+  };
+
+  window.importKey = () => {
+    const formId = document.getElementById('import-form-id').value;
+    const keyJson = document.getElementById('import-private-key').value;
+
+    try {
+      const privateKey = JSON.parse(keyJson);
+      dashboard.importPrivateKey(formId, privateKey);
+      alert('Private key imported successfully!');
+    } catch (e) {
+      alert('Invalid private key format');
+    }
+  };
+
+  // Load dashboard data
+  async function loadForms() {
+    // Demo data for now
+  }
+
+  loadForms();
+</script>
+{{ end }}

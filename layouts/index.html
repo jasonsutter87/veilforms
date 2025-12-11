@@ -1,0 +1,58 @@
+{{ define "main" }}
+<section style="padding: 100px 0; text-align: center;">
+  <div class="container">
+    <h1 style="font-size: 3.5rem; margin-bottom: 24px; line-height: 1.1;">
+      Forms that <span style="color: var(--primary);">forget faces</span>
+    </h1>
+    <p style="font-size: 1.25rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 40px;">
+      Client-side encryption. Zero PII storage. Anonymous submissions.<br>
+      GDPR compliant by design, not by policy.
+    </p>
+    <div>
+      <a href="/signup" class="btn">Start Free</a>
+      <a href="/docs" class="btn btn-outline" style="margin-left: 16px;">View Docs</a>
+    </div>
+  </div>
+</section>
+
+<section style="padding: 80px 0; background: var(--surface);">
+  <div class="container">
+    <h2 style="text-align: center; margin-bottom: 60px;">How it works</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px;">
+      <div style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 16px;">1</div>
+        <h3 style="margin-bottom: 12px;">Encrypt in browser</h3>
+        <p style="color: var(--text-muted);">Data is encrypted client-side before it ever leaves the user's device.</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 16px;">2</div>
+        <h3 style="margin-bottom: 12px;">Strip PII</h3>
+        <p style="color: var(--text-muted);">Our SDK detects and removes personally identifiable information automatically.</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 16px;">3</div>
+        <h3 style="margin-bottom: 12px;">Anonymous IDs</h3>
+        <p style="color: var(--text-muted);">Submissions get cryptographic IDs with no link to user identity.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding: 80px 0;">
+  <div class="container">
+    <h2 style="text-align: center; margin-bottom: 40px;">Quick Start</h2>
+    <pre style="background: var(--surface); padding: 24px; border-radius: 8px; overflow-x: auto; border: 1px solid var(--border);"><code>&lt;script src="https://veilforms.com/js/veilforms.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  VeilForms.init('your-form-id', {
+    encryption: true,
+    piiStrip: true
+  });
+&lt;/script&gt;
+
+&lt;form data-veilform&gt;
+  &lt;input name="feedback" placeholder="Your feedback"&gt;
+  &lt;button type="submit"&gt;Send&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+  </div>
+</section>
+{{ end }}
