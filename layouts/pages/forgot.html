@@ -1,0 +1,24 @@
+{{ define "main" }}
+<div class="auth-page">
+  <div class="auth-card">
+    <h1>Forgot password?</h1>
+    <p class="subtitle">Enter your email and we'll send you a reset link</p>
+
+    <div class="message error" id="error-message"></div>
+    <div class="message success" id="success-message"></div>
+
+    <form id="forgot-form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="email">
+      </div>
+
+      <button type="submit" class="btn" id="submit-btn">Send Reset Link</button>
+    </form>
+
+    <div class="auth-links">
+      <p>Remember your password? <a href="/login/">Sign in</a></p>
+    </div>
+  </div>
+</div>
+{{ end }}

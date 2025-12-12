@@ -1,0 +1,284 @@
+// Pricing Page Styles
+
+.pricing-hero {
+  padding: 100px 0 60px;
+  text-align: center;
+
+  h1 {
+    font-size: 3rem;
+    margin-bottom: 16px;
+  }
+
+  p {
+    color: var(--text-muted);
+    font-size: 1.25rem;
+  }
+
+  @media (max-width: 768px) {
+    padding: 60px 0 40px;
+
+    h1 {
+      font-size: 2rem;
+    }
+
+    p {
+      font-size: 1rem;
+    }
+  }
+}
+
+// Encryption Banner
+.encryption-banner {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  padding: 16px 24px;
+  text-align: center;
+  margin-bottom: 60px;
+
+  strong {
+    color: var(--success);
+  }
+
+  @media (max-width: 768px) {
+    padding: 12px 16px;
+    font-size: 0.875rem;
+    margin-bottom: 40px;
+  }
+}
+
+// Pricing Grid
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  padding: 60px 0;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 40px 0;
+  }
+}
+
+.pricing-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  position: relative;
+
+  &.featured {
+    border-color: var(--primary);
+    transform: scale(1.05);
+
+    &::before {
+      content: 'Most Popular';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: white;
+      padding: 4px 16px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    &.featured {
+      transform: none;
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 24px;
+  }
+}
+
+.plan-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.plan-description {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 24px;
+}
+
+.plan-price {
+  margin-bottom: 24px;
+
+  .amount {
+    font-size: 3rem;
+    font-weight: 700;
+  }
+
+  .period {
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .amount {
+      font-size: 2.5rem;
+    }
+  }
+}
+
+.plan-features {
+  list-style: none;
+  margin: 0 0 32px 0;
+  padding: 0;
+
+  li {
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+
+    &::before {
+      content: '\2713';
+      color: var(--success);
+      font-weight: bold;
+    }
+
+    &.disabled {
+      color: var(--text-muted);
+
+      &::before {
+        content: '\2014';
+        color: var(--text-muted);
+      }
+    }
+  }
+}
+
+// Competitor Comparison
+.competitor-compare {
+  padding: 80px 0;
+
+  h2 {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--text-muted);
+    margin-bottom: 48px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 60px 0;
+
+    h2 {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+.compare-table-wrapper {
+  @media (max-width: 768px) {
+    overflow-x: auto;
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    padding: 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th:first-child,
+  td:first-child {
+    text-align: left;
+  }
+
+  th {
+    background: var(--surface);
+  }
+
+  .veilforms {
+    background: rgba(99, 102, 241, 0.06);
+  }
+
+  .check {
+    color: var(--success);
+  }
+
+  .cross {
+    color: var(--danger);
+  }
+
+  @media (max-width: 768px) {
+    min-width: 600px;
+    font-size: 0.8rem;
+
+    th, td {
+      padding: 12px 8px;
+    }
+  }
+}
+
+// FAQ Section
+.faq {
+  padding: 80px 0;
+  background: var(--surface);
+
+  h2 {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 60px 0;
+
+    h2 {
+      margin-bottom: 32px;
+    }
+  }
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.faq-item {
+  h4 {
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    padding: 0 8px;
+  }
+}

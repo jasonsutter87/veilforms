@@ -1,0 +1,232 @@
+{{ define "main" }}
+<section class="pricing-hero">
+  <div class="container">
+    <h1>Simple, Honest Pricing</h1>
+    <p>Client-side encryption on every plan. No hidden fees. No data selling.</p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="encryption-banner">
+      <strong>Client-Side Encryption Included on All Plans</strong> — Even free. Because privacy shouldn't be a premium feature.
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-description">For side projects and testing</div>
+        <div class="plan-price">
+          <span class="amount">$0</span>
+          <span class="period">/month</span>
+        </div>
+        <ul class="plan-features">
+          <li>3 forms</li>
+          <li>100 submissions/month</li>
+          <li>Client-side encryption</li>
+          <li>PII detection</li>
+          <li>Basic analytics</li>
+          <li class="disabled">Custom branding</li>
+          <li class="disabled">API access</li>
+        </ul>
+        <a href="/register/" class="btn btn-outline btn-full">Get Started</a>
+      </div>
+
+      <!-- Pro -->
+      <div class="pricing-card featured">
+        <div class="plan-name">Pro</div>
+        <div class="plan-description">For developers and startups</div>
+        <div class="plan-price">
+          <span class="amount">$19</span>
+          <span class="period">/month</span>
+        </div>
+        <ul class="plan-features">
+          <li>25 forms</li>
+          <li>5,000 submissions/month</li>
+          <li>Client-side encryption</li>
+          <li>PII detection + stripping</li>
+          <li>Remove VeilForms branding</li>
+          <li>Custom domain</li>
+          <li>Full API access</li>
+          <li>Webhooks</li>
+        </ul>
+        <a href="/register/?plan=pro" class="btn btn-full">Start Free Trial</a>
+      </div>
+
+      <!-- Team -->
+      <div class="pricing-card">
+        <div class="plan-name">Team</div>
+        <div class="plan-description">For growing companies</div>
+        <div class="plan-price">
+          <span class="amount">$49</span>
+          <span class="period">/month</span>
+        </div>
+        <ul class="plan-features">
+          <li>Unlimited forms</li>
+          <li>25,000 submissions/month</li>
+          <li>Everything in Pro</li>
+          <li>5 team members</li>
+          <li>Priority support</li>
+          <li>Advanced analytics</li>
+          <li>Data retention controls</li>
+          <li>Audit logs</li>
+        </ul>
+        <a href="/register/?plan=team" class="btn btn-outline btn-full">Start Free Trial</a>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="pricing-card">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-description">For security-conscious orgs</div>
+        <div class="plan-price">
+          <span class="amount">Custom</span>
+        </div>
+        <ul class="plan-features">
+          <li>Unlimited everything</li>
+          <li>SSO / SAML</li>
+          <li>Dedicated support</li>
+          <li>Custom SLA</li>
+          <li>On-premise option</li>
+          <li>HIPAA BAA available</li>
+          <li>Custom integrations</li>
+          <li>Security review</li>
+        </ul>
+        <a href="/contact/" class="btn btn-outline btn-full">Contact Sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Competitor Comparison -->
+<section class="competitor-compare">
+  <div class="container">
+    <h2>Compare With Alternatives</h2>
+    <p class="subtitle">Same features, better privacy, lower price.</p>
+
+    <div class="compare-table-wrapper">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="veilforms">VeilForms Pro</th>
+            <th>Typeform Basic</th>
+            <th>Jotform Bronze</th>
+            <th>Tally Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Price</td>
+            <td class="veilforms"><strong>$19/mo</strong></td>
+            <td>$29/mo</td>
+            <td>$34/mo</td>
+            <td>$29/mo</td>
+          </tr>
+          <tr>
+            <td>Client-side encryption</td>
+            <td class="veilforms"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>Provider can read your data</td>
+            <td class="veilforms"><span class="check">No</span></td>
+            <td><span class="cross">Yes</span></td>
+            <td><span class="cross">Yes</span></td>
+            <td><span class="cross">Yes</span></td>
+          </tr>
+          <tr>
+            <td>Automatic PII stripping</td>
+            <td class="veilforms"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>You own encryption keys</td>
+            <td class="veilforms"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>Developer SDK</td>
+            <td class="veilforms"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>Forms included</td>
+            <td class="veilforms">25</td>
+            <td>Unlimited</td>
+            <td>25</td>
+            <td>Unlimited</td>
+          </tr>
+          <tr>
+            <td>Submissions/month</td>
+            <td class="veilforms">5,000</td>
+            <td>100</td>
+            <td>1,000</td>
+            <td>Unlimited*</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="text-align: center; color: var(--text-muted); font-size: 0.75rem; margin-top: 16px;">
+      * Tally's "unlimited" is subject to fair use policy
+    </p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="container">
+    <h2>Frequently Asked Questions</h2>
+
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h4>What happens if I lose my private key?</h4>
+        <p>You will not be able to decrypt past submissions. We cannot recover it—that's the point. Always backup your private keys securely. We recommend exporting them immediately after form creation.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Is client-side encryption really included for free?</h4>
+        <p>Yes. We believe privacy is a right, not a premium feature. Free plans get the same encryption as enterprise. The paid plans add volume, team features, and support.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Can you see my form submissions?</h4>
+        <p>No. We receive encrypted blobs that we cannot decrypt. Your private key never leaves your browser. Even with full server access, we see only ciphertext.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>What if you get subpoenaed?</h4>
+        <p>We can only hand over encrypted data that we cannot decrypt. Without your private key, it's meaningless. This is by design.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Do you sell or share data?</h4>
+        <p>No. We couldn't even if we wanted to—we can't read it. We make money from subscriptions, not data harvesting.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Is VeilForms GDPR compliant?</h4>
+        <p>Yes. Client-side encryption + PII stripping + anonymous IDs means we're compliant by architecture, not just policy. No personal data ever reaches our servers.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Can I self-host VeilForms?</h4>
+        <p>Enterprise plans include an on-premise option. Our encryption core is also open source if you want to build your own.</p>
+      </div>
+
+      <div class="faq-item">
+        <h4>What's the catch?</h4>
+        <p>No drag-and-drop form builder (yet). We're developer-first. If you need a visual builder, we're building one—but our SDK works great today.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{{ end }}

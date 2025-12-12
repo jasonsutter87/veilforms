@@ -1,9 +1,9 @@
 [build]
-  command = "hugo --minify"
+  command = "npm run build"
   publish = "public"
 
 [build.environment]
-  HUGO_VERSION = "0.121.0"
+  HUGO_VERSION = "0.147.4"
 
 [[redirects]]
   from = "/api/*"

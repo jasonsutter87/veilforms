@@ -1,0 +1,12 @@
+@mixin blade-padding {
+    padding: 25px 0;
+  
+    @media (min-width: 768px) {
+        padding: 50px 0;
+    }
+}
+
+#index-hero-section {
+    @include blade-padding;
+    background-color: green;
+}

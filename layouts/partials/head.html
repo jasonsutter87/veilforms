@@ -1,0 +1,40 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>
+  {{ block "title" . }}
+    {{ if .Params.PageTitle }}
+      {{ .Params.PageTitle }} | VeilForms
+    {{ else if .Params.Title }}
+      {{ .Params.Title }} | VeilForms
+    {{ else }}
+      {{ .Site.Title }}
+    {{ end }}
+  {{ end }}
+</title>
+
+<!-- Meta description -->
+<meta name="description" content="{{ .Params.description | default .Site.Params.description }}">
+
+<!-- metatags -->
+{{ partial "seo_schema" . }}
+
+<!-- Favicon -->
+<link rel="icon" href="{{ "favicon.ico" | relURL }}">
+<meta name="theme-color" content="#0a0a0f">
+
+<!-- CSS -->
+<link rel="stylesheet" href="{{ "src/css/bootstrap/bootstrap.min.css" | relURL }}">
+<link rel="stylesheet" href="{{ "src/css/shared.css" | relURL }}">
+{{ range .Params.css }}
+  <link rel="stylesheet" href="{{ "src/css/" | relURL }}{{ . }}">
+{{ end }}
+
+<!-- canonical -->
+{{ if not .Params.canonical }}
+  <link rel="canonical" href="{{ .Permalink }}">
+{{ end }}
+
+<!-- Fonts - system fonts, no external loading needed -->
+
+<!-- Site JS -->
+<script defer type="text/javascript" src="{{ .Site.BaseURL }}src/js/site.js"></script>

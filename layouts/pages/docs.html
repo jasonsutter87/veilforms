@@ -1,0 +1,57 @@
+{{ define "main" }}
+<div class="container">
+  <div class="docs-layout">
+    <!-- Mobile nav toggle -->
+    <button class="docs-mobile-toggle" onclick="toggleDocsNav()">Documentation Menu</button>
+
+    <!-- Sidebar Navigation -->
+    <aside class="docs-sidebar">
+      <nav class="docs-nav" id="docs-nav">
+        <div class="docs-nav-section">
+          <div class="docs-nav-title">Getting Started</div>
+          <a href="/docs/" class="active">Introduction</a>
+          <a href="/docs/quickstart/">Quick Start</a>
+          <a href="/docs/concepts/">Core Concepts</a>
+        </div>
+
+        <div class="docs-nav-section">
+          <div class="docs-nav-title">SDK</div>
+          <a href="/docs/sdk/installation/">Installation</a>
+          <a href="/docs/sdk/configuration/">Configuration</a>
+          <a href="/docs/sdk/encryption/">Encryption</a>
+          <a href="/docs/sdk/pii-detection/">PII Detection</a>
+          <a href="/docs/sdk/events/">Events</a>
+        </div>
+
+        <div class="docs-nav-section">
+          <div class="docs-nav-title">API Reference</div>
+          <a href="/docs/api/authentication/">Authentication</a>
+          <a href="/docs/api/forms/">Forms</a>
+          <a href="/docs/api/submissions/">Submissions</a>
+          <a href="/docs/api/webhooks/">Webhooks</a>
+        </div>
+
+        <div class="docs-nav-section">
+          <div class="docs-nav-title">Guides</div>
+          <a href="/docs/guides/key-management/">Key Management</a>
+          <a href="/docs/guides/gdpr/">GDPR Compliance</a>
+          <a href="/docs/guides/self-hosting/">Self Hosting</a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="docs-content">
+      {{ .Content }}
+    </main>
+
+    <!-- Table of Contents -->
+    <aside class="toc">
+      <div class="toc-title">On This Page</div>
+      {{ with .TableOfContents }}
+        {{ . }}
+      {{ end }}
+    </aside>
+  </div>
+</div>
+{{ end }}

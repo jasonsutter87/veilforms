@@ -3,8 +3,12 @@ languageCode = 'en-us'
 title = 'VeilForms - Privacy-First Form Builder'
 
 [params]
-  description = "Client-side encrypted forms. Zero PII storage. GDPR compliant by design."
-  tagline = "Forms that forget faces"
+CompanyName = 'VeilForms'
+repoName = 'veilforms'
+description = 'Client-side encryption. Zero PII storage. Anonymous submissions. GDPR compliant by design.'
 
-[build]
-  writeStats = true
+[environments.development]
+baseURL = 'http://localhost:1313/'
+
+[environments.production]
+baseURL = 'https://veilforms.com/'

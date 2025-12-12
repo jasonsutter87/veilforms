@@ -1,0 +1,35 @@
+{{ define "main" }}
+<div class="auth-page">
+  <div class="auth-card">
+    <h1>Create account</h1>
+    <p class="subtitle">Start building privacy-first forms</p>
+
+    <ul class="feature-list">
+      <li>Client-side encryption</li>
+      <li>Automatic PII detection</li>
+      <li>Free tier - no credit card</li>
+    </ul>
+
+    <div class="error-message" id="error-message"></div>
+
+    <form id="register-form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="new-password" minlength="8">
+        <small>At least 8 characters</small>
+      </div>
+
+      <button type="submit" class="btn" id="submit-btn">Create Account</button>
+    </form>
+
+    <div class="auth-links">
+      <p>Already have an account? <a href="/login/">Sign in</a></p>
+    </div>
+  </div>
+</div>
+{{ end }}

@@ -1,0 +1,9 @@
+{{ if or (not (isset .Params "cta")) .Params.cta }}
+  {{ partial "cta" . }}
+{{ end }}
+
+<footer class="site-footer">
+  <div class="container">
+    <p>VeilForms - Privacy-first forms by ZTA.io</p>
+  </div>
+</footer>

@@ -1,0 +1,30 @@
+{{ define "main" }}
+<div class="auth-page">
+  <div class="auth-card">
+    <h1>Reset password</h1>
+    <p class="subtitle">Enter your new password</p>
+
+    <div class="message error" id="error-message"></div>
+    <div class="message success" id="success-message"></div>
+
+    <form id="reset-form">
+      <div class="form-group">
+        <label for="password">New Password</label>
+        <input type="password" id="password" name="password" required autocomplete="new-password" minlength="8">
+        <small>At least 8 characters</small>
+      </div>
+
+      <div class="form-group">
+        <label for="confirm-password">Confirm Password</label>
+        <input type="password" id="confirm-password" name="confirm-password" required autocomplete="new-password" minlength="8">
+      </div>
+
+      <button type="submit" class="btn" id="submit-btn">Reset Password</button>
+    </form>
+
+    <div class="auth-links">
+      <p><a href="/login/">Back to login</a></p>
+    </div>
+  </div>
+</div>
+{{ end }}

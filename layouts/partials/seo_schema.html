@@ -1,0 +1,45 @@
+<!-- Primary Meta Tags -->
+{{ if .Params.PageTitle }}
+    <meta name="title" content="{{ .Params.PageTitle }}">
+{{ else }}
+    <meta name="title" content="{{ .Title }}">
+{{ end}}
+
+<meta name="description" content="{{ .Description }}">
+<meta name="summary" content="{{ .Summary }}" >
+<meta name="date" content="{{ .Date }}" >
+
+<!-- Open Graph / Facebook -->
+{{ if .Params.PageTitle}}
+<meta name="og:title" content="{{ .Params.PageTitle }}">
+{{ else }}
+<meta name="og:title" content="{{ .Title }}">
+{{ end }}
+<meta property="og:date" content="{{ .Date }}" />
+<meta property="og:description" content="{{ .Description }}">
+
+<meta property="og:image" content="{{ .Site.BaseURL }}{{ .Params.seoimage  }}">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:site_name" content="{{ .Site.Title }}" />
+<meta property="og:type" content="website">
+
+{{if eq site.BaseURL "{{ .Site.BaseURL }}/"}}
+{{- if .Params.noIndex -}}
+<meta name="robots" content="noindex, nofollow">
+{{- else -}}
+<meta name="robots" content="index, follow">
+{{- end -}}
+{{ else }}
+<meta name="robots" content="noindex, nofollow">
+{{ end }}
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="{{ .Permalink }}">
+{{ if .Params.PageTitle}}
+<meta name="twitter:title" content="{{ .Params.PageTitle }}">
+{{ else }}
+<meta name="twitter:title" content="{{ .Title }}">
+{{ end}}
+<meta name="twitter:description" content="{{ .Description }}">
+<meta name="twitter:image" content="{{ .Site.BaseURL }}{{ .Params.image  }}">

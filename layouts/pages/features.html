@@ -1,0 +1,181 @@
+{{ define "main" }}
+<section class="features-hero">
+  <div class="container">
+    <h1>Forms that don't spy.</h1>
+    <p class="lead">Client-side encryption, automatic PII detection, zero tracking. Your users' data is protected before it ever leaves their browser.</p>
+  </div>
+</section>
+
+<section class="comparison-section">
+  <div class="container">
+    <h2>Traditional forms vs VeilForms</h2>
+    <div class="comparison-grid">
+      <div class="comparison-card bad">
+        <h3>Traditional Form Builders</h3>
+        <ul>
+          <li>Receive your data in plaintext</li>
+          <li>Store data on their servers (they have the keys)</li>
+          <li>Can read, leak, or be compelled to share</li>
+          <li>Track users across sites</li>
+          <li>Sell analytics data to third parties</li>
+        </ul>
+      </div>
+      <div class="comparison-card good">
+        <h3>VeilForms</h3>
+        <ul>
+          <li>Data encrypted in user's browser</li>
+          <li>We only store ciphertext (you have the keys)</li>
+          <li>We cannot read or share your data</li>
+          <li>Zero user tracking or fingerprinting</li>
+          <li>Your data stays yours, always</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="flow-section">
+  <div class="container">
+    <h2>How it works</h2>
+    <p class="subtitle">Client-side encryption in 5 steps</p>
+    <div class="flow-container">
+      <div class="flow-step">
+        <div class="icon">📝</div>
+        <h4>User fills form</h4>
+        <p>Data exists only in their browser</p>
+      </div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">
+        <div class="icon">🔍</div>
+        <h4>PII detected</h4>
+        <p>Emails, phones, SSNs identified</p>
+      </div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">
+        <div class="icon">🔒</div>
+        <h4>Data encrypted</h4>
+        <p>RSA + AES encryption locally</p>
+      </div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">
+        <div class="icon">☁️</div>
+        <h4>Ciphertext sent</h4>
+        <p>We receive encrypted blob</p>
+      </div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">
+        <div class="icon">🔓</div>
+        <h4>You decrypt</h4>
+        <p>Using your private key</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features-grid-section">
+  <div class="container">
+    <h2>Everything you need for privacy-first forms</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="icon">🔐</div>
+        <h3>Client-Side Encryption</h3>
+        <p>RSA-2048 + AES-256 encryption happens in the browser before data is transmitted. We never see plaintext.</p>
+      </div>
+      <div class="feature-card">
+        <span class="badge">Smart</span>
+        <div class="icon">🔍</div>
+        <h3>Automatic PII Detection</h3>
+        <p>Detect emails, phones, SSNs, credit cards, and more. Optionally strip PII before encryption for extra compliance.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎭</div>
+        <h3>Anonymous IDs</h3>
+        <p>Cryptographic submission IDs with zero link to user identity. No tracking, no fingerprinting, no cookies.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔑</div>
+        <h3>You Own Your Keys</h3>
+        <p>Private keys never leave your device. We literally cannot decrypt your data even if we wanted to.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⚡</div>
+        <h3>Developer SDK</h3>
+        <p>Simple JavaScript SDK. Just add <code>data-veilform</code> to any form. Works with React, Vue, vanilla JS.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔗</div>
+        <h3>Webhooks</h3>
+        <p>Real-time notifications when forms are submitted. Decrypt on your server for custom workflows.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📊</div>
+        <h3>Analytics Dashboard</h3>
+        <p>Form views, completion rates, error tracking. All without tracking individual users.</p>
+      </div>
+      <div class="feature-card">
+        <span class="badge">Coming</span>
+        <div class="icon">🏗️</div>
+        <h3>Form Builder</h3>
+        <p>Drag-and-drop form builder with integrity checks. No code required.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🌍</div>
+        <h3>GDPR Ready</h3>
+        <p>Built for compliance. PII minimization, data portability, right to erasure all built in.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="demo-section">
+  <div class="container">
+    <h2>See it in action</h2>
+    <p class="subtitle">Type in the form and watch the encryption happen in real-time</p>
+    <div class="demo-container">
+      <div class="demo-form">
+        <h3>Contact Form Demo</h3>
+        <input type="text" id="demo-name" placeholder="Your name">
+        <input type="email" id="demo-email" placeholder="Email address">
+        <textarea id="demo-message" rows="3" placeholder="Your message"></textarea>
+        <button type="button" id="demo-encrypt">Encrypt & Preview</button>
+      </div>
+      <div class="demo-output">
+        <h3>Encrypted Output <span class="live-badge">LIVE</span></h3>
+        <pre id="demo-result"><code>{
+  <span class="key">"encrypted"</span>: <span class="highlight">true</span>,
+  <span class="key">"version"</span>: "vf-e1",
+  <span class="key">"data"</span>: "Enter data to see encryption...",
+  <span class="key">"key"</span>: "...",
+  <span class="key">"iv"</span>: "..."
+}</code></pre>
+        <p style="margin-top: 16px; font-size: 0.75rem; color: var(--text-muted);">
+          This is what we receive and store. <strong>We cannot decrypt it.</strong>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stats-section">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <h3>8KB</h3>
+        <p>SDK size (gzipped)</p>
+      </div>
+      <div class="stat-item">
+        <h3>2048</h3>
+        <p>RSA key bits</p>
+      </div>
+      <div class="stat-item">
+        <h3>256</h3>
+        <p>AES encryption bits</p>
+      </div>
+      <div class="stat-item">
+        <h3>0</h3>
+        <p>Data we can read</p>
+      </div>
+    </div>
+  </div>
+</section>
+{{ end }}
