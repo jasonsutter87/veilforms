@@ -1,4 +1,16 @@
 {{ define "main" }}
-    <meta http-equiv="refresh" content="0; URL='/resources/state-resources/'">
-    <p>Please wait while you are redirected to the new page...</p>
+<div class="container">
+  <h1>{{ .Title }}</h1>
+  {{ .Content }}
+
+  {{ if .Pages }}
+  <ul class="ul-reset">
+    {{ range .Pages }}
+    <li>
+      <a href="{{ .Permalink }}">{{ .Title }}</a>
+    </li>
+    {{ end }}
+  </ul>
+  {{ end }}
+</div>
 {{ end }}
