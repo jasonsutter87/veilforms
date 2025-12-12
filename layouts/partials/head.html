@@ -20,13 +20,12 @@
 
 <!-- Favicon -->
 <link rel="icon" href="{{ "favicon.ico" | relURL }}">
-<meta name="theme-color" content="#0a0a0f">
+<meta name="theme-color" content="#6366f1">
 
-<!-- CSS -->
-<link rel="stylesheet" href="{{ "src/css/bootstrap/bootstrap.min.css" | relURL }}">
-<link rel="stylesheet" href="{{ "src/css/shared.css" | relURL }}">
+<!-- CSS - Tailwind + Custom SCSS -->
+<link rel="stylesheet" href="{{ "css/main.css" | relURL }}">
 {{ range .Params.css }}
-  <link rel="stylesheet" href="{{ "src/css/" | relURL }}{{ . }}">
+  <link rel="stylesheet" href="{{ "css/pages/" | relURL }}{{ . }}">
 {{ end }}
 
 <!-- canonical -->
@@ -34,7 +33,10 @@
   <link rel="canonical" href="{{ .Permalink }}">
 {{ end }}
 
-<!-- Fonts - system fonts, no external loading needed -->
+<!-- Fonts - Inter -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <!-- Site JS -->
 <script defer type="text/javascript" src="{{ .Site.BaseURL }}src/js/site.js"></script>

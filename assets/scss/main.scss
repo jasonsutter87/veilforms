@@ -1,0 +1,395 @@
+// ==========================================================================
+// VEILFORMS MAIN STYLESHEET
+// Tailwind + SCSS
+// ==========================================================================
+
+@use 'shared/variables' as *;
+@use 'shared/mixins' as *;
+
+// Tailwind layers
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// ==========================================================================
+// BASE STYLES
+// ==========================================================================
+
+@layer base {
+  :root {
+    --primary: #{$primary};
+    --primary-dark: #{$primary-dark};
+    --primary-light: #{$primary-light};
+    --secondary: #{$secondary};
+    --success: #{$success};
+    --success-light: #{$success-light};
+    --danger: #{$danger};
+    --warning: #{$warning};
+    --warning-light: #{$warning-light};
+    --info: #{$info};
+    --surface: #{$surface};
+    --bg: #{$bg};
+    --border: #{$border};
+    --text: #{$text};
+    --text-muted: #{$text-muted};
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: $font-family-sans;
+    color: $text;
+    background: $bg;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: $primary;
+    text-decoration: none;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $primary-dark;
+    }
+  }
+
+  // Focus styles
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($primary, 0.3);
+  }
+
+  .sr-only {
+    @include visually-hidden;
+  }
+}
+
+// ==========================================================================
+// COMPONENTS
+// ==========================================================================
+
+@layer components {
+  // Container
+  .site-container {
+    @include container(1200px);
+  }
+
+  .site-container-340 {
+    @include container(1000px);
+  }
+
+  // Buttons
+  .btn {
+    @include btn-base;
+  }
+
+  .btn-primary {
+    @include btn-base;
+    @include btn-variant($primary);
+  }
+
+  .btn-secondary {
+    @include btn-base;
+    @include btn-variant($secondary);
+  }
+
+  .btn-success {
+    @include btn-base;
+    @include btn-variant($success);
+  }
+
+  .btn-danger {
+    @include btn-base;
+    @include btn-variant($danger);
+  }
+
+  .btn-outline {
+    @include btn-base;
+    @include btn-outline($primary);
+  }
+
+  .btn-full {
+    width: 100%;
+  }
+
+  // Cards
+  .card {
+    @include card;
+  }
+
+  // Forms
+  .form-control {
+    @include input-base;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: $font-weight-medium;
+      margin-bottom: 0.375rem;
+      color: $text;
+    }
+
+    small {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      color: $text-muted;
+    }
+
+    input, textarea, select {
+      @include input-base;
+    }
+  }
+
+  // Callouts
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: $border-radius;
+    margin: 1.5rem 0;
+
+    strong {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    &.info {
+      background: $primary-light;
+      border-left: 4px solid $primary;
+    }
+
+    &.warning {
+      background: $warning-light;
+      border-left: 4px solid $warning;
+    }
+
+    &.success {
+      background: $success-light;
+      border-left: 4px solid $success;
+    }
+  }
+
+  // Code blocks
+  pre, code {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+    font-size: 0.875rem;
+  }
+
+  pre {
+    background: $dark;
+    color: #e2e8f0;
+    padding: 1rem;
+    border-radius: $border-radius;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+
+  code {
+    background: $gray-200;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+}
+
+// ==========================================================================
+// HEADER
+// ==========================================================================
+
+.site-header {
+  background: $surface;
+  border-bottom: 1px solid $border;
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  .header-container {
+    @include container(1200px);
+    @include flex-between;
+  }
+
+  .logo {
+    font-size: 1.25rem;
+    font-weight: $font-weight-bold;
+    color: $text;
+    text-decoration: none;
+
+    .logo-veil {
+      color: $primary;
+    }
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+
+    a {
+      color: $text-muted;
+      font-size: 0.875rem;
+      font-weight: $font-weight-medium;
+      transition: color $transition-fast;
+
+      &:hover {
+        color: $text;
+      }
+    }
+
+    @media (max-width: $breakpoint-md) {
+      display: none;
+    }
+  }
+
+  .mobile-toggle {
+    display: none;
+    padding: 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+
+    @media (max-width: $breakpoint-md) {
+      display: block;
+    }
+  }
+}
+
+// ==========================================================================
+// FOOTER
+// ==========================================================================
+
+.site-footer {
+  background: $dark;
+  color: $gray-400;
+  padding: 3rem 0 1.5rem;
+  margin-top: auto;
+
+  .footer-content {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 2rem;
+
+    @media (max-width: $breakpoint-sm) {
+      flex-direction: column;
+    }
+  }
+
+  .footer-brand {
+    .logo {
+      display: block;
+      font-size: 1.25rem;
+      font-weight: $font-weight-bold;
+      color: white;
+      margin-bottom: 0.5rem;
+
+      .logo-veil {
+        color: $primary;
+      }
+    }
+
+    p {
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin: 0;
+    }
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 3rem;
+
+    @media (max-width: $breakpoint-sm) {
+      gap: 2rem;
+    }
+  }
+
+  .footer-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    h4 {
+      color: white;
+      font-size: 0.875rem;
+      font-weight: $font-weight-semibold;
+      margin-bottom: 0.5rem;
+    }
+
+    a {
+      color: $gray-400;
+      font-size: 0.875rem;
+      transition: color $transition-fast;
+
+      &:hover {
+        color: white;
+      }
+    }
+  }
+
+  .footer-bottom {
+    padding-top: 1.5rem;
+    border-top: 1px solid $gray-800;
+    text-align: center;
+    font-size: 0.75rem;
+
+    p {
+      margin: 0;
+    }
+  }
+}
+
+// ==========================================================================
+// CTA SECTION
+// ==========================================================================
+
+.cta-section {
+  background: linear-gradient(135deg, $primary 0%, $primary-dark 100%);
+  padding: 4rem 0;
+  text-align: center;
+  color: white;
+
+  h2 {
+    font-size: 2rem;
+    font-weight: $font-weight-bold;
+    margin-bottom: 0.75rem;
+
+    @include md {
+      font-size: 2.5rem;
+    }
+  }
+
+  p {
+    font-size: 1.125rem;
+    opacity: 0.9;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn {
+    background: white;
+    color: $primary;
+
+    &:hover {
+      background: $gray-100;
+    }
+  }
+}

@@ -140,6 +140,10 @@ function renderForms() {
           <span class="stat-value">${form.submissionCount || 0}</span>
           <span class="stat-label">Submissions</span>
         </div>
+        <div class="form-stat">
+          <span class="stat-value stat-time">${form.lastSubmissionAt ? formatRelativeTime(form.lastSubmissionAt) : 'Never'}</span>
+          <span class="stat-label">Last submission</span>
+        </div>
       </div>
       <div class="form-card-footer">
         <span>Created ${formatDate(form.createdAt)}</span>
@@ -221,10 +225,9 @@ async function viewFormDetail(formId) {
         Add this script to your website to enable form submissions.
       </p>
       <div class="embed-code">
-        <pre>&lt;script src="https://cdn.veilforms.com/sdk.js"&gt;&lt;/script&gt;
+        <pre>&lt;script src="https://veilforms.com/js/veilforms.min.js"&gt;&lt;/script&gt;
 &lt;script&gt;
-  VeilForms.init({
-    formId: '${form.id}',
+  VeilForms.init('${form.id}', {
     publicKey: ${JSON.stringify(form.publicKey)}
   });
 &lt;/script&gt;</pre>
@@ -659,6 +662,23 @@ function formatDate(timestamp) {
   });
 }
 
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return 'Never';
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return formatDate(timestamp);
+}
+
 // Initialize Dashboard
 function init() {
   // Check authentication
@@ -772,6 +792,216 @@ function init() {
 
   // Logout
   document.getElementById('logout-btn')?.addEventListener('click', logout);
+
+  // API Keys navigation
+  document.getElementById('nav-api-keys')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showApiKeys();
+  });
+
+  // Create API Key button
+  document.getElementById('cancel-api-key-btn')?.addEventListener('click', () => {
+    hide('create-api-key-modal');
+  });
+
+  document.getElementById('submit-api-key-btn')?.addEventListener('click', createApiKey);
+
+  // API Key created modal
+  document.getElementById('copy-api-key-btn')?.addEventListener('click', () => {
+    const key = document.getElementById('new-api-key').textContent;
+    navigator.clipboard.writeText(key);
+    document.getElementById('copy-api-key-btn').textContent = 'Copied!';
+    setTimeout(() => {
+      document.getElementById('copy-api-key-btn').textContent = 'Copy';
+    }, 2000);
+  });
+
+  document.getElementById('confirm-saved-api-key')?.addEventListener('change', (e) => {
+    document.getElementById('close-api-key-modal-btn').disabled = !e.target.checked;
+  });
+
+  document.getElementById('close-api-key-modal-btn')?.addEventListener('click', () => {
+    hide('api-key-created-modal');
+    document.getElementById('confirm-saved-api-key').checked = false;
+    document.getElementById('close-api-key-modal-btn').disabled = true;
+    loadApiKeys();
+  });
+}
+
+// API Keys State
+let apiKeys = [];
+
+// Show API Keys View
+async function showApiKeys() {
+  document.getElementById('page-title').textContent = 'API Keys';
+
+  // Update nav active state
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  document.getElementById('nav-api-keys')?.classList.add('active');
+
+  // Hide other views
+  hide('forms-grid');
+  hide('form-detail');
+  hide('submissions-view');
+  hide('empty-state');
+  show('api-keys-view');
+
+  // Hide create form button, show create key button
+  const topbarActions = document.querySelector('.topbar-actions');
+  topbarActions.innerHTML = `
+    <button class="btn btn-primary" id="create-api-key-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      New API Key
+    </button>
+  `;
+
+  document.getElementById('create-api-key-btn')?.addEventListener('click', () => {
+    show('create-api-key-modal');
+  });
+
+  await loadApiKeys();
+}
+
+// Load API Keys
+async function loadApiKeys() {
+  const view = document.getElementById('api-keys-view');
+  view.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+
+  try {
+    const data = await api('/api/api-keys/');
+    apiKeys = data.keys || [];
+    renderApiKeys();
+  } catch (err) {
+    console.error('Load API keys error:', err);
+    view.innerHTML = `
+      <div class="error-state">
+        <div class="error-icon">!</div>
+        <h2>Failed to load API keys</h2>
+        <p>${escapeHtml(err.message)}</p>
+        <button class="btn btn-secondary" onclick="loadApiKeys()">Try Again</button>
+      </div>
+    `;
+  }
+}
+
+// Render API Keys
+function renderApiKeys() {
+  const view = document.getElementById('api-keys-view');
+
+  if (apiKeys.length === 0) {
+    view.innerHTML = `
+      <div class="api-keys-empty">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64">
+            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+          </svg>
+        </div>
+        <h2>No API keys yet</h2>
+        <p>Create an API key to access VeilForms programmatically.</p>
+        <button class="btn btn-primary" onclick="document.getElementById('create-api-key-modal').style.display='block'">Create API Key</button>
+      </div>
+    `;
+    return;
+  }
+
+  view.innerHTML = `
+    <div class="api-keys-header">
+      <p class="api-keys-info">API keys allow you to access VeilForms programmatically. Keep your keys secure!</p>
+    </div>
+    <div class="api-keys-table-wrapper">
+      <table class="api-keys-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Key</th>
+            <th>Permissions</th>
+            <th>Created</th>
+            <th>Last Used</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${apiKeys.map(key => `
+            <tr data-key-id="${key.id}">
+              <td><strong>${escapeHtml(key.name)}</strong></td>
+              <td><code>${escapeHtml(key.prefix)}</code></td>
+              <td class="permissions-cell">
+                ${key.permissions.map(p => `<span class="permission-badge">${p.split(':')[1]}</span>`).join('')}
+              </td>
+              <td>${formatDate(key.createdAt)}</td>
+              <td>${key.lastUsed ? formatDate(key.lastUsed) : 'Never'}</td>
+              <td>
+                <button class="btn-revoke" title="Revoke key" data-key-id="${key.id}" data-key-name="${escapeHtml(key.name)}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  // Add revoke handlers
+  view.querySelectorAll('.btn-revoke').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const keyId = btn.dataset.keyId;
+      const keyName = btn.dataset.keyName;
+      if (confirm(`Are you sure you want to revoke "${keyName}"? This cannot be undone.`)) {
+        revokeApiKey(keyId);
+      }
+    });
+  });
+}
+
+// Create API Key
+async function createApiKey() {
+  const name = document.getElementById('api-key-name').value.trim();
+  const checkboxes = document.querySelectorAll('#create-api-key-form input[name="permissions"]:checked');
+  const permissions = Array.from(checkboxes).map(cb => cb.value);
+
+  if (!name) {
+    alert('Please enter a key name');
+    return;
+  }
+
+  if (permissions.length === 0) {
+    alert('Please select at least one permission');
+    return;
+  }
+
+  try {
+    const data = await api('/api/api-keys/', {
+      method: 'POST',
+      body: JSON.stringify({ name, permissions })
+    });
+
+    // Hide create modal
+    hide('create-api-key-modal');
+    document.getElementById('create-api-key-form').reset();
+
+    // Show the key
+    document.getElementById('new-api-key').textContent = data.key.key;
+    show('api-key-created-modal');
+  } catch (err) {
+    alert('Failed to create API key: ' + err.message);
+  }
+}
+
+// Revoke API Key
+async function revokeApiKey(keyId) {
+  try {
+    await api(`/api/api-keys/${keyId}`, { method: 'DELETE' });
+    await loadApiKeys();
+  } catch (err) {
+    alert('Failed to revoke API key: ' + err.message);
+  }
 }
 
 // Start

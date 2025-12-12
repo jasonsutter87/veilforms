@@ -1,6 +1,3 @@
 {{ range .Params.js }}
   <script defer src="{{ "src/js/" | relURL }}{{ . }}"></script>
 {{ end }}
-
-<script defer src="{{ "src/js/bootstrap/popper.min.js" | relURL }}"></script>
-<script defer src="{{ "src/js/bootstrap/bootstrap.min.js" | relURL }}"></script>

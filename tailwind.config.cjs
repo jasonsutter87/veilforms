@@ -1,0 +1,60 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./layouts/**/*.html",
+    "./content/**/*.{html,md}",
+    "./assets/**/*.js",
+    "./assets/scss/**/*.scss",
+  ],
+  safelist: [
+    { pattern: /^(w|h)-(full|auto|1\/2|1\/3|2\/3|1\/4|3\/4)$/ },
+    { pattern: /^(sm|md|lg|xl):w-(full|1\/2|1\/3|1\/4)$/ },
+    { pattern: /^(p|m|py|px|my|mx|pt|pb|mt|mb)-[0-8]$/ },
+    { pattern: /^(md|lg):(py|px|p|m|mt|mb)-[0-8]$/ },
+    { pattern: /^gap-[0-6]$/ },
+    { pattern: /^text-(xs|sm|base|lg|xl|2xl|3xl)$/ },
+    { pattern: /^font-(normal|medium|semibold|bold)$/ },
+    { pattern: /^(hidden|block|flex|grid)$/ },
+    { pattern: /^(md|lg):(hidden|block|flex)$/ },
+    { pattern: /^text-(left|center|right)$/ },
+    { pattern: /^(md|lg):text-(left|center|right)$/ },
+    { pattern: /^bg-(gray|red|green|blue|emerald|purple)-(500|600|700|800)$/ },
+    { pattern: /^text-gray-(300|400|500|600|700)$/ },
+    'bg-white', 'bg-black', 'bg-transparent',
+    'text-white', 'text-black',
+    'focus:outline-none', 'focus:ring-2', 'focus:ring-white', 'focus:ring-offset-2',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        'primary': '#6366f1',
+        'primary-dark': '#4f46e5',
+        'secondary': '#64748b',
+        'success': '#10b981',
+        'danger': '#ef4444',
+        'warning': '#f59e0b',
+        'info': '#0ea5e9',
+        'light': '#f8fafc',
+        'dark': '#0f172a',
+        'surface': '#ffffff',
+        'border': '#e2e8f0',
+        'text': '#1e293b',
+        'text-muted': '#64748b',
+      },
+      fontFamily: {
+        'sans': ['Inter', 'system-ui', 'sans-serif'],
+      },
+      maxWidth: {
+        '1340': '1340px',
+      },
+    },
+    screens: {
+      'sm': '576px',
+      'md': '768px',
+      'lg': '992px',
+      'xl': '1200px',
+      'xxl': '1400px',
+    },
+  },
+  plugins: [],
+}

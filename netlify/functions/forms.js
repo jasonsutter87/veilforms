@@ -19,6 +19,7 @@ import {
   getSubmissions
 } from './lib/storage.js';
 import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
+import { logAudit, AuditEvents, getAuditContext } from './lib/audit.js';
 
 // CORS headers
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
@@ -91,6 +92,9 @@ export default async function handler(req, context) {
   const action = pathParts[1]; // 'stats' or 'regenerate-keys'
 
   try {
+    // Get audit context for logging
+    const auditCtx = getAuditContext(req, context);
+
     // Handle list forms (GET /api/forms)
     if (req.method === 'GET' && !formId) {
       return handleListForms(auth.user.id, headers);
@@ -98,7 +102,7 @@ export default async function handler(req, context) {
 
     // Handle create form (POST /api/forms)
     if (req.method === 'POST' && !formId) {
-      return handleCreateForm(req, auth.user.id, headers);
+      return handleCreateForm(req, auth.user.id, headers, auditCtx);
     }
 
     // Validate formId format for all other operations
@@ -135,15 +139,15 @@ export default async function handler(req, context) {
     }
 
     if (req.method === 'PUT') {
-      return handleUpdateForm(req, formId, form, headers);
+      return handleUpdateForm(req, formId, form, auth.user.id, headers, auditCtx);
     }
 
     if (req.method === 'DELETE') {
-      return handleDeleteForm(formId, auth.user.id, headers);
+      return handleDeleteForm(formId, auth.user.id, headers, auditCtx);
     }
 
     if (req.method === 'POST' && action === 'regenerate-keys') {
-      return handleRegenerateKeys(formId, headers);
+      return handleRegenerateKeys(formId, auth.user.id, headers, auditCtx);
     }
 
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -195,7 +199,7 @@ async function handleListForms(userId, headers) {
 /**
  * POST /api/forms - Create new form
  */
-async function handleCreateForm(req, userId, headers) {
+async function handleCreateForm(req, userId, headers, auditCtx) {
   const body = await req.json();
   const { name, settings } = body;
 
@@ -216,7 +220,7 @@ async function handleCreateForm(req, userId, headers) {
   // Generate encryption keys
   const { publicKey, privateKey } = await generateKeyPair();
 
-  // Create form
+  // Create form with all settings including branding and retention
   const form = await createForm(userId, {
     name: name.trim(),
     publicKey,
@@ -226,9 +230,26 @@ async function handleCreateForm(req, userId, headers) {
       webhookUrl: settings?.webhookUrl || null,
       webhookSecret: settings?.webhookSecret || null,
       allowedOrigins: settings?.allowedOrigins || ['*'],
+      // Branding settings (Pro+ only)
+      branding: {
+        hideBranding: settings?.branding?.hideBranding || false,
+        customColor: settings?.branding?.customColor || null,
+        customLogo: settings?.branding?.customLogo || null
+      },
+      // Data retention settings (Team+ only)
+      retention: {
+        enabled: settings?.retention?.enabled || false,
+        days: settings?.retention?.days || 90
+      },
       ...settings
     }
   });
+
+  // Log audit event
+  await logAudit(userId, AuditEvents.FORM_CREATED, {
+    formId: form.id,
+    formName: form.name
+  }, auditCtx);
 
   return new Response(JSON.stringify({
     form: {
@@ -272,11 +293,12 @@ async function handleGetForm(form, headers) {
 /**
  * PUT /api/forms/:id - Update form
  */
-async function handleUpdateForm(req, formId, form, headers) {
+async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
   const body = await req.json();
   const { name, status, settings } = body;
 
   const updates = {};
+  const changes = [];
 
   if (name !== undefined) {
     if (typeof name !== 'string' || name.trim().length === 0) {
@@ -292,6 +314,7 @@ async function handleUpdateForm(req, formId, form, headers) {
       });
     }
     updates.name = name.trim();
+    changes.push('name');
   }
 
   if (status !== undefined) {
@@ -302,6 +325,7 @@ async function handleUpdateForm(req, formId, form, headers) {
       });
     }
     updates.status = status;
+    changes.push('status');
   }
 
   if (settings !== undefined) {
@@ -331,9 +355,47 @@ async function handleUpdateForm(req, formId, form, headers) {
         });
       }
     }
+
+    // Validate branding settings
+    if (settings.branding) {
+      if (settings.branding.customColor && !/^#[0-9A-Fa-f]{6}$/.test(settings.branding.customColor)) {
+        return new Response(JSON.stringify({ error: 'Invalid branding color format (use #RRGGBB)' }), {
+          status: 400,
+          headers
+        });
+      }
+      updates.settings.branding = {
+        ...form.settings?.branding,
+        ...settings.branding
+      };
+      changes.push('branding');
+    }
+
+    // Validate retention settings
+    if (settings.retention) {
+      if (settings.retention.days && (settings.retention.days < 1 || settings.retention.days > 365)) {
+        return new Response(JSON.stringify({ error: 'Retention days must be between 1 and 365' }), {
+          status: 400,
+          headers
+        });
+      }
+      updates.settings.retention = {
+        ...form.settings?.retention,
+        ...settings.retention
+      };
+      changes.push('retention');
+    }
+
+    changes.push('settings');
   }
 
   const updated = await updateForm(formId, updates);
+
+  // Log audit event
+  await logAudit(userId, AuditEvents.FORM_UPDATED, {
+    formId,
+    changes
+  }, auditCtx);
 
   return new Response(JSON.stringify({
     form: {
@@ -356,12 +418,17 @@ async function handleUpdateForm(req, formId, form, headers) {
 /**
  * DELETE /api/forms/:id - Soft delete form
  */
-async function handleDeleteForm(formId, userId, headers) {
+async function handleDeleteForm(formId, userId, headers, auditCtx) {
   // Soft delete by marking status
   await updateForm(formId, {
     status: 'deleted',
     deletedAt: new Date().toISOString()
   });
+
+  // Log audit event
+  await logAudit(userId, AuditEvents.FORM_DELETED, {
+    formId
+  }, auditCtx);
 
   return new Response(JSON.stringify({
     success: true,
@@ -377,7 +444,7 @@ async function handleDeleteForm(formId, userId, headers) {
  */
 async function handleGetStats(formId, form, headers) {
   // Get recent submissions for additional stats
-  const result = await getSubmissions(formId, 100, 0);
+  const result = await getSubmissions(formId, 500, 0);
 
   // Calculate stats
   const now = Date.now();
@@ -389,6 +456,46 @@ async function handleGetStats(formId, form, headers) {
   const last7d = result.submissions.filter(s => (s.timestamp || s.receivedAt) > oneWeekAgo).length;
   const last30d = result.submissions.filter(s => (s.timestamp || s.receivedAt) > oneMonthAgo).length;
 
+  // Calculate daily breakdown for last 7 days (for charts)
+  const dailyBreakdown = [];
+  for (let i = 6; i >= 0; i--) {
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    dayStart.setDate(dayStart.getDate() - i);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const count = result.submissions.filter(s => {
+      const ts = s.timestamp || s.receivedAt;
+      return ts >= dayStart.getTime() && ts < dayEnd.getTime();
+    }).length;
+
+    dailyBreakdown.push({
+      date: dayStart.toISOString().split('T')[0],
+      count
+    });
+  }
+
+  // Calculate region breakdown (if available)
+  const regionCounts = {};
+  result.submissions.forEach(s => {
+    const region = s.meta?.region || 'unknown';
+    regionCounts[region] = (regionCounts[region] || 0) + 1;
+  });
+
+  // Top 5 regions
+  const topRegions = Object.entries(regionCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([region, count]) => ({ region, count }));
+
+  // SDK version breakdown
+  const sdkVersionCounts = {};
+  result.submissions.forEach(s => {
+    const version = s.meta?.sdkVersion || s.meta?.version || 'unknown';
+    sdkVersionCounts[version] = (sdkVersionCounts[version] || 0) + 1;
+  });
+
   return new Response(JSON.stringify({
     formId,
     stats: {
@@ -397,7 +504,11 @@ async function handleGetStats(formId, form, headers) {
       last7d,
       last30d,
       lastSubmissionAt: form.lastSubmissionAt || null,
-      createdAt: form.createdAt
+      createdAt: form.createdAt,
+      // Advanced analytics
+      dailyBreakdown,
+      topRegions,
+      sdkVersions: Object.entries(sdkVersionCounts).map(([version, count]) => ({ version, count }))
     }
   }), {
     status: 200,
@@ -408,7 +519,7 @@ async function handleGetStats(formId, form, headers) {
 /**
  * POST /api/forms/:id/regenerate-keys - Regenerate encryption keys
  */
-async function handleRegenerateKeys(formId, headers) {
+async function handleRegenerateKeys(formId, userId, headers, auditCtx) {
   // Generate new encryption keys
   const { publicKey, privateKey } = await generateKeyPair();
 
@@ -417,6 +528,12 @@ async function handleRegenerateKeys(formId, headers) {
     publicKey,
     keyRotatedAt: new Date().toISOString()
   });
+
+  // Log audit event (critical security action)
+  await logAudit(userId, AuditEvents.FORM_KEYS_REGENERATED, {
+    formId,
+    keyRotatedAt: updated.keyRotatedAt
+  }, auditCtx);
 
   return new Response(JSON.stringify({
     form: {

@@ -5,14 +5,27 @@
   "main": "src/client/veilforms.js",
   "type": "module",
   "scripts": {
-    "dev": "npm run build:scss && hugo server -D",
-    "build": "npm run build:scss && hugo --minify",
-    "build:scss": "sass assets/src/scss/shared/shared.scss:static/src/css/shared.css assets/src/scss/pages/home.scss:static/src/css/home.css assets/src/scss/pages/features.scss:static/src/css/features.css assets/src/scss/pages/pricing.scss:static/src/css/pricing.css assets/src/scss/pages/auth.scss:static/src/css/auth.css assets/src/scss/pages/docs.scss:static/src/css/docs.css assets/src/scss/pages/dashboard.scss:static/src/css/dashboard.css assets/src/scss/pages/demo.scss:static/src/css/demo.css --style=compressed",
-    "build:sdk": "esbuild src/client/veilforms.js --bundle --minify --outfile=static/js/veilforms.min.js --format=iife --global-name=VeilForms",
+    "dev": "concurrently \"npm run watch:scss\" \"npm run watch:scss:pages\" \"npm run watch:css\" \"npm run watch:css:pages\" \"hugo server -D\"",
+    "dev:full": "npm run css:rebuild && npm run build:sdk && hugo server -D",
+    "build": "npm run build:scss && npm run build:scss:pages && npm run build:css && npm run build:css:pages && npm run build:sdk && hugo --gc --minify",
+
+    "build:scss": "sass assets/scss/main.scss assets/css/main.css --no-source-map",
+    "build:scss:pages": "sass assets/scss/pages:assets/css/pages --no-source-map",
+    "watch:scss": "sass assets/scss/main.scss assets/css/main.css --watch",
+    "watch:scss:pages": "sass assets/scss/pages:assets/css/pages --watch",
+
+    "build:css": "postcss assets/css/main.css -o static/css/main.css",
+    "build:css:pages": "postcss assets/css/pages/*.css --dir static/css/pages --base assets/css/pages",
+    "watch:css": "postcss assets/css/main.css -o static/css/main.css --watch",
+    "watch:css:pages": "postcss assets/css/pages/*.css --dir static/css/pages --base assets/css/pages --watch",
+
+    "css:rebuild": "npm run build:scss && npm run build:scss:pages && npm run build:css && npm run build:css:pages",
+
+    "build:sdk": "esbuild src/client/veilforms.js --bundle --minify --outfile=static/js/veilforms.min.js --format=iife --global-name=VeilForms && esbuild src/client/veilforms.js --bundle --minify --outfile=static/js/veilforms.esm.js --format=esm",
+
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
-    "test:all": "npm test && cd netlify/functions && npm test"
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
   },
   "keywords": [
     "forms",
@@ -27,9 +40,14 @@
     "@netlify/blobs": "^7.0.0"
   },
   "devDependencies": {
+    "autoprefixer": "^10.4.22",
+    "concurrently": "^9.2.1",
     "esbuild": "^0.19.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "sass": "^1.69.0"
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
+    "sass": "^1.69.0",
+    "tailwindcss": "^3.4.19"
   }
 }

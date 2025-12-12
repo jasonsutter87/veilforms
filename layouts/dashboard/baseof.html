@@ -35,6 +35,12 @@
             </svg>
             Submissions
           </a>
+          <a href="/dashboard/#api-keys" class="nav-item" data-page="api-keys" id="nav-api-keys">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+            </svg>
+            API Keys
+          </a>
           <a href="/dashboard/#settings" class="nav-item" data-page="settings">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"></circle>
@@ -112,6 +118,9 @@
 
           <!-- Submissions View -->
           <div class="submissions-view" id="submissions-view" style="display: none;"></div>
+
+          <!-- API Keys View -->
+          <div class="api-keys-view" id="api-keys-view" style="display: none;"></div>
         </div>
       </div>
     </div>
@@ -223,6 +232,69 @@
         <div class="modal-footer">
           <button class="btn btn-secondary modal-close-btn">Cancel</button>
           <button class="btn btn-primary" id="decrypt-btn">Decrypt</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create API Key Modal -->
+    <div class="modal" id="create-api-key-modal" style="display: none;">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Create API Key</h2>
+          <button class="modal-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="create-api-key-form">
+            <div class="form-group">
+              <label for="api-key-name">Key Name</label>
+              <input type="text" id="api-key-name" name="name" required placeholder="e.g., Production Server" maxlength="50">
+              <small>A descriptive name to identify this key</small>
+            </div>
+            <div class="form-group">
+              <label>Permissions</label>
+              <div class="checkbox-group">
+                <label><input type="checkbox" name="permissions" value="forms:read" checked> Read forms</label>
+                <label><input type="checkbox" name="permissions" value="forms:write" checked> Create/update forms</label>
+                <label><input type="checkbox" name="permissions" value="submissions:read" checked> Read submissions</label>
+                <label><input type="checkbox" name="permissions" value="submissions:delete"> Delete submissions</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancel-api-key-btn">Cancel</button>
+          <button class="btn btn-primary" id="submit-api-key-btn">Create Key</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key Created Modal -->
+    <div class="modal" id="api-key-created-modal" style="display: none;">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-warning">
+        <div class="modal-header">
+          <h2>API Key Created</h2>
+        </div>
+        <div class="modal-body">
+          <div class="warning-box">
+            <strong>Copy this key now!</strong>
+            <p>This is the only time you'll see this API key. We cannot recover it.</p>
+          </div>
+          <div class="form-group">
+            <label>Your API Key</label>
+            <div class="api-key-display">
+              <code id="new-api-key"></code>
+              <button class="btn btn-secondary" id="copy-api-key-btn">Copy</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <label class="confirm-save">
+            <input type="checkbox" id="confirm-saved-api-key">
+            I have copied my API key
+          </label>
+          <button class="btn btn-primary" id="close-api-key-modal-btn" disabled>Done</button>
         </div>
       </div>
     </div>

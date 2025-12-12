@@ -1,0 +1,76 @@
+// ==========================================================================
+// VEILFORMS VARIABLES
+// ==========================================================================
+
+// Brand Colors
+$primary: #6366f1;
+$primary-dark: #4f46e5;
+$primary-light: #eef2ff;
+$secondary: #64748b;
+$success: #10b981;
+$success-light: #d1fae5;
+$danger: #ef4444;
+$warning: #f59e0b;
+$warning-light: #fef3c7;
+$info: #0ea5e9;
+$light: #f8fafc;
+$dark: #0f172a;
+
+// UI Colors
+$surface: #ffffff;
+$bg: #f8fafc;
+$border: #e2e8f0;
+$text: #1e293b;
+$text-muted: #64748b;
+
+// Grays
+$gray-100: #f8fafc;
+$gray-200: #f1f5f9;
+$gray-300: #e2e8f0;
+$gray-400: #cbd5e1;
+$gray-500: #94a3b8;
+$gray-600: #64748b;
+$gray-700: #475569;
+$gray-800: #334155;
+$gray-900: #1e293b;
+
+// Typography
+$font-family-sans: 'Inter', system-ui, sans-serif;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// Spacing (Bootstrap scale)
+$spacer: 1rem;
+$spacers: (
+  0: 0,
+  1: $spacer * 0.25,
+  2: $spacer * 0.5,
+  3: $spacer,
+  4: $spacer * 1.5,
+  5: $spacer * 3
+);
+
+// Breakpoints
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;
+$breakpoint-xxl: 1400px;
+
+// Borders
+$border-radius: 0.5rem;
+$border-radius-sm: 0.375rem;
+$border-radius-lg: 0.75rem;
+
+// Shadows
+$shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+$shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+$shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+$shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+// Transitions
+$transition-fast: 150ms ease;
+$transition-base: 300ms ease;
+$transition-slow: 500ms ease;

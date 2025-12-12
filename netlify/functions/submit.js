@@ -117,11 +117,19 @@ export default async function handler(req, context) {
     }
 
     // Validate encrypted payload structure
-    if (!payload.encrypted || !payload.encryptedKey || !payload.iv || !payload.version) {
+    // SDK sends 'key', normalize to 'encryptedKey' for consistency
+    const encryptedKey = payload.encryptedKey || payload.key;
+    if (!payload.encrypted || !encryptedKey || !payload.iv || !payload.version) {
       return new Response(JSON.stringify({ error: 'Invalid encrypted payload structure' }), {
         status: 400,
         headers
       });
+    }
+
+    // Normalize payload to use encryptedKey
+    if (payload.key && !payload.encryptedKey) {
+      payload.encryptedKey = payload.key;
+      delete payload.key;
     }
 
     // Get blob store for this form

@@ -228,10 +228,8 @@ const VeilForms = (function() {
   };
 })();
 
-// UMD export
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = VeilForms;
-} else if (typeof window !== 'undefined') {
+// Browser global
+if (typeof window !== 'undefined') {
   window.VeilForms = VeilForms;
 }
 

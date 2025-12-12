@@ -1,0 +1,170 @@
+// ==========================================================================
+// CONTACT PAGE STYLES
+// ==========================================================================
+
+@use '../shared/variables' as *;
+@use '../shared/mixins' as *;
+
+.contact-hero {
+  background: linear-gradient(135deg, $primary 0%, $primary-dark 100%);
+  padding: 4rem 0;
+  text-align: center;
+  color: white;
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: $font-weight-bold;
+    margin-bottom: 0.5rem;
+
+    @include md {
+      font-size: 3rem;
+    }
+  }
+
+  p {
+    font-size: 1.125rem;
+    opacity: 0.9;
+  }
+}
+
+.contact-section {
+  padding: 4rem 0;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+
+  @include md {
+    grid-template-columns: 1.5fr 1fr;
+  }
+}
+
+.contact-form-wrapper {
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $border-radius-lg;
+  padding: 2rem;
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: $font-weight-semibold;
+    margin-bottom: 1.5rem;
+    color: $text;
+  }
+}
+
+.contact-form {
+  .form-group {
+    margin-bottom: 1.25rem;
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: $font-weight-medium;
+      margin-bottom: 0.375rem;
+      color: $text;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      border: 1px solid $border;
+      border-radius: $border-radius;
+      background: $surface;
+      transition: border-color $transition-fast, box-shadow $transition-fast;
+
+      &:focus {
+        outline: none;
+        border-color: $primary;
+        box-shadow: 0 0 0 3px rgba($primary, 0.15);
+      }
+
+      &::placeholder {
+        color: $gray-400;
+      }
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+  }
+
+  .btn {
+    margin-top: 0.5rem;
+  }
+}
+
+.form-message {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: $border-radius;
+  text-align: center;
+
+  strong {
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  p {
+    font-size: 0.875rem;
+    margin: 0;
+  }
+
+  &.success {
+    background: $success-light;
+    border: 1px solid $success;
+    color: darken($success, 10%);
+  }
+
+  &.error {
+    background: rgba($danger, 0.1);
+    border: 1px solid $danger;
+    color: $danger;
+  }
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.info-card {
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $border-radius;
+  padding: 1.5rem;
+
+  h3 {
+    font-size: 1rem;
+    font-weight: $font-weight-semibold;
+    margin-bottom: 0.5rem;
+    color: $text;
+  }
+
+  p {
+    font-size: 0.875rem;
+    color: $text-muted;
+    margin-bottom: 0.5rem;
+  }
+
+  a:not(.btn) {
+    font-size: 0.875rem;
+    color: $primary;
+    font-weight: $font-weight-medium;
+
+    &:hover {
+      color: $primary-dark;
+    }
+  }
+
+  .btn {
+    margin-top: 0.5rem;
+  }
+}

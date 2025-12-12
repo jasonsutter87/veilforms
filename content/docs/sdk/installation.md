@@ -85,9 +85,8 @@ VeilForms.init('vf-abc123', {
 
 | Build | Size | Gzipped |
 |-------|------|---------|
-| UMD (veilforms.min.js) | 24KB | 8KB |
-| ESM (veilforms.esm.js) | 22KB | 7KB |
-| CommonJS | 23KB | 8KB |
+| IIFE (veilforms.min.js) | 5.4KB | ~2KB |
+| ESM (veilforms.esm.js) | 4.9KB | ~2KB |
 
 ## Browser Support
 
@@ -104,13 +103,7 @@ The SDK uses the Web Crypto API for encryption:
 
 ### Legacy Browser Support
 
-For browsers without Web Crypto API support, include the polyfill:
-
-```html
-<script src="https://veilforms.com/js/veilforms-legacy.min.js"></script>
-```
-
-This adds ~15KB but provides identical functionality and security.
+Browsers without Web Crypto API (IE11, older mobile browsers) are not supported. The SDK requires modern browser features for secure client-side encryption. All major browsers released after 2017 are fully supported.
 
 ## Framework Integration
 
@@ -287,17 +280,21 @@ connect-src 'self' https://veilforms.com;
 
 ## Subresource Integrity
 
-For extra security, use SRI:
+For extra security, use SRI. Generate the hash from your deployed SDK:
+
+```bash
+curl -s https://veilforms.com/js/veilforms.min.js | openssl dgst -sha384 -binary | openssl base64 -A
+```
+
+Then use it in your script tag:
 
 ```html
 <script
   src="https://veilforms.com/js/veilforms.min.js"
-  integrity="sha384-..."
+  integrity="sha384-YOUR_HASH_HERE"
   crossorigin="anonymous">
 </script>
 ```
-
-Get the current SRI hash from [veilforms.com/integrity](https://veilforms.com/integrity).
 
 ## Next Steps
 
