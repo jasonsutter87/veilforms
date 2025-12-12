@@ -1,3 +1,0 @@
-# Ignore test files from Netlify functions
-netlify/functions/__tests__
-netlify/functions/jest.config.js
