@@ -31,6 +31,8 @@ export async function createUser(email, passwordHash) {
     emailVerifiedAt: null
   };
   await users.setJSON(email.toLowerCase(), user);
+  // Store userId -> email mapping for reverse lookup
+  await users.setJSON(`id_${userId}`, { email: email.toLowerCase() });
   return user;
 }
 
@@ -38,6 +40,21 @@ export async function getUser(email) {
   const users = store(STORES.USERS);
   try {
     return await users.get(email.toLowerCase(), { type: 'json' });
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function getUserById(userId) {
+  const users = store(STORES.USERS);
+  try {
+    // User ID includes a reference, look up by scanning or use index
+    // For efficiency, we store a userId -> email mapping
+    const mapping = await users.get(`id_${userId}`, { type: 'json' });
+    if (mapping?.email) {
+      return await getUser(mapping.email);
+    }
+    return null;
   } catch (e) {
     return null;
   }

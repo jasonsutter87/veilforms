@@ -364,6 +364,29 @@ async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
           headers
         });
       }
+      // Validate customLogo URL
+      if (settings.branding.customLogo && settings.branding.customLogo !== '') {
+        if (settings.branding.customLogo.length > 2048) {
+          return new Response(JSON.stringify({ error: 'Logo URL too long (max 2048 characters)' }), {
+            status: 400,
+            headers
+          });
+        }
+        try {
+          const logoUrl = new URL(settings.branding.customLogo);
+          if (!['http:', 'https:'].includes(logoUrl.protocol)) {
+            return new Response(JSON.stringify({ error: 'Logo URL must use HTTP or HTTPS protocol' }), {
+              status: 400,
+              headers
+            });
+          }
+        } catch {
+          return new Response(JSON.stringify({ error: 'Invalid logo URL format' }), {
+            status: 400,
+            headers
+          });
+        }
+      }
       updates.settings.branding = {
         ...form.settings?.branding,
         ...settings.branding
@@ -441,60 +464,75 @@ async function handleDeleteForm(formId, userId, headers, auditCtx) {
 
 /**
  * GET /api/forms/:id/stats - Form statistics
+ * Optimized single-pass algorithm for calculating all metrics
  */
 async function handleGetStats(formId, form, headers) {
   // Get recent submissions for additional stats
   const result = await getSubmissions(formId, 500, 0);
 
-  // Calculate stats
+  // Pre-calculate time boundaries
   const now = Date.now();
   const oneDayAgo = now - 24 * 60 * 60 * 1000;
   const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
   const oneMonthAgo = now - 30 * 24 * 60 * 60 * 1000;
 
-  const last24h = result.submissions.filter(s => (s.timestamp || s.receivedAt) > oneDayAgo).length;
-  const last7d = result.submissions.filter(s => (s.timestamp || s.receivedAt) > oneWeekAgo).length;
-  const last30d = result.submissions.filter(s => (s.timestamp || s.receivedAt) > oneMonthAgo).length;
-
-  // Calculate daily breakdown for last 7 days (for charts)
-  const dailyBreakdown = [];
+  // Pre-calculate day boundaries for daily breakdown
+  const dayBoundaries = [];
   for (let i = 6; i >= 0; i--) {
     const dayStart = new Date();
     dayStart.setHours(0, 0, 0, 0);
     dayStart.setDate(dayStart.getDate() - i);
-    const dayEnd = new Date(dayStart);
-    dayEnd.setDate(dayEnd.getDate() + 1);
-
-    const count = result.submissions.filter(s => {
-      const ts = s.timestamp || s.receivedAt;
-      return ts >= dayStart.getTime() && ts < dayEnd.getTime();
-    }).length;
-
-    dailyBreakdown.push({
-      date: dayStart.toISOString().split('T')[0],
-      count
+    dayBoundaries.push({
+      start: dayStart.getTime(),
+      end: dayStart.getTime() + 24 * 60 * 60 * 1000,
+      date: dayStart.toISOString().split('T')[0]
     });
   }
 
-  // Calculate region breakdown (if available)
+  // Single pass through submissions - O(n) instead of O(n*k)
+  let last24h = 0;
+  let last7d = 0;
+  let last30d = 0;
+  const dailyCounts = new Array(7).fill(0);
   const regionCounts = {};
-  result.submissions.forEach(s => {
-    const region = s.meta?.region || 'unknown';
+  const sdkVersionCounts = {};
+
+  for (const submission of result.submissions) {
+    const ts = submission.timestamp || submission.receivedAt;
+
+    // Time-based counts
+    if (ts > oneDayAgo) last24h++;
+    if (ts > oneWeekAgo) last7d++;
+    if (ts > oneMonthAgo) last30d++;
+
+    // Daily breakdown - find which day bucket
+    for (let i = 0; i < dayBoundaries.length; i++) {
+      if (ts >= dayBoundaries[i].start && ts < dayBoundaries[i].end) {
+        dailyCounts[i]++;
+        break;
+      }
+    }
+
+    // Region counts
+    const region = submission.meta?.region || 'unknown';
     regionCounts[region] = (regionCounts[region] || 0) + 1;
-  });
+
+    // SDK version counts
+    const version = submission.meta?.sdkVersion || submission.meta?.version || 'unknown';
+    sdkVersionCounts[version] = (sdkVersionCounts[version] || 0) + 1;
+  }
+
+  // Build daily breakdown array
+  const dailyBreakdown = dayBoundaries.map((day, i) => ({
+    date: day.date,
+    count: dailyCounts[i]
+  }));
 
   // Top 5 regions
   const topRegions = Object.entries(regionCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([region, count]) => ({ region, count }));
-
-  // SDK version breakdown
-  const sdkVersionCounts = {};
-  result.submissions.forEach(s => {
-    const version = s.meta?.sdkVersion || s.meta?.version || 'unknown';
-    sdkVersionCounts[version] = (sdkVersionCounts[version] || 0) + 1;
-  });
 
   return new Response(JSON.stringify({
     formId,

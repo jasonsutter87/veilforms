@@ -4,7 +4,7 @@
  */
 
 import { getStore } from '@netlify/blobs';
-import { getForm, updateForm } from './lib/storage.js';
+import { getForm, updateForm, getUserById } from './lib/storage.js';
 import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
 
 // Subscription limits
@@ -103,13 +103,16 @@ export default async function handler(req, context) {
       }
     }
 
-    // Check submission limits
-    const limit = SUBMISSION_LIMITS[form.subscription || 'free'] || SUBMISSION_LIMITS.free;
+    // Check submission limits based on user's subscription
+    const user = await getUserById(form.userId);
+    const subscription = user?.subscription || 'free';
+    const limit = SUBMISSION_LIMITS[subscription] || SUBMISSION_LIMITS.free;
     if (form.submissionCount >= limit) {
       return new Response(JSON.stringify({
         error: 'Submission limit reached for this form',
         limit,
-        current: form.submissionCount
+        current: form.submissionCount,
+        subscription
       }), {
         status: 402,
         headers
