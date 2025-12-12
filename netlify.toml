@@ -13,4 +13,3 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  excluded_files = ["**/__tests__/**", "**/jest.config.js"]
