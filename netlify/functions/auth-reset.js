@@ -1,14 +1,27 @@
-import { hashPassword } from './lib/auth.js';
+import { hashPassword, validatePassword, PASSWORD_REQUIREMENTS } from './lib/auth.js';
 import { getPasswordResetToken, deletePasswordResetToken, updateUser } from './lib/storage.js';
+import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
 
-const headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json'
-};
+// CORS: Configure allowed origins (set ALLOWED_ORIGINS env var for production)
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:1313', 'http://localhost:3000'];
+
+function getCorsHeaders(origin) {
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Credentials': 'true',
+    'Content-Type': 'application/json'
+  };
+}
 
 export default async function handler(req, context) {
+  const origin = req.headers.get('origin') || '';
+  const headers = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers });
   }
@@ -20,20 +33,38 @@ export default async function handler(req, context) {
     });
   }
 
+  // Rate limit for password reset (5 per minute)
+  const rateLimit = checkRateLimit(req, { keyPrefix: 'reset', maxRequests: 5 });
+  if (!rateLimit.allowed) {
+    return new Response(JSON.stringify({
+      error: 'Too many requests. Please try again later.',
+      retryAfter: rateLimit.retryAfter
+    }), {
+      status: 429,
+      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
+    });
+  }
+
   try {
     const { token, password } = await req.json();
 
     if (!token || !password) {
       return new Response(JSON.stringify({ error: 'Token and password are required' }), {
         status: 400,
-        headers
+        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
       });
     }
 
-    if (password.length < 8) {
-      return new Response(JSON.stringify({ error: 'Password must be at least 8 characters' }), {
+    // Validate password strength
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+      return new Response(JSON.stringify({
+        error: 'Password does not meet requirements',
+        details: passwordCheck.errors,
+        requirements: PASSWORD_REQUIREMENTS
+      }), {
         status: 400,
-        headers
+        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
       });
     }
 
@@ -42,7 +73,7 @@ export default async function handler(req, context) {
     if (!tokenData) {
       return new Response(JSON.stringify({ error: 'Invalid or expired reset link' }), {
         status: 400,
-        headers
+        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
       });
     }
 
@@ -54,7 +85,7 @@ export default async function handler(req, context) {
     if (!updated) {
       return new Response(JSON.stringify({ error: 'Failed to update password' }), {
         status: 500,
-        headers
+        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
       });
     }
 
@@ -68,7 +99,7 @@ export default async function handler(req, context) {
       message: 'Password has been reset successfully'
     }), {
       status: 200,
-      headers
+      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
     });
   } catch (err) {
     console.error('Reset password error:', err);

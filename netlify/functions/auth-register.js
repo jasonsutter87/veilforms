@@ -1,15 +1,27 @@
-import { hashPassword, createToken } from './lib/auth.js';
+import { hashPassword, createToken, validatePassword, PASSWORD_REQUIREMENTS } from './lib/auth.js';
 import { createUser, getUser } from './lib/storage.js';
 import { sendWelcomeEmail } from './lib/email.js';
 
-const headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json'
-};
+// CORS: Configure allowed origins (set ALLOWED_ORIGINS env var for production)
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:1313', 'http://localhost:3000'];
+
+function getCorsHeaders(origin) {
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Credentials': 'true',
+    'Content-Type': 'application/json'
+  };
+}
 
 export default async function handler(req, context) {
+  const origin = req.headers.get('origin') || '';
+  const headers = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers });
   }
@@ -40,8 +52,14 @@ export default async function handler(req, context) {
       });
     }
 
-    if (password.length < 8) {
-      return new Response(JSON.stringify({ error: 'Password must be at least 8 characters' }), {
+    // Validate password strength
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+      return new Response(JSON.stringify({
+        error: 'Password does not meet requirements',
+        details: passwordCheck.errors,
+        requirements: PASSWORD_REQUIREMENTS
+      }), {
         status: 400,
         headers
       });

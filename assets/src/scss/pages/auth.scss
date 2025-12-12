@@ -184,3 +184,49 @@
     }
   }
 }
+
+// Password Strength Indicator
+.password-strength {
+  margin-top: 12px;
+
+  small {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+}
+
+.password-requirements {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+
+  li {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &::before {
+      content: '\2717';
+      color: var(--danger);
+      font-size: 0.625rem;
+    }
+
+    &.valid {
+      color: var(--success);
+
+      &::before {
+        content: '\2713';
+        color: var(--success);
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}

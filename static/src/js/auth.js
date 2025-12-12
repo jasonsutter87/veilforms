@@ -1,11 +1,65 @@
 // VeilForms Authentication JavaScript
 
+// Password requirements (must match server)
+const PASSWORD_REQUIREMENTS = {
+  minLength: 12,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumber: true
+};
+
+// Validate password client-side
+function validatePassword(password) {
+  const errors = [];
+
+  if (!password || password.length < PASSWORD_REQUIREMENTS.minLength) {
+    errors.push(`At least ${PASSWORD_REQUIREMENTS.minLength} characters`);
+  }
+  if (PASSWORD_REQUIREMENTS.requireUppercase && !/[A-Z]/.test(password)) {
+    errors.push('One uppercase letter');
+  }
+  if (PASSWORD_REQUIREMENTS.requireLowercase && !/[a-z]/.test(password)) {
+    errors.push('One lowercase letter');
+  }
+  if (PASSWORD_REQUIREMENTS.requireNumber && !/[0-9]/.test(password)) {
+    errors.push('One number');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
 // Check if user is already logged in
 function checkAuth() {
   const token = localStorage.getItem('veilforms_token');
   if (token) {
     window.location.href = '/dashboard/';
   }
+}
+
+// Logout function
+async function logout() {
+  const token = localStorage.getItem('veilforms_token');
+
+  if (token) {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  }
+
+  localStorage.removeItem('veilforms_token');
+  localStorage.removeItem('veilforms_user');
+  window.location.href = '/login/';
 }
 
 // Login Form Handler
@@ -29,13 +83,21 @@ function initLoginForm() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+        let message = data.error || 'Login failed';
+        if (data.attemptsRemaining) {
+          message += ` (${data.attemptsRemaining} attempts remaining)`;
+        }
+        if (data.lockedMinutes) {
+          message = `Account locked. Try again in ${data.lockedMinutes} minutes.`;
+        }
+        throw new Error(message);
       }
 
       localStorage.setItem('veilforms_token', data.token);
@@ -57,6 +119,31 @@ function initRegisterForm() {
 
   const errorMessage = document.getElementById('error-message');
   const submitBtn = document.getElementById('submit-btn');
+  const passwordInput = document.getElementById('password');
+
+  // Add password strength indicator
+  if (passwordInput) {
+    const strengthIndicator = document.createElement('div');
+    strengthIndicator.className = 'password-strength';
+    strengthIndicator.innerHTML = `
+      <small class="text-muted">Password must have:</small>
+      <ul class="password-requirements">
+        <li data-req="length">12+ characters</li>
+        <li data-req="upper">Uppercase letter</li>
+        <li data-req="lower">Lowercase letter</li>
+        <li data-req="number">Number</li>
+      </ul>
+    `;
+    passwordInput.parentNode.appendChild(strengthIndicator);
+
+    passwordInput.addEventListener('input', () => {
+      const val = passwordInput.value;
+      document.querySelector('[data-req="length"]').classList.toggle('valid', val.length >= 12);
+      document.querySelector('[data-req="upper"]').classList.toggle('valid', /[A-Z]/.test(val));
+      document.querySelector('[data-req="lower"]').classList.toggle('valid', /[a-z]/.test(val));
+      document.querySelector('[data-req="number"]').classList.toggle('valid', /[0-9]/.test(val));
+    });
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -67,8 +154,10 @@ function initRegisterForm() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
-    if (password.length < 8) {
-      errorMessage.textContent = 'Password must be at least 8 characters';
+    // Validate password
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+      errorMessage.textContent = 'Password requirements: ' + passwordCheck.errors.join(', ');
       errorMessage.classList.add('show');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Create Account';
@@ -79,13 +168,18 @@ function initRegisterForm() {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+        let message = data.error || 'Registration failed';
+        if (data.details && data.details.length) {
+          message = data.details.join('. ');
+        }
+        throw new Error(message);
       }
 
       localStorage.setItem('veilforms_token', data.token);
@@ -122,6 +216,7 @@ function initForgotForm() {
       const response = await fetch('/api/auth/forgot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email })
       });
 
@@ -151,6 +246,7 @@ function initResetForm() {
   const errorMessage = document.getElementById('error-message');
   const successMessage = document.getElementById('success-message');
   const submitBtn = document.getElementById('submit-btn');
+  const passwordInput = document.getElementById('password');
 
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
@@ -160,6 +256,30 @@ function initResetForm() {
     errorMessage.classList.add('show');
     form.style.display = 'none';
     return;
+  }
+
+  // Add password strength indicator
+  if (passwordInput) {
+    const strengthIndicator = document.createElement('div');
+    strengthIndicator.className = 'password-strength';
+    strengthIndicator.innerHTML = `
+      <small class="text-muted">Password must have:</small>
+      <ul class="password-requirements">
+        <li data-req="length">12+ characters</li>
+        <li data-req="upper">Uppercase letter</li>
+        <li data-req="lower">Lowercase letter</li>
+        <li data-req="number">Number</li>
+      </ul>
+    `;
+    passwordInput.parentNode.appendChild(strengthIndicator);
+
+    passwordInput.addEventListener('input', () => {
+      const val = passwordInput.value;
+      document.querySelector('[data-req="length"]').classList.toggle('valid', val.length >= 12);
+      document.querySelector('[data-req="upper"]').classList.toggle('valid', /[A-Z]/.test(val));
+      document.querySelector('[data-req="lower"]').classList.toggle('valid', /[a-z]/.test(val));
+      document.querySelector('[data-req="number"]').classList.toggle('valid', /[0-9]/.test(val));
+    });
   }
 
   form.addEventListener('submit', async (e) => {
@@ -176,8 +296,10 @@ function initResetForm() {
       return;
     }
 
-    if (password.length < 8) {
-      errorMessage.textContent = 'Password must be at least 8 characters';
+    // Validate password
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+      errorMessage.textContent = 'Password requirements: ' + passwordCheck.errors.join(', ');
       errorMessage.classList.add('show');
       return;
     }
@@ -189,13 +311,18 @@ function initResetForm() {
       const response = await fetch('/api/auth/reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ token, password })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Reset failed');
+        let message = data.error || 'Reset failed';
+        if (data.details && data.details.length) {
+          message = data.details.join('. ');
+        }
+        throw new Error(message);
       }
 
       successMessage.textContent = 'Password reset successfully! Redirecting to login...';
