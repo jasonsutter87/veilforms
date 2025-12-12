@@ -151,3 +151,60 @@ section {
     padding: 60px 0;
   }
 }
+
+// 404 Error Page
+.error-page {
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.error-content {
+  h1 {
+    font-size: 8rem;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+
+    @media (max-width: 768px) {
+      font-size: 5rem;
+    }
+  }
+
+  .error-message {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 16px 0 8px;
+
+    @media (max-width: 768px) {
+      font-size: 1.25rem;
+    }
+  }
+
+  .error-description {
+    color: var(--text-muted);
+    margin-bottom: 32px;
+  }
+
+  .error-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: center;
+
+      .btn {
+        width: 100%;
+        max-width: 200px;
+      }
+    }
+  }
+}
