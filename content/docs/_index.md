@@ -1,8 +1,9 @@
 ---
 title: 'Documentation'
 description: 'Learn how to use VeilForms to build privacy-first forms with client-side encryption.'
+type: 'pages'
 layout: 'docs'
-cta: false
+cta: true
 css: ['docs.css']
 js: []
 ---

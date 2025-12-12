@@ -1,6 +1,7 @@
+import crypto from 'crypto';
 import { hashPassword, createToken, validatePassword, PASSWORD_REQUIREMENTS } from './lib/auth.js';
-import { createUser, getUser } from './lib/storage.js';
-import { sendWelcomeEmail } from './lib/email.js';
+import { createUser, getUser, createEmailVerificationToken } from './lib/storage.js';
+import { sendEmailVerification } from './lib/email.js';
 
 // CORS: Configure allowed origins (set ALLOWED_ORIGINS env var for production)
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
@@ -78,13 +79,21 @@ export default async function handler(req, context) {
     const passwordHash = await hashPassword(password);
     const user = await createUser(email, passwordHash);
 
-    // Create JWT token
-    const token = createToken({ id: user.id, email: user.email });
+    // Create email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    await createEmailVerificationToken(email, verificationToken);
 
-    // Send welcome email (don't await - fire and forget)
-    sendWelcomeEmail(email).catch(err => {
-      console.error('Welcome email failed:', err);
+    // Build verification URL
+    const baseUrl = process.env.URL || 'https://veilforms.com';
+    const verifyUrl = `${baseUrl}/verify/?token=${verificationToken}`;
+
+    // Send verification email (don't await - fire and forget)
+    sendEmailVerification(email, verifyUrl).catch(err => {
+      console.error('Verification email failed:', err);
     });
+
+    // Create JWT token (user can still get token, but login will check verification)
+    const token = createToken({ id: user.id, email: user.email });
 
     return new Response(JSON.stringify({
       success: true,
@@ -92,8 +101,10 @@ export default async function handler(req, context) {
       user: {
         id: user.id,
         email: user.email,
-        subscription: user.subscription
-      }
+        subscription: user.subscription,
+        emailVerified: false
+      },
+      message: 'Please check your email to verify your account'
     }), {
       status: 201,
       headers

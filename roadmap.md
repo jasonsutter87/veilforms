@@ -15,93 +15,93 @@ Forms that respect privacy by default. Zero-knowledge architecture where even we
 
 # Q1 2025: Foundation & MVP
 
-## Sprint 1: Security Hardening (Week 1-2)
+## Sprint 1: Security Hardening (Week 1-2) ✅ COMPLETED
 > Make what we have production-ready
 
 ### Epic: Auth Security
-- [ ] **CRITICAL**: Remove hardcoded JWT secret fallback, require env var
-- [ ] Add rate limiting to all auth endpoints (10 req/min)
-- [ ] Implement account lockout after 5 failed attempts (15 min cooldown)
+- [x] **CRITICAL**: Remove hardcoded JWT secret fallback, require env var
+- [x] Add rate limiting to all auth endpoints (10 req/min)
+- [x] Implement account lockout after 5 failed attempts (15 min cooldown)
 - [ ] Add CSRF protection to auth forms
-- [ ] Restrict CORS to known domains (configurable)
-- [ ] Add password strength requirements (12+ chars, mixed case, number)
+- [x] Restrict CORS to known domains (configurable)
+- [x] Add password strength requirements (12+ chars, mixed case, number)
 
 ### Epic: Email Verification
-- [ ] Create email verification token system
-- [ ] Send verification email on registration
-- [ ] Add /verify endpoint to validate tokens
-- [ ] Block login until email verified (with resend option)
-- [ ] Add verification status to user object
+- [x] Create email verification token system
+- [x] Send verification email on registration
+- [x] Add /verify endpoint to validate tokens
+- [x] Block login until email verified (with resend option)
+- [x] Add verification status to user object
 
 ### Epic: Session Management
-- [ ] Reduce JWT expiry to 24 hours
+- [x] Reduce JWT expiry to 24 hours
 - [ ] Implement refresh token rotation
-- [ ] Add logout endpoint (token blacklist)
+- [x] Add logout endpoint (token blacklist)
 - [ ] Track active sessions per user
 
 ---
 
-## Sprint 2: Core API Completion (Week 3-4)
+## Sprint 2: Core API Completion (Week 3-4) ✅ COMPLETED
 > Complete the submission flow end-to-end
 
 ### Epic: Form Submission Engine
-- [ ] Complete `/api/submit` endpoint
+- [x] Complete `/api/submit` endpoint
   - Accept encrypted payload
   - Validate form exists and is active
   - Store submission with timestamp
   - Return anonymous submission ID
-- [ ] Add submission metadata (timestamp, form version, SDK version)
-- [ ] Implement submission webhooks (fire-and-forget)
-- [ ] Add submission count limits per form
+- [x] Add submission metadata (timestamp, form version, SDK version)
+- [x] Implement submission webhooks (fire-and-forget)
+- [x] Add submission count limits per form
 
 ### Epic: Submission Management
-- [ ] GET `/api/submissions/:formId` - List submissions (encrypted)
-- [ ] GET `/api/submissions/:formId/:id` - Get single submission
-- [ ] DELETE `/api/submissions/:formId/:id` - Delete submission
-- [ ] DELETE `/api/submissions/:formId` - Bulk delete
-- [ ] Add pagination (cursor-based)
-- [ ] Add date range filtering
+- [x] GET `/api/submissions/:formId` - List submissions (encrypted)
+- [x] GET `/api/submissions/:formId/:id` - Get single submission
+- [x] DELETE `/api/submissions/:formId/:id` - Delete submission
+- [x] DELETE `/api/submissions/:formId` - Bulk delete
+- [x] Add pagination (cursor-based)
+- [x] Add date range filtering
 
 ### Epic: Form Management
-- [ ] PUT `/api/forms/:id` - Update form settings
-- [ ] DELETE `/api/forms/:id` - Soft delete form
-- [ ] POST `/api/forms/:id/regenerate-keys` - Key rotation
-- [ ] GET `/api/forms/:id/stats` - Submission count, last submission
+- [x] PUT `/api/forms/:id` - Update form settings
+- [x] DELETE `/api/forms/:id` - Soft delete form
+- [x] POST `/api/forms/:id/regenerate-keys` - Key rotation
+- [x] GET `/api/forms/:id/stats` - Submission count, last submission
 
 ---
 
-## Sprint 3: Dashboard MVP (Week 5-6)
+## Sprint 3: Dashboard MVP (Week 5-6) ✅ COMPLETED
 > Users need to see and manage their data
 
 ### Epic: Dashboard Shell
-- [ ] Create `/dashboard` layout with sidebar nav
-- [ ] Implement auth guard (redirect to login if not authenticated)
-- [ ] Add loading states and error handling
-- [ ] Mobile-responsive dashboard layout
+- [x] Create `/dashboard` layout with sidebar nav
+- [x] Implement auth guard (redirect to login if not authenticated)
+- [x] Add loading states and error handling
+- [x] Mobile-responsive dashboard layout
 
 ### Epic: Forms Management UI
-- [ ] Forms list view (cards with stats)
-- [ ] Form detail view (settings, embed code, stats)
-- [ ] Create new form modal
-- [ ] Delete form confirmation
-- [ ] Copy embed code button
+- [x] Forms list view (cards with stats)
+- [x] Form detail view (settings, embed code, stats)
+- [x] Create new form modal
+- [x] Delete form confirmation
+- [x] Copy embed code button
 
 ### Epic: Submissions Viewer
-- [ ] Submissions table (paginated)
-- [ ] Client-side decryption flow
+- [x] Submissions table (paginated)
+- [x] Client-side decryption flow
   - Prompt for private key (or load from localStorage)
   - Decrypt and display in table
   - Never send private key to server
-- [ ] Individual submission detail modal
-- [ ] Export to CSV (decrypted, client-side)
-- [ ] Bulk delete with confirmation
+- [x] Individual submission detail modal
+- [x] Export to CSV (decrypted, client-side)
+- [ ] Bulk delete with confirmation (deferred to future sprint)
 
 ### Epic: Key Management UI
-- [ ] Show public key (copyable)
-- [ ] Private key export (download as .pem)
-- [ ] Private key import (for recovery)
-- [ ] Key backup reminder on form creation
-- [ ] Warning: "Lost key = lost data forever"
+- [x] Show public key (copyable)
+- [x] Private key export (download as .json)
+- [x] Private key import (for recovery/decryption)
+- [x] Key backup reminder on form creation
+- [x] Warning: "Lost key = lost data forever"
 
 ---
 
@@ -357,4 +357,4 @@ Forms that respect privacy by default. Zero-knowledge architecture where even we
 ---
 
 *Last updated: December 2024*
-*Next review: End of Sprint 2*
+*Next review: End of Sprint 4*

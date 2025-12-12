@@ -102,6 +102,18 @@ export default async function handler(req, context) {
     // Success - clear any failed attempts
     clearFailedAttempts(email);
 
+    // Check email verification status
+    if (!user.emailVerified) {
+      return new Response(JSON.stringify({
+        error: 'Please verify your email before logging in',
+        emailNotVerified: true,
+        email: user.email
+      }), {
+        status: 403,
+        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
+      });
+    }
+
     // Create JWT token
     const token = createToken({ id: user.id, email: user.email });
 
@@ -111,7 +123,8 @@ export default async function handler(req, context) {
       user: {
         id: user.id,
         email: user.email,
-        subscription: user.subscription
+        subscription: user.subscription,
+        emailVerified: user.emailVerified
       }
     }), {
       status: 200,

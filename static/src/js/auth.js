@@ -90,6 +90,13 @@ function initLoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle email not verified
+        if (data.emailNotVerified) {
+          localStorage.setItem('veilforms_pending_email', data.email);
+          window.location.href = '/verify/';
+          return;
+        }
+
         let message = data.error || 'Login failed';
         if (data.attemptsRemaining) {
           message += ` (${data.attemptsRemaining} attempts remaining)`;
@@ -182,9 +189,12 @@ function initRegisterForm() {
         throw new Error(message);
       }
 
+      // Store token for later (after verification)
       localStorage.setItem('veilforms_token', data.token);
       localStorage.setItem('veilforms_user', JSON.stringify(data.user));
-      window.location.href = '/dashboard/';
+      localStorage.setItem('veilforms_pending_email', email);
+      // Redirect to verify page (email not verified yet)
+      window.location.href = '/verify/';
     } catch (err) {
       errorMessage.textContent = err.message;
       errorMessage.classList.add('show');

@@ -230,3 +230,99 @@
     grid-template-columns: 1fr;
   }
 }
+
+// Email Verification Page
+.verify-status {
+  text-align: center;
+
+  h1 {
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    margin-bottom: 24px;
+  }
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  margin: 0 auto 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.success-icon,
+.error-icon,
+.info-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.success-icon {
+  background: var(--success-light);
+  border: 2px solid var(--success);
+  color: var(--success);
+}
+
+.error-icon {
+  background: var(--danger-light);
+  border: 2px solid var(--danger);
+  color: var(--danger);
+}
+
+.info-icon {
+  background: var(--primary-light);
+  border: 2px solid var(--primary);
+  color: var(--primary);
+}
+
+.verify-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+
+  .btn-secondary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+
+    &:hover {
+      background: var(--bg);
+    }
+  }
+}
+
+.resend-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+
+  p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+  }
+
+  .success-message,
+  .error-message {
+    margin-top: 16px;
+    margin-bottom: 0;
+  }
+}

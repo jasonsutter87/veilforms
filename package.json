@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "npm run build:scss && hugo server -D",
     "build": "npm run build:scss && hugo --minify",
-    "build:scss": "sass assets/src/scss/shared/shared.scss:static/src/css/shared.css assets/src/scss/pages/home.scss:static/src/css/home.css assets/src/scss/pages/features.scss:static/src/css/features.css assets/src/scss/pages/pricing.scss:static/src/css/pricing.css assets/src/scss/pages/auth.scss:static/src/css/auth.css assets/src/scss/pages/docs.scss:static/src/css/docs.css --style=compressed",
+    "build:scss": "sass assets/src/scss/shared/shared.scss:static/src/css/shared.css assets/src/scss/pages/home.scss:static/src/css/home.css assets/src/scss/pages/features.scss:static/src/css/features.css assets/src/scss/pages/pricing.scss:static/src/css/pricing.css assets/src/scss/pages/auth.scss:static/src/css/auth.css assets/src/scss/pages/docs.scss:static/src/css/docs.css assets/src/scss/pages/dashboard.scss:static/src/css/dashboard.css --style=compressed",
     "build:sdk": "esbuild src/client/veilforms.js --bundle --minify --outfile=static/js/veilforms.min.js --format=iife --global-name=VeilForms",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",

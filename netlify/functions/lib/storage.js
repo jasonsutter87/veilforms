@@ -6,7 +6,8 @@ const STORES = {
   FORMS: 'vf-forms',
   SUBMISSIONS: 'vf-submissions',
   API_KEYS: 'vf-api-keys',
-  PASSWORD_RESET_TOKENS: 'vf-password-reset-tokens'
+  PASSWORD_RESET_TOKENS: 'vf-password-reset-tokens',
+  EMAIL_VERIFICATION_TOKENS: 'vf-email-verification-tokens'
 };
 
 // Get a store instance
@@ -25,7 +26,9 @@ export async function createUser(email, passwordHash) {
     passwordHash,
     createdAt: new Date().toISOString(),
     subscription: 'free',
-    forms: []
+    forms: [],
+    emailVerified: false,
+    emailVerifiedAt: null
   };
   await users.setJSON(email.toLowerCase(), user);
   return user;
@@ -86,6 +89,80 @@ export async function getPasswordResetToken(token) {
 
 export async function deletePasswordResetToken(token) {
   const tokens = store(STORES.PASSWORD_RESET_TOKENS);
+  await tokens.delete(token);
+  return true;
+}
+
+// === EMAIL VERIFICATION TOKEN OPERATIONS ===
+
+export async function createEmailVerificationToken(email, token) {
+  const tokens = store(STORES.EMAIL_VERIFICATION_TOKENS);
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hour expiry
+
+  const tokenData = {
+    email: email.toLowerCase(),
+    createdAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString()
+  };
+
+  await tokens.setJSON(token, tokenData);
+
+  // Also store by email for easy lookup/resend
+  await tokens.setJSON(`email_${email.toLowerCase()}`, { token, ...tokenData });
+
+  return tokenData;
+}
+
+export async function getEmailVerificationToken(token) {
+  const tokens = store(STORES.EMAIL_VERIFICATION_TOKENS);
+  try {
+    const tokenData = await tokens.get(token, { type: 'json' });
+    if (!tokenData) return null;
+
+    // Check if token is expired
+    if (new Date(tokenData.expiresAt) < new Date()) {
+      await deleteEmailVerificationToken(token);
+      return null;
+    }
+
+    return tokenData;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function getEmailVerificationTokenByEmail(email) {
+  const tokens = store(STORES.EMAIL_VERIFICATION_TOKENS);
+  try {
+    const data = await tokens.get(`email_${email.toLowerCase()}`, { type: 'json' });
+    if (!data) return null;
+
+    // Check if token is expired
+    if (new Date(data.expiresAt) < new Date()) {
+      await deleteEmailVerificationToken(data.token);
+      return null;
+    }
+
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function deleteEmailVerificationToken(token) {
+  const tokens = store(STORES.EMAIL_VERIFICATION_TOKENS);
+
+  // Get email before deleting
+  try {
+    const tokenData = await tokens.get(token, { type: 'json' });
+    if (tokenData) {
+      await tokens.delete(`email_${tokenData.email}`);
+    }
+  } catch (e) {
+    // Ignore
+  }
+
   await tokens.delete(token);
   return true;
 }

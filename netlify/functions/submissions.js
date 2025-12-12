@@ -1,138 +1,250 @@
 /**
- * VeilForms - Netlify Function for Listing/Reading Submissions
- * Requires API key authentication
+ * VeilForms - Submissions Management Endpoint
+ * GET /api/submissions/:formId - List submissions
+ * GET /api/submissions/:formId/:id - Get single submission
+ * DELETE /api/submissions/:formId/:id - Delete submission
+ * DELETE /api/submissions/:formId - Bulk delete all
  */
 
-import { getStore } from '@netlify/blobs';
+import { authenticateRequest } from './lib/auth.js';
+import { getForm, getSubmissions, getSubmission, deleteSubmission, deleteAllSubmissions, updateForm } from './lib/storage.js';
+import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
+
+// CORS headers
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:1313', 'http://localhost:3000'];
+
+function getCorsHeaders(origin) {
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+    'Content-Type': 'application/json'
+  };
+}
 
 export default async function handler(req, context) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json',
-  };
+  const origin = req.headers.get('origin') || '';
+  const headers = getCorsHeaders(origin);
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers });
   }
 
-  if (req.method !== 'GET') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers }
-    );
+  // Rate limit
+  const rateLimit = checkRateLimit(req, { keyPrefix: 'submissions-api', maxRequests: 60 });
+  if (!rateLimit.allowed) {
+    return new Response(JSON.stringify({
+      error: 'Too many requests. Please try again later.',
+      retryAfter: rateLimit.retryAfter
+    }), {
+      status: 429,
+      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
+    });
   }
 
   // Authenticate
-  const apiKey = req.headers.get('Authorization')?.replace('Bearer ', '');
-  if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: 'API key required' }),
-      { status: 401, headers }
-    );
+  const auth = authenticateRequest(req);
+  if (auth.error) {
+    return new Response(JSON.stringify({ error: auth.error }), {
+      status: auth.status,
+      headers
+    });
   }
 
-  // Validate API key against stored keys (simple check for MVP)
-  const validKey = await validateApiKey(apiKey);
-  if (!validKey) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid API key' }),
-      { status: 403, headers }
-    );
+  // Parse URL to get formId and optional submissionId
+  const url = new URL(req.url);
+  const pathParts = url.pathname.replace('/api/submissions/', '').split('/').filter(Boolean);
+  const formId = pathParts[0];
+  const submissionId = pathParts[1];
+
+  // Validate formId
+  if (!formId || !/^vf_[a-z0-9_]+$/i.test(formId)) {
+    return new Response(JSON.stringify({ error: 'Valid formId required' }), {
+      status: 400,
+      headers
+    });
+  }
+
+  // Get form and verify ownership
+  const form = await getForm(formId);
+  if (!form) {
+    return new Response(JSON.stringify({ error: 'Form not found' }), {
+      status: 404,
+      headers
+    });
+  }
+
+  if (form.userId !== auth.user.id) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403,
+      headers
+    });
   }
 
   try {
-    const url = new URL(req.url);
-    const formId = url.searchParams.get('formId');
-    const submissionId = url.searchParams.get('id');
-    const limit = parseInt(url.searchParams.get('limit') || '50', 10);
-    const offset = parseInt(url.searchParams.get('offset') || '0', 10);
-
-    if (!formId || !/^[a-zA-Z0-9_-]+$/.test(formId)) {
-      return new Response(
-        JSON.stringify({ error: 'Valid formId required' }),
-        { status: 400, headers }
-      );
+    // Route based on method
+    if (req.method === 'GET') {
+      return submissionId
+        ? handleGetSingle(formId, submissionId, headers)
+        : handleList(formId, url.searchParams, headers);
     }
 
-    // Check tenant has access to this form
-    if (!validKey.forms.includes(formId) && !validKey.forms.includes('*')) {
-      return new Response(
-        JSON.stringify({ error: 'Access denied to this form' }),
-        { status: 403, headers }
-      );
+    if (req.method === 'DELETE') {
+      return submissionId
+        ? handleDeleteSingle(formId, submissionId, form, headers)
+        : handleDeleteAll(formId, form, headers);
     }
 
-    const store = getStore(`veilforms-${formId}`);
-
-    // Single submission lookup
-    if (submissionId) {
-      const submission = await store.get(submissionId, { type: 'json' });
-
-      if (!submission) {
-        return new Response(
-          JSON.stringify({ error: 'Submission not found' }),
-          { status: 404, headers }
-        );
-      }
-
-      return new Response(
-        JSON.stringify({ submission }),
-        { status: 200, headers }
-      );
-    }
-
-    // List submissions
-    const index = await store.get('_index', { type: 'json' }) || { submissions: [] };
-    const total = index.submissions.length;
-    const slice = index.submissions.slice(offset, offset + limit);
-
-    // Fetch full submissions
-    const submissions = await Promise.all(
-      slice.map(async ({ id }) => {
-        const sub = await store.get(id, { type: 'json' });
-        return sub;
-      })
-    );
-
-    return new Response(
-      JSON.stringify({
-        formId,
-        submissions: submissions.filter(Boolean),
-        total,
-        limit,
-        offset,
-      }),
-      { status: 200, headers }
-    );
-  } catch (error) {
-    console.error('List error:', error);
-
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers }
-    );
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers
+    });
+  } catch (err) {
+    console.error('Submissions error:', err);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers
+    });
   }
 }
 
 /**
- * Validate API key and return tenant info
- * MVP: Uses environment variable, upgrade to DB later
+ * GET single submission
  */
-async function validateApiKey(apiKey) {
-  // For MVP, store keys in env as JSON
-  // Format: { "key123": { "tenantId": "tenant1", "forms": ["form1", "form2"] } }
-  const keysJson = process.env.VEILFORMS_API_KEYS || '{}';
-
-  try {
-    const keys = JSON.parse(keysJson);
-    return keys[apiKey] || null;
-  } catch {
-    return null;
+async function handleGetSingle(formId, submissionId, headers) {
+  // Validate submissionId format
+  if (!/^(vf-[a-f0-9-]{36}|[a-f0-9]{32})$/.test(submissionId)) {
+    return new Response(JSON.stringify({ error: 'Invalid submission ID format' }), {
+      status: 400,
+      headers
+    });
   }
+
+  const submission = await getSubmission(formId, submissionId);
+  if (!submission) {
+    return new Response(JSON.stringify({ error: 'Submission not found' }), {
+      status: 404,
+      headers
+    });
+  }
+
+  return new Response(JSON.stringify({ submission }), {
+    status: 200,
+    headers
+  });
+}
+
+/**
+ * GET list of submissions with pagination and filtering
+ */
+async function handleList(formId, params, headers) {
+  const limit = Math.min(parseInt(params.get('limit') || '50', 10), 100);
+  const offset = parseInt(params.get('offset') || '0', 10);
+  const cursor = params.get('cursor'); // For cursor-based pagination
+  const startDate = params.get('startDate');
+  const endDate = params.get('endDate');
+
+  let result = await getSubmissions(formId, limit + 1, offset); // Fetch one extra to check for more
+
+  // Apply date filtering if specified
+  if (startDate || endDate) {
+    const start = startDate ? new Date(startDate).getTime() : 0;
+    const end = endDate ? new Date(endDate).getTime() : Infinity;
+
+    result.submissions = result.submissions.filter(s => {
+      const ts = s.timestamp || s.receivedAt;
+      return ts >= start && ts <= end;
+    });
+  }
+
+  // Determine if there are more results
+  const hasMore = result.submissions.length > limit;
+  if (hasMore) {
+    result.submissions = result.submissions.slice(0, limit);
+  }
+
+  // Generate next cursor
+  const nextCursor = hasMore && result.submissions.length > 0
+    ? Buffer.from(JSON.stringify({ offset: offset + limit })).toString('base64')
+    : null;
+
+  return new Response(JSON.stringify({
+    formId,
+    submissions: result.submissions,
+    pagination: {
+      total: result.total,
+      limit,
+      offset,
+      hasMore,
+      nextCursor
+    }
+  }), {
+    status: 200,
+    headers
+  });
+}
+
+/**
+ * DELETE single submission
+ */
+async function handleDeleteSingle(formId, submissionId, form, headers) {
+  // Validate submissionId format
+  if (!/^(vf-[a-f0-9-]{36}|[a-f0-9]{32})$/.test(submissionId)) {
+    return new Response(JSON.stringify({ error: 'Invalid submission ID format' }), {
+      status: 400,
+      headers
+    });
+  }
+
+  // Check submission exists
+  const submission = await getSubmission(formId, submissionId);
+  if (!submission) {
+    return new Response(JSON.stringify({ error: 'Submission not found' }), {
+      status: 404,
+      headers
+    });
+  }
+
+  await deleteSubmission(formId, submissionId);
+
+  // Decrement form submission count
+  await updateForm(formId, {
+    submissionCount: Math.max((form.submissionCount || 1) - 1, 0)
+  });
+
+  return new Response(JSON.stringify({
+    success: true,
+    deleted: submissionId
+  }), {
+    status: 200,
+    headers
+  });
+}
+
+/**
+ * DELETE all submissions for a form
+ */
+async function handleDeleteAll(formId, form, headers) {
+  const deletedCount = await deleteAllSubmissions(formId);
+
+  // Reset form submission count
+  await updateForm(formId, {
+    submissionCount: 0
+  });
+
+  return new Response(JSON.stringify({
+    success: true,
+    deletedCount
+  }), {
+    status: 200,
+    headers
+  });
 }
 
 export const config = {
-  path: '/api/submissions',
+  path: '/api/submissions/*'
 };
