@@ -4,6 +4,7 @@ description: "Deploy VeilForms on your own infrastructure"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # Self Hosting

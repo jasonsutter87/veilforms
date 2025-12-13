@@ -4,6 +4,7 @@ description: "Configure the VeilForms SDK for your needs"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # SDK Configuration

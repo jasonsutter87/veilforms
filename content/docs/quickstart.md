@@ -1,6 +1,7 @@
 ---
 title: "Quick Start"
 description: "Get your first VeilForms form running in 5 minutes"
+priority: 0.5
 type: "pages"
 layout: "docs"
 css: ["docs.css"]

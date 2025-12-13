@@ -4,6 +4,7 @@ description: "Understand the fundamental principles behind VeilForms' privacy-fi
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # Core Concepts

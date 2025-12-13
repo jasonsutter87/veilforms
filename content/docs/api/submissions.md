@@ -4,6 +4,7 @@ description: "API endpoints for managing form submissions"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # Submissions API

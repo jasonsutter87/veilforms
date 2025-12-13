@@ -4,6 +4,7 @@ description: "How VeilForms encrypts data client-side before submission"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # Encryption
