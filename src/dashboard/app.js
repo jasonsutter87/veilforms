@@ -290,6 +290,41 @@ class VeilFormsDashboard {
     }
     return key;
   }
+
+  /**
+   * Update form settings (including spam protection)
+   */
+  async updateFormSettings(formId, settings) {
+    const response = await fetch(`${this.apiEndpoint}/forms/${formId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({ settings }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update form settings');
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get form details
+   */
+  async getForm(formId) {
+    const response = await fetch(`${this.apiEndpoint}/forms/${formId}`, {
+      headers: { 'Authorization': `Bearer ${this.apiKey}` }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get form');
+    }
+
+    return response.json();
+  }
 }
 
 // Export singleton

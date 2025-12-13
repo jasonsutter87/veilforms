@@ -220,7 +220,7 @@ async function handleCreateForm(req, userId, headers, auditCtx) {
   // Generate encryption keys
   const { publicKey, privateKey } = await generateKeyPair();
 
-  // Create form with all settings including branding and retention
+  // Create form with all settings including branding, retention, and notifications
   const form = await createForm(userId, {
     name: name.trim(),
     publicKey,
@@ -240,6 +240,12 @@ async function handleCreateForm(req, userId, headers, auditCtx) {
       retention: {
         enabled: settings?.retention?.enabled || false,
         days: settings?.retention?.days || 90
+      },
+      // Email notification settings
+      notifications: {
+        email: settings?.notifications?.email || false,
+        recipients: settings?.notifications?.recipients || [],
+        includeData: settings?.notifications?.includeData || false
       },
       ...settings
     }
@@ -407,6 +413,44 @@ async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
         ...settings.retention
       };
       changes.push('retention');
+    }
+
+    // Validate notification settings
+    if (settings.notifications) {
+      // Validate recipient emails
+      if (settings.notifications.recipients) {
+        if (!Array.isArray(settings.notifications.recipients)) {
+          return new Response(JSON.stringify({ error: 'Notification recipients must be an array' }), {
+            status: 400,
+            headers
+          });
+        }
+
+        // Validate each email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        for (const email of settings.notifications.recipients) {
+          if (!emailRegex.test(email)) {
+            return new Response(JSON.stringify({ error: `Invalid email address: ${email}` }), {
+              status: 400,
+              headers
+            });
+          }
+        }
+
+        // Limit to 5 recipients
+        if (settings.notifications.recipients.length > 5) {
+          return new Response(JSON.stringify({ error: 'Maximum 5 notification recipients allowed' }), {
+            status: 400,
+            headers
+          });
+        }
+      }
+
+      updates.settings.notifications = {
+        ...form.settings?.notifications,
+        ...settings.notifications
+      };
+      changes.push('notifications');
     }
 
     changes.push('settings');

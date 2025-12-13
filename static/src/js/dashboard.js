@@ -1213,9 +1213,11 @@ const fieldTypes = {
   date: { label: 'Date', icon: 'date', hasMinMax: true },
   url: { label: 'URL', icon: 'url', hasPlaceholder: true, hasValidation: true },
   hidden: { label: 'Hidden', icon: 'hidden', hasDefaultValue: true },
+  payment: { label: 'Payment', icon: 'payment', hasPaymentConfig: true, isSingleInstance: true },
   heading: { label: 'Heading', icon: 'heading', isLayout: true },
   paragraph: { label: 'Paragraph', icon: 'paragraph', isLayout: true },
-  divider: { label: 'Divider', icon: 'divider', isLayout: true }
+  divider: { label: 'Divider', icon: 'divider', isLayout: true },
+  page_break: { label: 'Page Break', icon: 'page_break', isLayout: true, hasStepSettings: true }
 };
 
 // Generate unique field ID using crypto API
@@ -1421,6 +1423,17 @@ function createFieldConfig(type) {
   if (type === 'paragraph') {
     config.content = 'Add your text here...';
   }
+
+  if (type === 'page_break') {
+    config.stepTitle = 'Step ' + (formBuilder.fields.filter(f => f.type === 'page_break').length + 2);
+    config.stepDescription = '';
+  }
+
+  // Initialize conditional logic structure
+  // SDK Note: The SDK should evaluate these conditions client-side to dynamically
+  // show/hide fields based on user input. Rules are evaluated in order, and the
+  // logic type ('all' = AND, 'any' = OR) determines how multiple rules combine.
+  config.conditions = null;
 
   return config;
 }
@@ -1817,6 +1830,78 @@ function renderFieldItem(field) {
   `;
 }
 
+// Render a single condition rule
+function renderConditionRule(rule, index, currentFieldId) {
+  // Get available fields (exclude current field and layout fields)
+  const availableFields = formBuilder.fields.filter(f =>
+    f.id !== currentFieldId &&
+    !fieldTypes[f.type]?.isLayout &&
+    f.name
+  );
+
+  // Determine operators based on field type
+  const targetField = formBuilder.fields.find(f => f.id === rule.field);
+  const isOptionsField = targetField && fieldTypes[targetField.type]?.hasOptions;
+
+  const operators = [
+    { value: 'equals', label: 'equals' },
+    { value: 'not_equals', label: 'not equals' },
+    { value: 'contains', label: 'contains' },
+    { value: 'is_empty', label: 'is empty' },
+    { value: 'is_not_empty', label: 'is not empty' }
+  ];
+
+  const needsValue = rule.operator !== 'is_empty' && rule.operator !== 'is_not_empty';
+
+  return `
+    <div class="condition-rule" data-index="${index}">
+      <div class="condition-rule-row">
+        <select class="condition-field" data-index="${index}">
+          <option value="">Select field...</option>
+          ${availableFields.map(f => `
+            <option value="${f.id}" ${rule.field === f.id ? 'selected' : ''}>
+              ${escapeHtml(f.label || f.name)}
+            </option>
+          `).join('')}
+        </select>
+
+        <select class="condition-operator" data-index="${index}">
+          ${operators.map(op => `
+            <option value="${op.value}" ${rule.operator === op.value ? 'selected' : ''}>
+              ${op.label}
+            </option>
+          `).join('')}
+        </select>
+
+        ${needsValue ? `
+          ${isOptionsField ? `
+            <select class="condition-value" data-index="${index}">
+              <option value="">Select value...</option>
+              ${(targetField.options || []).map(opt => `
+                <option value="${escapeHtml(opt)}" ${rule.value === opt ? 'selected' : ''}>
+                  ${escapeHtml(opt)}
+                </option>
+              `).join('')}
+            </select>
+          ` : `
+            <input type="text" class="condition-value" data-index="${index}"
+              value="${escapeHtml(rule.value || '')}" placeholder="Value">
+          `}
+        ` : `
+          <span class="condition-value-placeholder"></span>
+        `}
+
+        <button type="button" class="btn-remove-condition" data-index="${index}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 // Render Field Properties Panel
 function renderFieldProperties(field) {
   const typeConfig = fieldTypes[field.type];
@@ -1936,6 +2021,49 @@ function renderFieldProperties(field) {
         </div>
       `;
     }
+
+    // Conditional Logic Section
+    html += `
+      <div class="property-divider"></div>
+      <div class="property-group">
+        <label style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <span>Conditional Logic</span>
+          <button type="button" class="btn-toggle-conditions" id="toggle-conditions-btn"
+            style="font-size: 0.75rem; padding: 4px 8px;">
+            ${field.conditions ? 'Disable' : 'Enable'}
+          </button>
+        </label>
+        <small style="margin-bottom: 12px;">Show or hide this field based on other field values</small>
+
+        <div id="conditions-editor" style="display: ${field.conditions ? 'block' : 'none'};">
+          <div class="property-group">
+            <label>Action</label>
+            <select id="conditions-action">
+              <option value="show" ${field.conditions?.action === 'show' ? 'selected' : ''}>Show this field</option>
+              <option value="hide" ${field.conditions?.action === 'hide' ? 'selected' : ''}>Hide this field</option>
+            </select>
+          </div>
+
+          <div class="property-group">
+            <label>When</label>
+            <select id="conditions-logic">
+              <option value="all" ${field.conditions?.logic === 'all' ? 'selected' : ''}>All conditions match (AND)</option>
+              <option value="any" ${field.conditions?.logic === 'any' ? 'selected' : ''}>Any condition matches (OR)</option>
+            </select>
+          </div>
+
+          <div class="property-group">
+            <label>Conditions</label>
+            <div id="conditions-rules">
+              ${field.conditions?.rules?.length > 0 ? field.conditions.rules.map((rule, index) =>
+                renderConditionRule(rule, index, field.id)
+              ).join('') : ''}
+            </div>
+            <button type="button" class="btn-add-condition" id="add-condition-btn">+ Add Condition</button>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   // Delete button

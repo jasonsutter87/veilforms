@@ -50,7 +50,7 @@ export default async function handler(req, context) {
 
   try {
     const body = await req.json();
-    const { formId, submissionId, payload, timestamp, meta } = body;
+    const { formId, submissionId, payload, timestamp, meta, spamProtection } = body;
 
     // Validate required fields
     if (!formId || !submissionId || !payload) {
@@ -97,6 +97,66 @@ export default async function handler(req, context) {
     if (form.settings?.allowedOrigins && !form.settings.allowedOrigins.includes('*')) {
       if (!form.settings.allowedOrigins.includes(origin)) {
         return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
+          status: 403,
+          headers
+        });
+      }
+    }
+
+    // SPAM PROTECTION VALIDATION
+
+    // 1. Honeypot validation (if enabled)
+    if (form.settings?.spamProtection?.honeypot) {
+      const honeypotValue = spamProtection?.honeypot;
+
+      // Honeypot field must exist and be empty
+      if (honeypotValue === undefined) {
+        return new Response(JSON.stringify({ error: 'Spam protection validation failed' }), {
+          status: 400,
+          headers
+        });
+      }
+
+      if (honeypotValue !== '') {
+        // Bot detected - honeypot was filled
+        console.warn('[SPAM] Honeypot triggered for form:', formId);
+        return new Response(JSON.stringify({ error: 'Spam detected' }), {
+          status: 403,
+          headers
+        });
+      }
+    }
+
+    // 2. reCAPTCHA validation (if enabled)
+    if (form.settings?.spamProtection?.recaptcha?.enabled) {
+      const recaptchaToken = spamProtection?.recaptchaToken;
+      const recaptchaSecretKey = form.settings.spamProtection.recaptcha.secretKey;
+      const threshold = form.settings.spamProtection.recaptcha.threshold || 0.5;
+
+      if (!recaptchaToken) {
+        return new Response(JSON.stringify({ error: 'reCAPTCHA token required' }), {
+          status: 400,
+          headers
+        });
+      }
+
+      if (!recaptchaSecretKey) {
+        console.error('[CONFIG] reCAPTCHA enabled but no secret key configured');
+        return new Response(JSON.stringify({ error: 'reCAPTCHA not properly configured' }), {
+          status: 500,
+          headers
+        });
+      }
+
+      // Verify reCAPTCHA token with Google
+      const recaptchaValid = await verifyRecaptcha(recaptchaToken, recaptchaSecretKey, threshold);
+
+      if (!recaptchaValid.success) {
+        console.warn('[SPAM] reCAPTCHA verification failed:', recaptchaValid.reason);
+        return new Response(JSON.stringify({
+          error: 'Spam protection verification failed',
+          reason: recaptchaValid.reason
+        }), {
           status: 403,
           headers
         });
@@ -261,6 +321,52 @@ async function fireWebhook(url, submission, secret) {
 
   if (!response.ok) {
     throw new Error(`Webhook returned ${response.status}`);
+  }
+}
+
+/**
+ * Verify reCAPTCHA v3 token with Google
+ */
+async function verifyRecaptcha(token, secretKey, threshold = 0.5) {
+  try {
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(token)}`
+    });
+
+    const data = await response.json();
+
+    // reCAPTCHA v3 returns a score from 0.0 to 1.0
+    // 1.0 is very likely a good interaction, 0.0 is very likely a bot
+    if (!data.success) {
+      return {
+        success: false,
+        reason: data['error-codes']?.join(', ') || 'Verification failed'
+      };
+    }
+
+    // Check score against threshold
+    const score = data.score || 0;
+    if (score < threshold) {
+      return {
+        success: false,
+        reason: `Score too low: ${score} (threshold: ${threshold})`
+      };
+    }
+
+    return {
+      success: true,
+      score: score
+    };
+  } catch (error) {
+    console.error('reCAPTCHA verification error:', error);
+    return {
+      success: false,
+      reason: 'Verification service error'
+    };
   }
 }
 

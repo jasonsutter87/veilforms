@@ -200,6 +200,15 @@ export async function createForm(userId, formData) {
       piiStrip: formData.settings?.piiStrip || false,
       webhookUrl: formData.settings?.webhookUrl || null,
       allowedOrigins: formData.settings?.allowedOrigins || ['*'],
+      spamProtection: {
+        honeypot: formData.settings?.spamProtection?.honeypot !== false, // enabled by default
+        recaptcha: {
+          enabled: formData.settings?.spamProtection?.recaptcha?.enabled || false,
+          siteKey: formData.settings?.spamProtection?.recaptcha?.siteKey || '',
+          secretKey: formData.settings?.spamProtection?.recaptcha?.secretKey || '',
+          threshold: formData.settings?.spamProtection?.recaptcha?.threshold || 0.5
+        }
+      },
       ...formData.settings
     },
     submissionCount: 0,

@@ -340,3 +340,199 @@ export async function sendEmailVerification(email, verifyUrl) {
   console.log(`[DEV] Verify URL: ${verifyUrl}`);
   return { provider: 'dev', id: 'dev-' + Date.now() };
 }
+
+// Form submission notification template
+function getSubmissionNotificationHtml(formName, submissionId, timestamp, dashboardUrl, includeData, data) {
+  const formattedDate = new Date(timestamp).toLocaleString('en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  });
+
+  let dataPreviewHtml = '';
+  if (includeData && data) {
+    const fields = Object.entries(data)
+      .map(([key, value]) => `
+        <tr>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #27272a; color: #a1a1aa; font-size: 14px; font-weight: 600;">
+            ${escapeHtml(key)}
+          </td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #27272a; color: #fafafa; font-size: 14px;">
+            ${escapeHtml(String(value))}
+          </td>
+        </tr>
+      `).join('');
+
+    dataPreviewHtml = `
+      <div style="margin-top: 24px; padding: 16px; background-color: #09090b; border: 1px solid #27272a; border-radius: 8px;">
+        <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #fafafa; text-transform: uppercase; letter-spacing: 0.5px;">Submission Data</h3>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+          ${fields}
+        </table>
+      </div>
+    `;
+  }
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0a0a0a; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #18181b; border-radius: 12px; border: 1px solid #27272a;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #27272a;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #fafafa;">
+                <span style="color: #6366f1;">Veil</span>Forms
+              </h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding: 32px;">
+              <div style="display: inline-block; padding: 6px 12px; background-color: #10b981; color: #ffffff; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;">
+                New Submission
+              </div>
+              <h2 style="margin: 0 0 8px; font-size: 20px; font-weight: 600; color: #fafafa;">${escapeHtml(formName)}</h2>
+              <p style="margin: 0 0 24px; font-size: 14px; color: #71717a;">
+                ${formattedDate}
+              </p>
+              <div style="background-color: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                  <span style="font-size: 14px; color: #71717a;">Submission ID</span>
+                  <code style="font-size: 12px; color: #a1a1aa; font-family: 'Courier New', monospace; background-color: #18181b; padding: 2px 6px; border-radius: 4px;">${submissionId.substring(0, 8)}...${submissionId.substring(submissionId.length - 8)}</code>
+                </div>
+              </div>
+              ${dataPreviewHtml}
+              ${!includeData ? `
+              <div style="padding: 16px; background-color: #18181b; border: 1px solid #3f3f46; border-radius: 8px; margin-top: 24px;">
+                <p style="margin: 0; font-size: 14px; line-height: 20px; color: #a1a1aa;">
+                  <strong style="color: #fafafa;">Note:</strong> Submission data is encrypted. Log in to your dashboard to view and decrypt submissions.
+                </p>
+              </div>
+              ` : ''}
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 24px 0 0;">
+                    <a href="${dashboardUrl}" style="display: inline-block; padding: 12px 32px; font-size: 16px; font-weight: 600; color: #ffffff; background-color: #6366f1; text-decoration: none; border-radius: 8px;">View in Dashboard</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 32px; text-align: center; border-top: 1px solid #27272a;">
+              <p style="margin: 0 0 8px; font-size: 12px; color: #52525b;">
+                VeilForms &bull; Privacy-first form builder
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #3f3f46;">
+                You're receiving this because notifications are enabled for this form.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+function getSubmissionNotificationText(formName, submissionId, timestamp, dashboardUrl, includeData, data) {
+  const formattedDate = new Date(timestamp).toLocaleString('en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  });
+
+  let dataText = '';
+  if (includeData && data) {
+    dataText = '\n\nSubmission Data:\n' + Object.entries(data)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n');
+  } else {
+    dataText = '\n\nNote: Submission data is encrypted. Log in to your dashboard to view and decrypt submissions.';
+  }
+
+  return `
+New Submission Received
+
+Form: ${formName}
+Received: ${formattedDate}
+Submission ID: ${submissionId}
+${dataText}
+
+View in Dashboard: ${dashboardUrl}
+
+---
+VeilForms - Privacy-first form builder
+You're receiving this because notifications are enabled for this form.
+  `.trim();
+}
+
+// Helper to escape HTML
+function escapeHtml(unsafe) {
+  if (unsafe === null || unsafe === undefined) return '';
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Send submission notification email
+export async function sendSubmissionNotification(recipients, formName, formId, submissionId, timestamp, includeData = false, data = null) {
+  if (!Array.isArray(recipients) || recipients.length === 0) {
+    throw new Error('At least one recipient email is required');
+  }
+
+  const dashboardUrl = `${BASE_URL}/dashboard/#form-${formId}`;
+  const subject = `New submission: ${formName}`;
+  const html = getSubmissionNotificationHtml(formName, submissionId, timestamp, dashboardUrl, includeData, data);
+  const text = getSubmissionNotificationText(formName, submissionId, timestamp, dashboardUrl, includeData, data);
+
+  if (resend) {
+    try {
+      const results = await Promise.allSettled(
+        recipients.map(email => sendViaResend(email, subject, html, text))
+      );
+
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
+      console.log(`Submission notifications sent: ${successful} succeeded, ${failed} failed`);
+
+      return {
+        provider: 'resend',
+        successful,
+        failed,
+        total: recipients.length
+      };
+    } catch (error) {
+      console.error('Notification email send failed:', error.message);
+      throw error;
+    }
+  }
+
+  // No email provider configured - log for development
+  console.log(`[DEV] Would send notification emails to: ${recipients.join(', ')}`);
+  console.log(`[DEV] Form: ${formName}, Submission: ${submissionId}`);
+  return { provider: 'dev', id: 'dev-' + Date.now(), total: recipients.length };
+}
