@@ -1,3 +1,16 @@
 {{ range .Params.js }}
   <script defer src="{{ "src/js/" | relURL }}{{ . }}"></script>
 {{ end }}
+
+<!-- Netlify Identity Widget for CMS -->
+<script>
+  if (window.netlifyIdentity) {
+    window.netlifyIdentity.on("init", user => {
+      if (!user) {
+        window.netlifyIdentity.on("login", () => {
+          document.location.href = "/admin/";
+        });
+      }
+    });
+  }
+</script>

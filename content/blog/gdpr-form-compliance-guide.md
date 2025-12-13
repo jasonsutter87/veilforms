@@ -1,7 +1,7 @@
 ---
 title: "GDPR Form Compliance: A Developer's Guide"
 description: "Complete guide to making your web forms GDPR compliant. Learn about consent collection, data minimization, the right to erasure, and how encryption helps with privacy by design."
-date: 2024-12-08
+date: 2025-12-08
 category: "Compliance"
 author: "VeilForms Team"
 readTime: 10

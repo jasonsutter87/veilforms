@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Decorative elements -->
+  <circle cx="100" cy="100" r="200" fill="url(#accent)" opacity="0.1"/>
+  <circle cx="1100" cy="530" r="250" fill="url(#accent)" opacity="0.1"/>
+
+  <!-- Lock icon -->
+  <g transform="translate(100, 200)">
+    <rect x="0" y="40" width="80" height="60" rx="8" fill="url(#accent)"/>
+    <path d="M15 40 V25 C15 10 25 0 40 0 S65 10 65 25 V40" stroke="url(#accent)" stroke-width="8" fill="none"/>
+    <circle cx="40" cy="70" r="8" fill="#0f172a"/>
+  </g>
+
+  <!-- Text -->
+  <text x="220" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="white">
+    <tspan fill="#6366f1">Veil</tspan><tspan fill="white">Forms</tspan>
+  </text>
+
+  <text x="220" y="330" font-family="system-ui, -apple-system, sans-serif" font-size="32" fill="#94a3b8">
+    Privacy-first forms with client-side encryption
+  </text>
+
+  <text x="220" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#64748b">
+    Your users' data is encrypted before it ever leaves their browser
+  </text>
+
+  <!-- Features -->
+  <g transform="translate(220, 450)">
+    <rect x="0" y="0" width="200" height="40" rx="20" fill="url(#accent)" opacity="0.2"/>
+    <text x="100" y="27" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a5b4fc" text-anchor="middle">Client-Side Encryption</text>
+  </g>
+
+  <g transform="translate(440, 450)">
+    <rect x="0" y="0" width="160" height="40" rx="20" fill="url(#accent)" opacity="0.2"/>
+    <text x="80" y="27" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a5b4fc" text-anchor="middle">PII Detection</text>
+  </g>
+
+  <g transform="translate(620, 450)">
+    <rect x="0" y="0" width="150" height="40" rx="20" fill="url(#accent)" opacity="0.2"/>
+    <text x="75" y="27" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a5b4fc" text-anchor="middle">Zero Tracking</text>
+  </g>
+
+  <!-- URL -->
+  <text x="220" y="560" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#6366f1">
+    veilforms.com
+  </text>
+</svg>
