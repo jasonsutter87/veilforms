@@ -1608,3 +1608,85 @@
   flex-shrink: 0;
   margin-left: 16px;
 }
+
+/* Webhook Styles */
+.webhook-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.test-result {
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+.test-result.success {
+  background: var(--success-light);
+  border: 1px solid var(--success);
+  color: var(--success);
+}
+.test-result.error {
+  background: var(--danger-light);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+.test-result strong {
+  display: block;
+  margin-bottom: 8px;
+}
+.test-result p {
+  margin: 4px 0 0 0;
+  opacity: 0.9;
+}
+
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.mini-table th,
+.mini-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.mini-table th {
+  background: var(--bg);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.mini-table tr:last-child td {
+  border-bottom: none;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.status-badge.success {
+  background: var(--success-light);
+  color: var(--success);
+}
+.status-badge.error {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.truncate {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.webhook-logs-table {
+  background: var(--bg);
+  border-radius: 8px;
+  overflow: hidden;
+}

@@ -267,12 +267,67 @@ async function viewFormDetail(formId) {
             <option value="paused" ${form.status === 'paused' ? 'selected' : ''}>Paused</option>
           </select>
         </div>
-        <div class="form-group">
-          <label for="edit-webhook-url">Webhook URL</label>
-          <input type="url" id="edit-webhook-url" value="${form.settings?.webhookUrl || ''}" placeholder="https://your-server.com/webhook">
-        </div>
         <button type="submit" class="btn btn-primary">Save Changes</button>
       </form>
+    </div>
+
+    <div class="detail-section">
+      <h3>Webhook Configuration</h3>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 16px;">
+        Receive real-time notifications when new submissions arrive.
+      </p>
+      <form id="webhook-form">
+        <div class="form-group">
+          <label for="webhook-url">Webhook URL</label>
+          <input type="url" id="webhook-url" value="${escapeHtml(form.settings?.webhookUrl || '')}" placeholder="https://your-server.com/webhook">
+          <small>We'll send a POST request with submission data to this URL</small>
+        </div>
+        <div class="webhook-actions">
+          <button type="submit" class="btn btn-primary">Save Webhook</button>
+          <button type="button" class="btn btn-secondary" id="test-webhook-btn" ${!form.settings?.webhookUrl ? 'disabled' : ''}>
+            Test Webhook
+          </button>
+        </div>
+      </form>
+
+      <div class="webhook-test-result" id="webhook-test-result" style="display: none; margin-top: 16px;">
+        <!-- Test result shown here -->
+      </div>
+
+      <div class="webhook-logs-section" style="margin-top: 24px;">
+        <h4 style="font-size: 0.875rem; margin-bottom: 12px; color: var(--text-muted);">Recent Delivery Logs</h4>
+        <div id="webhook-logs">
+          <p style="color: var(--text-muted); font-size: 0.875rem; font-style: italic;">
+            ${form.webhookLogs?.length > 0 ? '' : 'No webhook deliveries yet. Logs will appear here after webhooks are triggered.'}
+          </p>
+          ${form.webhookLogs?.length > 0 ? `
+            <div class="webhook-logs-table">
+              <table class="mini-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Response</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${form.webhookLogs.slice(0, 10).map(log => `
+                    <tr>
+                      <td>
+                        <span class="status-badge ${log.success ? 'success' : 'error'}">
+                          ${log.statusCode || (log.success ? 'OK' : 'Failed')}
+                        </span>
+                      </td>
+                      <td class="truncate">${escapeHtml(log.message || log.error || '-')}</td>
+                      <td>${formatRelativeTime(log.timestamp)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : ''}
+        </div>
+      </div>
     </div>
 
     <div class="detail-section" style="border-color: var(--danger);">
@@ -316,6 +371,82 @@ async function viewFormDetail(formId) {
 
   document.getElementById('delete-form-btn').addEventListener('click', () => {
     confirmDelete(formId);
+  });
+
+  // Webhook form
+  document.getElementById('webhook-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const webhookUrl = document.getElementById('webhook-url').value.trim();
+
+    try {
+      await api(`/api/forms/${formId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          settings: { webhookUrl: webhookUrl || null }
+        })
+      });
+
+      // Update local form data
+      if (!form.settings) form.settings = {};
+      form.settings.webhookUrl = webhookUrl || null;
+
+      // Enable/disable test button
+      document.getElementById('test-webhook-btn').disabled = !webhookUrl;
+
+      alert('Webhook saved successfully!');
+    } catch (err) {
+      alert('Failed to save webhook: ' + err.message);
+    }
+  });
+
+  // Test webhook button
+  document.getElementById('test-webhook-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('test-webhook-btn');
+    const resultDiv = document.getElementById('webhook-test-result');
+    const webhookUrl = document.getElementById('webhook-url').value.trim();
+
+    if (!webhookUrl) {
+      alert('Please enter a webhook URL first');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Testing...';
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<p style="color: var(--text-muted);">Sending test request...</p>';
+
+    try {
+      const result = await api(`/api/forms/${formId}/webhook-test`, {
+        method: 'POST'
+      });
+
+      if (result.success) {
+        resultDiv.innerHTML = `
+          <div class="test-result success">
+            <strong>Success!</strong>
+            <p>Webhook responded with status ${result.statusCode || 200}</p>
+            ${result.responseTime ? `<p>Response time: ${result.responseTime}ms</p>` : ''}
+          </div>
+        `;
+      } else {
+        resultDiv.innerHTML = `
+          <div class="test-result error">
+            <strong>Failed</strong>
+            <p>${escapeHtml(result.error || 'Webhook did not respond successfully')}</p>
+          </div>
+        `;
+      }
+    } catch (err) {
+      resultDiv.innerHTML = `
+        <div class="test-result error">
+          <strong>Error</strong>
+          <p>${escapeHtml(err.message)}</p>
+        </div>
+      `;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Test Webhook';
+    }
   });
 }
 
