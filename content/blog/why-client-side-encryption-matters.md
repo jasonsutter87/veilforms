@@ -7,7 +7,6 @@ category: "Security"
 author: "VeilForms Team"
 readTime: 8
 tags: ["encryption", "privacy", "security", "client-side"]
-image: "images/share-image.svg"
 type: "blog"
 css: ["blog.css"]
 ---
