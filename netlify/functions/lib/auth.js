@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 // SECURITY: JWT_SECRET must be set in environment - no fallback
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET environment variable is required');
+  throw new Error('FATAL: JWT_SECRET environment variable is required');
 }
 
 // Reduced from 7d to 24h for better security

@@ -92,7 +92,9 @@ export default async function handler(req, context) {
     // Delete the used token (one-time use)
     await deletePasswordResetToken(token);
 
-    console.log(`Password reset successful for ${tokenData.email}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Password reset successful for ${tokenData.email}`);
+    }
 
     return new Response(JSON.stringify({
       success: true,
