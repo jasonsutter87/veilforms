@@ -1974,7 +1974,9 @@ async function loadSettings() {
     }
   } catch (err) {
     // Settings endpoint might not exist yet, use defaults
-    console.log('Could not load settings:', err.message);
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
+      console.log('Could not load settings:', err.message);
+    }
   }
 }
 
@@ -2546,7 +2548,9 @@ async function loadSubscriptionStatus() {
       }
     }
   } catch (err) {
-    console.log('Could not load subscription status:', err.message);
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
+      console.log('Could not load subscription status:', err.message);
+    }
   }
 }
 
@@ -2584,7 +2588,9 @@ async function refreshUserData() {
       }
     }
   } catch (err) {
-    console.log('Could not refresh user data:', err.message);
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
+      console.log('Could not refresh user data:', err.message);
+    }
   }
 }
 

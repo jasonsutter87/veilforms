@@ -54,7 +54,9 @@ export default async function handler(req, context) {
     });
   }
 
-  console.log(`Processing Stripe event: ${event.type}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Processing Stripe event: ${event.type}`);
+  }
 
   try {
     switch (event.type) {
@@ -83,7 +85,9 @@ export default async function handler(req, context) {
         break;
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`Unhandled event type: ${event.type}`);
+        }
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -133,7 +137,9 @@ async function handleSubscriptionCreated(subscription) {
     subscriptionId: subscription.id
   });
 
-  console.log(`Subscription created for user ${user.id}: ${subscriptionData.plan}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Subscription created for user ${user.id}: ${subscriptionData.plan}`);
+  }
 }
 
 /**
@@ -167,7 +173,9 @@ async function handleSubscriptionUpdated(subscription) {
     });
   }
 
-  console.log(`Subscription updated for user ${user.id}: ${subscriptionData.plan}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Subscription updated for user ${user.id}: ${subscriptionData.plan}`);
+  }
 }
 
 /**
@@ -197,7 +205,9 @@ async function handleSubscriptionDeleted(subscription) {
     subscriptionId: subscription.id
   });
 
-  console.log(`Subscription deleted for user ${user.id}, downgraded to free`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Subscription deleted for user ${user.id}, downgraded to free`);
+  }
 }
 
 /**
@@ -217,7 +227,9 @@ async function handleInvoicePaid(invoice) {
     invoiceId: invoice.id
   });
 
-  console.log(`Invoice paid for user ${user.id}: $${invoice.amount_paid / 100}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Invoice paid for user ${user.id}: $${invoice.amount_paid / 100}`);
+  }
 }
 
 /**
@@ -239,7 +251,9 @@ async function handlePaymentFailed(invoice) {
     attemptCount: invoice.attempt_count
   });
 
-  console.log(`Payment failed for user ${user.id}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Payment failed for user ${user.id}`);
+  }
 
   // TODO: Send email notification about failed payment
 }
@@ -267,7 +281,9 @@ async function handleCheckoutCompleted(session) {
     subscriptionId: session.subscription
   });
 
-  console.log(`Checkout completed for user ${userId}: ${planName}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Checkout completed for user ${userId}: ${planName}`);
+  }
 }
 
 /**

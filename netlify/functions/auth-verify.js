@@ -103,7 +103,9 @@ export default async function handler(req, context) {
     // Delete the used token (one-time use)
     await deleteEmailVerificationToken(token);
 
-    console.log(`Email verified for ${tokenData.email}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Email verified for ${tokenData.email}`);
+    }
 
     return new Response(JSON.stringify({
       success: true,

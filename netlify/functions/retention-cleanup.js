@@ -12,7 +12,9 @@ const BATCH_SIZE = 50; // Process forms in batches
 const MAX_CONCURRENT_DELETES = 10; // Parallel deletion limit
 
 export default async function handler(req, context) {
-  console.log('Starting retention cleanup...');
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Starting retention cleanup...');
+  }
 
   const formsStore = getStore({ name: FORMS_STORE, consistency: 'strong' });
 
@@ -49,7 +51,9 @@ export default async function handler(req, context) {
       }
     }
 
-    console.log(`Retention cleanup complete. Forms processed: ${formsProcessed}, Submissions deleted: ${totalDeleted}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Retention cleanup complete. Forms processed: ${formsProcessed}, Submissions deleted: ${totalDeleted}`);
+    }
 
     return new Response(JSON.stringify({
       success: true,
@@ -103,7 +107,9 @@ async function processForm(formsStore, formKey) {
       return { processed: true, deleted: 0 };
     }
 
-    console.log(`Form ${form.id}: Deleting ${toDelete.length} submissions older than ${retention.days} days`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Form ${form.id}: Deleting ${toDelete.length} submissions older than ${retention.days} days`);
+    }
 
     // Delete submissions in parallel batches
     const deleteChunks = chunkArray(toDelete, MAX_CONCURRENT_DELETES);
