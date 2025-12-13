@@ -62,7 +62,10 @@ Or in Node.js/bundler environments:
 
 ```javascript
 import VeilForms from 'veilforms';
-console.log('VeilForms version:', VeilForms.version);
+
+if (VeilForms) {
+  console.log('VeilForms loaded successfully');
+}
 ```
 
 ## Initialize the SDK

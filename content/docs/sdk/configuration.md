@@ -256,32 +256,20 @@ Override configuration per form using data attributes:
 | `data-veilform-reset` | Reset form after submission (`true`/`false`) |
 | `data-veilform-redirect` | Redirect URL after success |
 
-## Runtime Configuration
+## Verifying Configuration
 
-Update configuration after initialization:
+Enable debug mode to verify your configuration:
 
 ```javascript
-// Initial config
 VeilForms.init('vf-abc123', {
   publicKey: '...',
-  debug: false
+  debug: true
 });
 
-// Enable debug mode later
-VeilForms.config.debug = true;
-```
-
-## Validating Configuration
-
-Check if VeilForms is properly configured:
-
-```javascript
-VeilForms.init('vf-abc123', { publicKey: '...', debug: true });
-
-// Verify
-console.log('Form ID:', VeilForms.config.formId);
-console.log('Encryption:', VeilForms.config.encryption);
-console.log('Has public key:', !!VeilForms.config.publicKey);
+// Console output shows initialization details:
+// [VeilForms] Initialized with form: vf-abc123
+// [VeilForms] Encryption: enabled
+// [VeilForms] PII stripping: disabled
 ```
 
 ## Configuration Errors

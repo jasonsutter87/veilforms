@@ -16,9 +16,6 @@ VeilForms dispatches events throughout the form lifecycle. Use these to build cu
 |-------|------------|--------|
 | `veilforms:success` | Submission succeeded | `{ submissionId, timestamp }` |
 | `veilforms:error` | Submission failed | `{ error }` |
-| `veilforms:submit` | Before submission starts | `{ formData }` |
-| `veilforms:encrypt` | After encryption completes | `{ encrypted }` |
-| `veilforms:pii` | PII detected | `{ detection, stripped }` |
 
 ## Basic Usage
 
@@ -52,61 +49,6 @@ document.querySelector('form').addEventListener('veilforms:error', (e) => {
 
 ## All Events
 
-### veilforms:submit
-
-Fires before submission begins. Cancel to prevent submission:
-
-```javascript
-form.addEventListener('veilforms:submit', (e) => {
-  console.log('Submitting:', e.detail.formData);
-
-  // Validate custom fields
-  if (!e.detail.formData.terms) {
-    e.preventDefault();
-    alert('Please accept the terms');
-    return;
-  }
-
-  // Show loading state
-  form.querySelector('button').textContent = 'Sending...';
-  form.querySelector('button').disabled = true;
-});
-```
-
-### veilforms:encrypt
-
-Fires after client-side encryption completes:
-
-```javascript
-form.addEventListener('veilforms:encrypt', (e) => {
-  console.log('Encrypted payload ready');
-  console.log('Encryption version:', e.detail.encrypted.version);
-
-  // Useful for debugging
-  if (VeilForms.config.debug) {
-    console.log('Payload size:', JSON.stringify(e.detail.encrypted).length);
-  }
-});
-```
-
-### veilforms:pii
-
-Fires when PII is detected (regardless of stripping):
-
-```javascript
-form.addEventListener('veilforms:pii', (e) => {
-  console.log('PII detection:', e.detail.detection);
-  console.log('Fields affected:', e.detail.detection.fields);
-  console.log('Patterns found:', e.detail.detection.patterns);
-  console.log('Was stripped:', e.detail.stripped);
-
-  // Notify user if PII was removed
-  if (e.detail.stripped) {
-    showNotification('Some personal info was removed for your privacy.');
-  }
-});
-```
-
 ### veilforms:success
 
 Fires after successful submission:
@@ -121,7 +63,6 @@ form.addEventListener('veilforms:success', (e) => {
 
   // Track analytics
   analytics.track('form_submitted', {
-    formId: VeilForms.config.formId,
     submissionId
   });
 
@@ -167,19 +108,10 @@ form.addEventListener('veilforms:error', (e) => {
 User clicks submit
         │
         ▼
-  veilforms:submit    ◄── Cancel here to prevent submission
-        │
-        ▼
     PII Detection
         │
         ▼
-   veilforms:pii      ◄── Only if PII detected
-        │
-        ▼
      Encryption
-        │
-        ▼
-  veilforms:encrypt   ◄── Payload ready
         │
         ▼
     Send to API
@@ -307,7 +239,6 @@ form.addEventListener('veilforms:success', (e) => {
   // Dispatch custom event for other parts of your app
   const customEvent = new CustomEvent('app:formSubmitted', {
     detail: {
-      formId: VeilForms.config.formId,
       submissionId: e.detail.submissionId
     }
   });
@@ -331,8 +262,7 @@ VeilForms.init('vf-abc123', {
 });
 
 // Console shows:
-// [VeilForms] Event: veilforms:submit { formData: {...} }
-// [VeilForms] Event: veilforms:encrypt { encrypted: {...} }
+// [VeilForms] Submission successful: vf-xyz789
 // [VeilForms] Event: veilforms:success { submissionId: 'vf-xyz789' }
 ```
 
@@ -355,21 +285,21 @@ All VeilForms events bubble up the DOM:
 </script>
 ```
 
-## Preventing Default
+## Custom Validation
 
-Cancel submission in the `veilforms:submit` event:
+For custom validation before submission, use the standard form `submit` event:
 
 ```javascript
-form.addEventListener('veilforms:submit', (e) => {
-  if (!customValidation(e.detail.formData)) {
+form.addEventListener('submit', (e) => {
+  if (!customValidation(new FormData(form))) {
     e.preventDefault();
     showValidationErrors();
   }
 });
 ```
 
-<div class="callout warning">
-<strong>Note:</strong> Only <code>veilforms:submit</code> is cancelable. Other events are informational.
+<div class="callout info">
+<strong>Note:</strong> VeilForms events (<code>veilforms:success</code> and <code>veilforms:error</code>) are informational and fire after submission completes. Use the standard form <code>submit</code> event for pre-submission validation.
 </div>
 
 ## Next Steps
