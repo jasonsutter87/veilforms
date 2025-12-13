@@ -215,6 +215,13 @@ async function viewFormDetail(formId) {
         Back to Forms
       </button>
       <div class="detail-actions">
+        <button class="btn btn-primary" id="edit-form-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          Edit Form
+        </button>
         <button class="btn btn-secondary" id="view-submissions-btn">View Submissions</button>
       </div>
     </div>
@@ -283,6 +290,10 @@ async function viewFormDetail(formId) {
     hide('form-detail');
     show('forms-grid');
     state.currentForm = null;
+  });
+
+  document.getElementById('edit-form-btn').addEventListener('click', () => {
+    showFormBuilder(formId, form.name, form.fields || []);
   });
 
   document.getElementById('view-submissions-btn').addEventListener('click', () => {
@@ -1002,6 +1013,788 @@ async function revokeApiKey(keyId) {
   } catch (err) {
     alert('Failed to revoke API key: ' + err.message);
   }
+}
+
+// =====================
+// Form Builder
+// =====================
+
+const formBuilder = {
+  formId: null,
+  formName: '',
+  fields: [],
+  selectedFieldId: null,
+  draggedFieldType: null,
+  draggedFieldId: null,
+  isDirty: false
+};
+
+// Field type configurations
+const fieldTypes = {
+  text: { label: 'Text Input', icon: 'text', hasPlaceholder: true, hasValidation: true },
+  email: { label: 'Email', icon: 'email', hasPlaceholder: true, hasValidation: true },
+  textarea: { label: 'Text Area', icon: 'textarea', hasPlaceholder: true, hasValidation: false },
+  number: { label: 'Number', icon: 'number', hasPlaceholder: true, hasValidation: true, hasMinMax: true },
+  phone: { label: 'Phone', icon: 'phone', hasPlaceholder: true, hasValidation: true },
+  select: { label: 'Dropdown', icon: 'select', hasOptions: true },
+  checkbox: { label: 'Checkbox', icon: 'checkbox', hasOptions: true },
+  radio: { label: 'Radio', icon: 'radio', hasOptions: true },
+  date: { label: 'Date', icon: 'date', hasMinMax: true },
+  url: { label: 'URL', icon: 'url', hasPlaceholder: true, hasValidation: true },
+  hidden: { label: 'Hidden', icon: 'hidden', hasDefaultValue: true },
+  heading: { label: 'Heading', icon: 'heading', isLayout: true },
+  paragraph: { label: 'Paragraph', icon: 'paragraph', isLayout: true },
+  divider: { label: 'Divider', icon: 'divider', isLayout: true }
+};
+
+// Generate unique field ID
+function generateFieldId() {
+  return 'field_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Create default field config
+function createFieldConfig(type) {
+  const typeConfig = fieldTypes[type];
+  const fieldId = generateFieldId();
+
+  const config = {
+    id: fieldId,
+    type,
+    label: typeConfig.isLayout ? '' : typeConfig.label,
+    name: typeConfig.isLayout ? '' : type + '_' + fieldId.substr(6, 4),
+    required: false
+  };
+
+  if (typeConfig.hasPlaceholder) {
+    config.placeholder = '';
+  }
+
+  if (typeConfig.hasOptions) {
+    config.options = ['Option 1', 'Option 2', 'Option 3'];
+  }
+
+  if (typeConfig.hasDefaultValue) {
+    config.defaultValue = '';
+  }
+
+  if (typeConfig.hasMinMax) {
+    config.min = '';
+    config.max = '';
+  }
+
+  if (type === 'heading') {
+    config.content = 'Section Heading';
+    config.level = 'h3';
+  }
+
+  if (type === 'paragraph') {
+    config.content = 'Add your text here...';
+  }
+
+  return config;
+}
+
+// Show Form Builder
+function showFormBuilder(formId, formName, existingFields = []) {
+  formBuilder.formId = formId;
+  formBuilder.formName = formName;
+  formBuilder.fields = existingFields.length > 0 ? existingFields : [];
+  formBuilder.selectedFieldId = null;
+  formBuilder.isDirty = false;
+
+  document.getElementById('page-title').textContent = `Edit Form: ${formName}`;
+
+  // Update nav
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+  // Hide other views
+  hide('forms-grid');
+  hide('form-detail');
+  hide('submissions-view');
+  hide('api-keys-view');
+  hide('empty-state');
+  hide('loading-state');
+
+  // Show form builder
+  show('form-builder-view');
+
+  // Hide topbar create button
+  document.querySelector('.topbar-actions').innerHTML = '';
+
+  // Hide field properties initially
+  hide('field-properties');
+
+  // Render fields
+  renderFormFields();
+
+  // Initialize drag and drop
+  initFormBuilderDragDrop();
+
+  // Initialize event listeners
+  initFormBuilderEvents();
+}
+
+// Initialize Form Builder Events
+function initFormBuilderEvents() {
+  // Back button
+  document.getElementById('builder-back-btn')?.addEventListener('click', () => {
+    if (formBuilder.isDirty) {
+      if (!confirm('You have unsaved changes. Are you sure you want to leave?')) {
+        return;
+      }
+    }
+    exitFormBuilder();
+  });
+
+  // Preview button
+  document.getElementById('preview-form-btn')?.addEventListener('click', showFormPreview);
+
+  // Save button
+  document.getElementById('save-form-btn')?.addEventListener('click', saveFormBuilder);
+
+  // Close properties
+  document.getElementById('close-properties')?.addEventListener('click', () => {
+    formBuilder.selectedFieldId = null;
+    hide('field-properties');
+    document.querySelectorAll('.form-field-item.selected').forEach(el => el.classList.remove('selected'));
+  });
+
+  // Field type buttons (click to add)
+  document.querySelectorAll('.field-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.fieldType;
+      addField(type);
+    });
+  });
+}
+
+// Initialize Drag and Drop
+function initFormBuilderDragDrop() {
+  const dropzone = document.getElementById('canvas-dropzone');
+
+  // Drag start from palette
+  document.querySelectorAll('.field-type-btn').forEach(btn => {
+    btn.addEventListener('dragstart', (e) => {
+      formBuilder.draggedFieldType = btn.dataset.fieldType;
+      formBuilder.draggedFieldId = null;
+      btn.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+
+    btn.addEventListener('dragend', () => {
+      btn.classList.remove('dragging');
+      formBuilder.draggedFieldType = null;
+    });
+  });
+
+  // Drop zone events
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = formBuilder.draggedFieldType ? 'copy' : 'move';
+    dropzone.classList.add('drag-over');
+  });
+
+  dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('drag-over');
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+
+    if (formBuilder.draggedFieldType) {
+      addField(formBuilder.draggedFieldType);
+      formBuilder.draggedFieldType = null;
+    } else if (formBuilder.draggedFieldId) {
+      // Handle reordering
+      const placeholder = dropzone.querySelector('.drag-placeholder');
+      if (placeholder) {
+        const targetIndex = Array.from(dropzone.children).indexOf(placeholder);
+        const field = formBuilder.fields.find(f => f.id === formBuilder.draggedFieldId);
+        const currentIndex = formBuilder.fields.indexOf(field);
+
+        if (currentIndex !== -1 && targetIndex !== currentIndex) {
+          formBuilder.fields.splice(currentIndex, 1);
+          const newIndex = targetIndex > currentIndex ? targetIndex - 1 : targetIndex;
+          formBuilder.fields.splice(newIndex, 0, field);
+          formBuilder.isDirty = true;
+          renderFormFields();
+        }
+        placeholder.remove();
+      }
+      formBuilder.draggedFieldId = null;
+    }
+  });
+}
+
+// Add field to form
+function addField(type, index = -1) {
+  const field = createFieldConfig(type);
+
+  if (index === -1) {
+    formBuilder.fields.push(field);
+  } else {
+    formBuilder.fields.splice(index, 0, field);
+  }
+
+  formBuilder.isDirty = true;
+  renderFormFields();
+  selectField(field.id);
+}
+
+// Delete field
+function deleteField(fieldId) {
+  const index = formBuilder.fields.findIndex(f => f.id === fieldId);
+  if (index !== -1) {
+    formBuilder.fields.splice(index, 1);
+    formBuilder.isDirty = true;
+
+    if (formBuilder.selectedFieldId === fieldId) {
+      formBuilder.selectedFieldId = null;
+      hide('field-properties');
+    }
+
+    renderFormFields();
+  }
+}
+
+// Duplicate field
+function duplicateField(fieldId) {
+  const original = formBuilder.fields.find(f => f.id === fieldId);
+  if (original) {
+    const duplicate = { ...original, id: generateFieldId() };
+    duplicate.name = original.name + '_copy';
+    const index = formBuilder.fields.indexOf(original);
+    formBuilder.fields.splice(index + 1, 0, duplicate);
+    formBuilder.isDirty = true;
+    renderFormFields();
+    selectField(duplicate.id);
+  }
+}
+
+// Select field
+function selectField(fieldId) {
+  formBuilder.selectedFieldId = fieldId;
+
+  // Update visual selection
+  document.querySelectorAll('.form-field-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.fieldId === fieldId);
+  });
+
+  // Show and populate properties panel
+  const field = formBuilder.fields.find(f => f.id === fieldId);
+  if (field) {
+    renderFieldProperties(field);
+    show('field-properties');
+  }
+}
+
+// Render Form Fields
+function renderFormFields() {
+  const dropzone = document.getElementById('canvas-dropzone');
+
+  if (formBuilder.fields.length === 0) {
+    dropzone.classList.remove('has-fields');
+    dropzone.innerHTML = `
+      <div class="dropzone-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <p>Drag fields here to build your form</p>
+        <p class="hint-sub">or click a field type to add it</p>
+      </div>
+    `;
+    return;
+  }
+
+  dropzone.classList.add('has-fields');
+  dropzone.innerHTML = formBuilder.fields.map(field => renderFieldItem(field)).join('');
+
+  // Add event listeners to field items
+  dropzone.querySelectorAll('.form-field-item').forEach(item => {
+    const fieldId = item.dataset.fieldId;
+
+    // Click to select
+    item.addEventListener('click', (e) => {
+      if (!e.target.closest('.field-actions')) {
+        selectField(fieldId);
+      }
+    });
+
+    // Drag to reorder
+    item.setAttribute('draggable', 'true');
+    item.addEventListener('dragstart', (e) => {
+      formBuilder.draggedFieldId = fieldId;
+      formBuilder.draggedFieldType = null;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      formBuilder.draggedFieldId = null;
+      document.querySelectorAll('.drag-placeholder').forEach(el => el.remove());
+    });
+
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (formBuilder.draggedFieldId && formBuilder.draggedFieldId !== fieldId) {
+        const placeholder = document.querySelector('.drag-placeholder') || document.createElement('div');
+        placeholder.className = 'drag-placeholder';
+        const rect = item.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          item.parentNode.insertBefore(placeholder, item);
+        } else {
+          item.parentNode.insertBefore(placeholder, item.nextSibling);
+        }
+      }
+    });
+
+    // Delete button
+    item.querySelector('.btn-delete')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('Delete this field?')) {
+        deleteField(fieldId);
+      }
+    });
+
+    // Duplicate button
+    item.querySelector('.btn-duplicate')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      duplicateField(fieldId);
+    });
+  });
+
+  // Highlight selected
+  if (formBuilder.selectedFieldId) {
+    const selected = dropzone.querySelector(`[data-field-id="${formBuilder.selectedFieldId}"]`);
+    selected?.classList.add('selected');
+  }
+}
+
+// Render single field item
+function renderFieldItem(field) {
+  const typeConfig = fieldTypes[field.type];
+  const isLayout = typeConfig?.isLayout;
+
+  let preview = '';
+
+  switch (field.type) {
+    case 'text':
+    case 'email':
+    case 'phone':
+    case 'url':
+      preview = `<input type="${field.type === 'phone' ? 'tel' : field.type}" placeholder="${escapeHtml(field.placeholder || '')}" disabled>`;
+      break;
+    case 'textarea':
+      preview = `<textarea placeholder="${escapeHtml(field.placeholder || '')}" disabled></textarea>`;
+      break;
+    case 'number':
+      preview = `<input type="number" placeholder="${escapeHtml(field.placeholder || '')}" disabled>`;
+      break;
+    case 'date':
+      preview = `<input type="date" disabled>`;
+      break;
+    case 'select':
+      preview = `<select disabled><option>${escapeHtml((field.options || [])[0] || 'Select...')}</option></select>`;
+      break;
+    case 'checkbox':
+      preview = `<div class="checkbox-preview">${(field.options || []).slice(0, 3).map(opt =>
+        `<label class="checkbox-option"><input type="checkbox" disabled> ${escapeHtml(opt)}</label>`
+      ).join('')}</div>`;
+      break;
+    case 'radio':
+      preview = `<div class="radio-preview">${(field.options || []).slice(0, 3).map(opt =>
+        `<label class="radio-option"><input type="radio" disabled> ${escapeHtml(opt)}</label>`
+      ).join('')}</div>`;
+      break;
+    case 'hidden':
+      preview = `<div style="color: var(--text-muted); font-style: italic; font-size: 0.875rem;">Hidden field: ${escapeHtml(field.name)}</div>`;
+      break;
+    case 'heading':
+      preview = `<${field.level || 'h3'} style="margin: 0;">${escapeHtml(field.content || 'Heading')}</${field.level || 'h3'}>`;
+      break;
+    case 'paragraph':
+      preview = `<p style="margin: 0; color: var(--text-muted);">${escapeHtml(field.content || 'Paragraph text')}</p>`;
+      break;
+    case 'divider':
+      preview = `<hr style="border: none; height: 1px; background: var(--border);">`;
+      break;
+    default:
+      preview = `<input type="text" disabled>`;
+  }
+
+  return `
+    <div class="form-field-item" data-field-id="${field.id}">
+      <div class="field-drag-handle">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="field-content">
+        ${!isLayout ? `
+          <div class="field-label">
+            ${escapeHtml(field.label || 'Untitled')}
+            ${field.required ? '<span class="required-indicator">*</span>' : ''}
+            <span class="field-type-tag">${field.type}</span>
+          </div>
+        ` : ''}
+        <div class="field-preview">${preview}</div>
+      </div>
+      <div class="field-actions">
+        <button class="btn-duplicate" title="Duplicate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+        <button class="btn-delete" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// Render Field Properties Panel
+function renderFieldProperties(field) {
+  const typeConfig = fieldTypes[field.type];
+  const isLayout = typeConfig?.isLayout;
+
+  const propertiesBody = document.getElementById('properties-body');
+
+  let html = '';
+
+  // Layout fields (heading, paragraph, divider)
+  if (isLayout) {
+    if (field.type === 'heading') {
+      html += `
+        <div class="property-group">
+          <label>Heading Text</label>
+          <input type="text" id="prop-content" value="${escapeHtml(field.content || '')}" placeholder="Enter heading text">
+        </div>
+        <div class="property-group">
+          <label>Heading Level</label>
+          <select id="prop-level">
+            <option value="h2" ${field.level === 'h2' ? 'selected' : ''}>H2 - Large</option>
+            <option value="h3" ${field.level === 'h3' ? 'selected' : ''}>H3 - Medium</option>
+            <option value="h4" ${field.level === 'h4' ? 'selected' : ''}>H4 - Small</option>
+          </select>
+        </div>
+      `;
+    } else if (field.type === 'paragraph') {
+      html += `
+        <div class="property-group">
+          <label>Paragraph Text</label>
+          <textarea id="prop-content" rows="4">${escapeHtml(field.content || '')}</textarea>
+        </div>
+      `;
+    } else if (field.type === 'divider') {
+      html += `<p style="color: var(--text-muted); font-size: 0.875rem;">No properties for divider.</p>`;
+    }
+  } else {
+    // Regular form fields
+    html += `
+      <div class="property-group">
+        <label>Label</label>
+        <input type="text" id="prop-label" value="${escapeHtml(field.label || '')}" placeholder="Field label">
+      </div>
+      <div class="property-group">
+        <label>Field Name</label>
+        <input type="text" id="prop-name" value="${escapeHtml(field.name || '')}" placeholder="field_name">
+        <small>Used in form data. No spaces or special characters.</small>
+      </div>
+    `;
+
+    // Placeholder
+    if (typeConfig?.hasPlaceholder) {
+      html += `
+        <div class="property-group">
+          <label>Placeholder</label>
+          <input type="text" id="prop-placeholder" value="${escapeHtml(field.placeholder || '')}" placeholder="Placeholder text">
+        </div>
+      `;
+    }
+
+    // Default value for hidden fields
+    if (typeConfig?.hasDefaultValue) {
+      html += `
+        <div class="property-group">
+          <label>Default Value</label>
+          <input type="text" id="prop-defaultValue" value="${escapeHtml(field.defaultValue || '')}">
+        </div>
+      `;
+    }
+
+    // Options for select, checkbox, radio
+    if (typeConfig?.hasOptions) {
+      html += `
+        <div class="property-group">
+          <label>Options</label>
+          <div class="options-editor" id="options-editor">
+            ${(field.options || []).map((opt, i) => `
+              <div class="option-row" data-index="${i}">
+                <input type="text" value="${escapeHtml(opt)}" class="option-input">
+                <button type="button" class="btn-remove-option" ${field.options.length <= 1 ? 'disabled' : ''}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" class="btn-add-option" id="add-option-btn">+ Add Option</button>
+        </div>
+      `;
+    }
+
+    // Min/Max for number and date
+    if (typeConfig?.hasMinMax) {
+      html += `
+        <div class="property-group">
+          <label>Min Value</label>
+          <input type="${field.type === 'date' ? 'date' : 'number'}" id="prop-min" value="${escapeHtml(field.min || '')}">
+        </div>
+        <div class="property-group">
+          <label>Max Value</label>
+          <input type="${field.type === 'date' ? 'date' : 'number'}" id="prop-max" value="${escapeHtml(field.max || '')}">
+        </div>
+      `;
+    }
+
+    // Required checkbox
+    if (field.type !== 'hidden') {
+      html += `
+        <div class="property-divider"></div>
+        <div class="property-group">
+          <label class="property-checkbox">
+            <input type="checkbox" id="prop-required" ${field.required ? 'checked' : ''}>
+            Required field
+          </label>
+        </div>
+      `;
+    }
+  }
+
+  // Delete button
+  html += `<button class="btn-delete-field" id="delete-field-btn">Delete Field</button>`;
+
+  propertiesBody.innerHTML = html;
+
+  // Attach event listeners
+  attachPropertyListeners(field);
+}
+
+// Attach Property Panel Event Listeners
+function attachPropertyListeners(field) {
+  const updateField = (key, value) => {
+    field[key] = value;
+    formBuilder.isDirty = true;
+    renderFormFields();
+  };
+
+  // Text inputs
+  ['label', 'name', 'placeholder', 'defaultValue', 'content', 'min', 'max'].forEach(prop => {
+    const input = document.getElementById(`prop-${prop}`);
+    if (input) {
+      input.addEventListener('input', (e) => {
+        updateField(prop, e.target.value);
+      });
+    }
+  });
+
+  // Select inputs
+  ['level'].forEach(prop => {
+    const select = document.getElementById(`prop-${prop}`);
+    if (select) {
+      select.addEventListener('change', (e) => {
+        updateField(prop, e.target.value);
+      });
+    }
+  });
+
+  // Checkbox inputs
+  const requiredCheckbox = document.getElementById('prop-required');
+  if (requiredCheckbox) {
+    requiredCheckbox.addEventListener('change', (e) => {
+      updateField('required', e.target.checked);
+    });
+  }
+
+  // Options editor
+  const optionsEditor = document.getElementById('options-editor');
+  if (optionsEditor) {
+    // Update option
+    optionsEditor.querySelectorAll('.option-input').forEach((input, index) => {
+      input.addEventListener('input', (e) => {
+        field.options[index] = e.target.value;
+        formBuilder.isDirty = true;
+        renderFormFields();
+      });
+    });
+
+    // Remove option
+    optionsEditor.querySelectorAll('.btn-remove-option').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const row = btn.closest('.option-row');
+        const index = parseInt(row.dataset.index);
+        field.options.splice(index, 1);
+        formBuilder.isDirty = true;
+        renderFormFields();
+        renderFieldProperties(field);
+      });
+    });
+  }
+
+  // Add option button
+  document.getElementById('add-option-btn')?.addEventListener('click', () => {
+    field.options.push(`Option ${field.options.length + 1}`);
+    formBuilder.isDirty = true;
+    renderFormFields();
+    renderFieldProperties(field);
+  });
+
+  // Delete field button
+  document.getElementById('delete-field-btn')?.addEventListener('click', () => {
+    if (confirm('Delete this field?')) {
+      deleteField(field.id);
+    }
+  });
+}
+
+// Show Form Preview
+function showFormPreview() {
+  const previewContainer = document.getElementById('preview-container');
+
+  if (formBuilder.fields.length === 0) {
+    previewContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Add some fields to see a preview.</p>';
+    show('form-preview-modal');
+    return;
+  }
+
+  let html = '<form class="preview-form">';
+
+  formBuilder.fields.forEach(field => {
+    const typeConfig = fieldTypes[field.type];
+
+    if (field.type === 'heading') {
+      html += `<${field.level || 'h3'} class="preview-heading">${escapeHtml(field.content || '')}</${field.level || 'h3'}>`;
+    } else if (field.type === 'paragraph') {
+      html += `<p class="preview-paragraph">${escapeHtml(field.content || '')}</p>`;
+    } else if (field.type === 'divider') {
+      html += `<hr class="preview-divider">`;
+    } else if (field.type === 'hidden') {
+      // Don't show hidden fields in preview
+    } else {
+      html += `<div class="form-group">`;
+      html += `<label>${escapeHtml(field.label || 'Untitled')}${field.required ? ' <span style="color: var(--danger);">*</span>' : ''}</label>`;
+
+      switch (field.type) {
+        case 'text':
+        case 'email':
+        case 'phone':
+        case 'url':
+          html += `<input type="${field.type === 'phone' ? 'tel' : field.type}" name="${escapeHtml(field.name)}" placeholder="${escapeHtml(field.placeholder || '')}" ${field.required ? 'required' : ''}>`;
+          break;
+        case 'textarea':
+          html += `<textarea name="${escapeHtml(field.name)}" placeholder="${escapeHtml(field.placeholder || '')}" rows="4" ${field.required ? 'required' : ''}></textarea>`;
+          break;
+        case 'number':
+          html += `<input type="number" name="${escapeHtml(field.name)}" placeholder="${escapeHtml(field.placeholder || '')}" ${field.min ? `min="${field.min}"` : ''} ${field.max ? `max="${field.max}"` : ''} ${field.required ? 'required' : ''}>`;
+          break;
+        case 'date':
+          html += `<input type="date" name="${escapeHtml(field.name)}" ${field.min ? `min="${field.min}"` : ''} ${field.max ? `max="${field.max}"` : ''} ${field.required ? 'required' : ''}>`;
+          break;
+        case 'select':
+          html += `<select name="${escapeHtml(field.name)}" ${field.required ? 'required' : ''}>`;
+          html += `<option value="">Select...</option>`;
+          (field.options || []).forEach(opt => {
+            html += `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`;
+          });
+          html += `</select>`;
+          break;
+        case 'checkbox':
+          (field.options || []).forEach(opt => {
+            html += `<label class="property-checkbox" style="margin-bottom: 8px;"><input type="checkbox" name="${escapeHtml(field.name)}[]" value="${escapeHtml(opt)}"> ${escapeHtml(opt)}</label>`;
+          });
+          break;
+        case 'radio':
+          (field.options || []).forEach((opt, i) => {
+            html += `<label class="property-checkbox" style="margin-bottom: 8px;"><input type="radio" name="${escapeHtml(field.name)}" value="${escapeHtml(opt)}" ${i === 0 && field.required ? 'required' : ''}> ${escapeHtml(opt)}</label>`;
+          });
+          break;
+      }
+
+      html += `</div>`;
+    }
+  });
+
+  html += '<button type="button" class="btn-submit-preview">Submit (Preview)</button>';
+  html += '</form>';
+
+  previewContainer.innerHTML = html;
+  show('form-preview-modal');
+}
+
+// Save Form Builder
+async function saveFormBuilder() {
+  if (formBuilder.fields.length === 0) {
+    alert('Please add at least one field to the form.');
+    return;
+  }
+
+  try {
+    await api(`/api/forms/${formBuilder.formId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        fields: formBuilder.fields
+      })
+    });
+
+    formBuilder.isDirty = false;
+    alert('Form saved successfully!');
+  } catch (err) {
+    alert('Failed to save form: ' + err.message);
+  }
+}
+
+// Exit Form Builder
+function exitFormBuilder() {
+  formBuilder.formId = null;
+  formBuilder.formName = '';
+  formBuilder.fields = [];
+  formBuilder.selectedFieldId = null;
+  formBuilder.isDirty = false;
+
+  hide('form-builder-view');
+  document.getElementById('page-title').textContent = 'Forms';
+
+  // Restore topbar
+  document.querySelector('.topbar-actions').innerHTML = `
+    <button class="btn btn-primary" id="create-form-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      New Form
+    </button>
+  `;
+
+  document.getElementById('create-form-btn')?.addEventListener('click', () => {
+    show('create-form-modal');
+  });
+
+  // Restore nav
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  document.querySelector('[data-page="forms"]')?.classList.add('active');
+
+  loadForms();
 }
 
 // Start

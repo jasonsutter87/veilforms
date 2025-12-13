@@ -121,6 +121,172 @@
 
           <!-- API Keys View -->
           <div class="api-keys-view" id="api-keys-view" style="display: none;"></div>
+
+          <!-- Form Builder View -->
+          <div class="form-builder-view" id="form-builder-view" style="display: none;">
+            <div class="form-builder-layout">
+              <!-- Field Palette -->
+              <aside class="field-palette">
+                <h3 class="palette-title">Fields</h3>
+                <div class="field-types">
+                  <button class="field-type-btn" data-field-type="text" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M4 7V4h16v3"></path>
+                      <path d="M9 20h6"></path>
+                      <path d="M12 4v16"></path>
+                    </svg>
+                    <span>Text</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="email" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                      <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    <span>Email</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="textarea" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    <span>Text Area</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="number" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                      <text x="12" y="15" text-anchor="middle" font-size="10" fill="currentColor">123</text>
+                    </svg>
+                    <span>Number</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="phone" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                    <span>Phone</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="select" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                    <span>Dropdown</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="checkbox" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <polyline points="9 11 12 14 22 4"></polyline>
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    <span>Checkbox</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="radio" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <circle cx="12" cy="12" r="4" fill="currentColor"></circle>
+                    </svg>
+                    <span>Radio</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="date" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span>Date</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="url" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                    <span>URL</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="hidden" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                    <span>Hidden</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="heading" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M6 4v16"></path>
+                      <path d="M18 4v16"></path>
+                      <path d="M6 12h12"></path>
+                    </svg>
+                    <span>Heading</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="paragraph" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <line x1="17" y1="10" x2="3" y2="10"></line>
+                      <line x1="21" y1="6" x2="3" y2="6"></line>
+                      <line x1="21" y1="14" x2="3" y2="14"></line>
+                      <line x1="17" y1="18" x2="3" y2="18"></line>
+                    </svg>
+                    <span>Paragraph</span>
+                  </button>
+                  <button class="field-type-btn" data-field-type="divider" draggable="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <line x1="3" y1="12" x2="21" y2="12"></line>
+                    </svg>
+                    <span>Divider</span>
+                  </button>
+                </div>
+              </aside>
+
+              <!-- Form Canvas -->
+              <div class="form-canvas-wrapper">
+                <div class="canvas-header">
+                  <button class="btn btn-secondary" id="builder-back-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                      <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Back
+                  </button>
+                  <div class="canvas-actions">
+                    <button class="btn btn-secondary" id="preview-form-btn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      Preview
+                    </button>
+                    <button class="btn btn-primary" id="save-form-btn">Save Form</button>
+                  </div>
+                </div>
+                <div class="form-canvas" id="form-canvas">
+                  <div class="canvas-dropzone" id="canvas-dropzone">
+                    <div class="dropzone-hint">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      <p>Drag fields here to build your form</p>
+                      <p class="hint-sub">or click a field type to add it</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Field Properties Panel -->
+              <aside class="field-properties" id="field-properties" style="display: none;">
+                <div class="properties-header">
+                  <h3>Field Properties</h3>
+                  <button class="properties-close" id="close-properties">&times;</button>
+                </div>
+                <div class="properties-body" id="properties-body">
+                  <!-- Properties content dynamically generated -->
+                </div>
+              </aside>
+            </div>
+          </div>
+
+          <!-- Settings View -->
+          <div class="settings-view" id="settings-view" style="display: none;"></div>
+
+          <!-- Audit Logs View -->
+          <div class="audit-logs-view" id="audit-logs-view" style="display: none;"></div>
         </div>
       </div>
     </div>
@@ -232,6 +398,25 @@
         <div class="modal-footer">
           <button class="btn btn-secondary modal-close-btn">Cancel</button>
           <button class="btn btn-primary" id="decrypt-btn">Decrypt</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Preview Modal -->
+    <div class="modal" id="form-preview-modal" style="display: none;">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h2>Form Preview</h2>
+          <button class="modal-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="preview-container" id="preview-container">
+            <!-- Preview content dynamically generated -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary modal-close-btn">Close</button>
         </div>
       </div>
     </div>
