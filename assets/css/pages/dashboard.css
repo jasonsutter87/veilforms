@@ -1571,6 +1571,17 @@
   margin-bottom: 8px;
 }
 
+.subscription-status {
+  font-size: 0.875rem;
+  margin-top: -12px;
+}
+
+.subscription-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .settings-danger {
   border-color: var(--danger);
 }
