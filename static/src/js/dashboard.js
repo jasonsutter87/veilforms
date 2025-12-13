@@ -810,6 +810,18 @@ function init() {
     showApiKeys();
   });
 
+  // Settings navigation
+  document.getElementById('nav-settings')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showSettings();
+  });
+
+  // Audit Logs navigation
+  document.getElementById('nav-audit-logs')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showAuditLogs();
+  });
+
   // Create API Key button
   document.getElementById('cancel-api-key-btn')?.addEventListener('click', () => {
     hide('create-api-key-modal');
@@ -1762,6 +1774,434 @@ async function saveFormBuilder() {
   } catch (err) {
     alert('Failed to save form: ' + err.message);
   }
+}
+
+// =====================
+// Settings
+// =====================
+
+// Show Settings View
+async function showSettings() {
+  document.getElementById('page-title').textContent = 'Settings';
+
+  // Update nav active state
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  document.getElementById('nav-settings')?.classList.add('active');
+
+  // Hide other views
+  hide('forms-grid');
+  hide('form-detail');
+  hide('submissions-view');
+  hide('api-keys-view');
+  hide('form-builder-view');
+  hide('audit-logs-view');
+  hide('empty-state');
+  hide('loading-state');
+
+  // Show settings view
+  show('settings-view');
+
+  // Hide topbar create button
+  document.querySelector('.topbar-actions').innerHTML = '';
+
+  // Load current settings
+  await loadSettings();
+
+  // Initialize settings event listeners
+  initSettingsEvents();
+}
+
+// Load Settings
+async function loadSettings() {
+  // Populate email from stored user
+  if (state.user) {
+    document.getElementById('settings-email').value = state.user.email || '';
+    document.getElementById('settings-name').value = state.user.name || '';
+
+    // Update subscription info
+    const planName = (state.user.subscription || 'free').charAt(0).toUpperCase() +
+                     (state.user.subscription || 'free').slice(1);
+    document.getElementById('current-plan-name').textContent = planName;
+
+    // Update plan features based on subscription
+    const features = getPlanFeatures(state.user.subscription || 'free');
+    document.getElementById('plan-features-list').innerHTML = features.map(f => `<li>${f}</li>`).join('');
+  }
+
+  // Try to load additional settings from API
+  try {
+    const data = await api('/api/user/settings');
+    if (data.settings) {
+      if (data.settings.branding) {
+        document.getElementById('custom-logo').value = data.settings.branding.customLogo || '';
+        document.getElementById('brand-color').value = data.settings.branding.brandColor || '#6366f1';
+        document.getElementById('brand-color-hex').value = data.settings.branding.brandColor || '#6366f1';
+      }
+      if (data.settings.retention) {
+        document.getElementById('retention-days').value = data.settings.retention.days || '0';
+      }
+    }
+  } catch (err) {
+    // Settings endpoint might not exist yet, use defaults
+    console.log('Could not load settings:', err.message);
+  }
+}
+
+// Get plan features
+function getPlanFeatures(plan) {
+  const features = {
+    free: ['5 forms', '100 submissions/month', '7-day data retention', 'Basic encryption'],
+    starter: ['25 forms', '1,000 submissions/month', '30-day data retention', 'Custom branding', 'Webhooks'],
+    pro: ['Unlimited forms', '10,000 submissions/month', '1-year data retention', 'Priority support', 'Advanced analytics'],
+    enterprise: ['Unlimited everything', 'Custom retention', 'SLA guarantee', 'Dedicated support', 'Self-hosting option']
+  };
+  return features[plan] || features.free;
+}
+
+// Initialize Settings Event Listeners
+function initSettingsEvents() {
+  // Profile form
+  document.getElementById('profile-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('settings-name').value.trim();
+
+    try {
+      await api('/api/user/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ name })
+      });
+
+      // Update local state
+      state.user.name = name;
+      localStorage.setItem('veilforms_user', JSON.stringify(state.user));
+
+      alert('Profile updated successfully!');
+    } catch (err) {
+      alert('Failed to update profile: ' + err.message);
+    }
+  });
+
+  // Password form
+  document.getElementById('password-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const currentPassword = document.getElementById('current-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+
+    if (newPassword !== confirmPassword) {
+      alert('New passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      alert('Password must be at least 8 characters');
+      return;
+    }
+
+    try {
+      await api('/api/user/password', {
+        method: 'PUT',
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+
+      // Clear form
+      document.getElementById('password-form').reset();
+      alert('Password changed successfully!');
+    } catch (err) {
+      alert('Failed to change password: ' + err.message);
+    }
+  });
+
+  // Branding form
+  document.getElementById('branding-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const customLogo = document.getElementById('custom-logo').value.trim();
+    const brandColor = document.getElementById('brand-color').value;
+
+    try {
+      await api('/api/user/branding', {
+        method: 'PUT',
+        body: JSON.stringify({ customLogo, brandColor })
+      });
+
+      alert('Branding settings saved!');
+    } catch (err) {
+      alert('Failed to save branding: ' + err.message);
+    }
+  });
+
+  // Color picker sync
+  document.getElementById('brand-color')?.addEventListener('input', (e) => {
+    document.getElementById('brand-color-hex').value = e.target.value;
+  });
+
+  document.getElementById('brand-color-hex')?.addEventListener('input', (e) => {
+    if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+      document.getElementById('brand-color').value = e.target.value;
+    }
+  });
+
+  // Retention form
+  document.getElementById('retention-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const days = parseInt(document.getElementById('retention-days').value);
+
+    try {
+      await api('/api/user/retention', {
+        method: 'PUT',
+        body: JSON.stringify({ days })
+      });
+
+      alert('Retention settings saved!');
+    } catch (err) {
+      alert('Failed to save retention settings: ' + err.message);
+    }
+  });
+
+  // Upgrade plan button
+  document.getElementById('upgrade-plan-btn')?.addEventListener('click', () => {
+    window.location.href = '/pricing/';
+  });
+
+  // Export data button
+  document.getElementById('export-data-btn')?.addEventListener('click', async () => {
+    try {
+      const data = await api('/api/user/export');
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `veilforms-export-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to export data: ' + err.message);
+    }
+  });
+
+  // Delete account button
+  document.getElementById('delete-account-btn')?.addEventListener('click', () => {
+    if (confirm('Are you SURE you want to delete your account? This action CANNOT be undone. All your forms and submissions will be permanently deleted.')) {
+      const confirmText = prompt('Type "DELETE" to confirm account deletion:');
+      if (confirmText === 'DELETE') {
+        deleteAccount();
+      } else {
+        alert('Account deletion cancelled.');
+      }
+    }
+  });
+}
+
+// Delete Account
+async function deleteAccount() {
+  try {
+    await api('/api/user/delete', { method: 'DELETE' });
+
+    localStorage.removeItem('veilforms_token');
+    localStorage.removeItem('veilforms_user');
+
+    alert('Your account has been deleted.');
+    window.location.href = '/';
+  } catch (err) {
+    alert('Failed to delete account: ' + err.message);
+  }
+}
+
+// =====================
+// Audit Logs
+// =====================
+
+let auditLogs = [];
+let auditPagination = { offset: 0, limit: 50, total: 0 };
+
+// Show Audit Logs View
+async function showAuditLogs() {
+  document.getElementById('page-title').textContent = 'Audit Logs';
+
+  // Update nav active state
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  document.getElementById('nav-audit-logs')?.classList.add('active');
+
+  // Hide other views
+  hide('forms-grid');
+  hide('form-detail');
+  hide('submissions-view');
+  hide('api-keys-view');
+  hide('form-builder-view');
+  hide('settings-view');
+  hide('empty-state');
+
+  // Show audit logs view
+  show('audit-logs-view');
+
+  // Hide topbar create button
+  document.querySelector('.topbar-actions').innerHTML = '';
+
+  // Load audit logs
+  await loadAuditLogs();
+}
+
+// Load Audit Logs
+async function loadAuditLogs(eventFilter = '', formFilter = '') {
+  const view = document.getElementById('audit-logs-view');
+  view.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading audit logs...</p></div>';
+
+  try {
+    let url = `/api/audit-logs?limit=${auditPagination.limit}&offset=${auditPagination.offset}`;
+    if (eventFilter) url += `&event=${eventFilter}`;
+    if (formFilter) url += `&formId=${formFilter}`;
+
+    const data = await api(url);
+    auditLogs = data.logs || [];
+    auditPagination.total = data.total || 0;
+
+    renderAuditLogs();
+  } catch (err) {
+    console.error('Load audit logs error:', err);
+    view.innerHTML = `
+      <div class="error-state">
+        <div class="error-icon">!</div>
+        <h2>Failed to load audit logs</h2>
+        <p>${escapeHtml(err.message)}</p>
+        <button class="btn btn-secondary" onclick="loadAuditLogs()">Try Again</button>
+      </div>
+    `;
+  }
+}
+
+// Render Audit Logs
+function renderAuditLogs() {
+  const view = document.getElementById('audit-logs-view');
+
+  if (auditLogs.length === 0) {
+    view.innerHTML = `
+      <div class="audit-logs-header">
+        <h2>Activity Log</h2>
+      </div>
+      <div class="empty-state">
+        <h2>No audit logs yet</h2>
+        <p>Activity logs will appear here as you use VeilForms.</p>
+      </div>
+    `;
+    return;
+  }
+
+  view.innerHTML = `
+    <div class="audit-logs-header">
+      <div>
+        <h2 style="margin: 0 0 8px 0;">Activity Log</h2>
+        <p style="color: var(--text-muted); margin: 0;">Track all account and form activity</p>
+      </div>
+      <div class="audit-filters">
+        <select id="event-filter">
+          <option value="">All Events</option>
+          <option value="form">Form Events</option>
+          <option value="submission">Submission Events</option>
+          <option value="user">Auth Events</option>
+          <option value="api_key">API Key Events</option>
+        </select>
+        <select id="form-filter">
+          <option value="">All Forms</option>
+          ${state.forms.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div class="audit-logs-table-wrapper">
+      <table class="audit-logs-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Details</th>
+            <th>IP</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${auditLogs.map(log => {
+            const eventCategory = log.event.split('.')[0];
+            return `
+              <tr>
+                <td><span class="event-badge ${eventCategory}">${escapeHtml(log.event)}</span></td>
+                <td>${formatLogDetails(log.details)}</td>
+                <td><code>${escapeHtml(log.meta?.ip || 'N/A')}</code></td>
+                <td>${formatDateTime(log.timestamp)}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+
+      ${auditPagination.total > auditPagination.limit ? `
+        <div class="pagination">
+          <button id="audit-prev-page" ${auditPagination.offset === 0 ? 'disabled' : ''}>Previous</button>
+          <span class="page-info">
+            ${auditPagination.offset + 1}-${Math.min(auditPagination.offset + auditPagination.limit, auditPagination.total)}
+            of ${auditPagination.total}
+          </span>
+          <button id="audit-next-page" ${auditPagination.offset + auditPagination.limit >= auditPagination.total ? 'disabled' : ''}>Next</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  // Event listeners
+  document.getElementById('event-filter')?.addEventListener('change', (e) => {
+    auditPagination.offset = 0;
+    const formFilter = document.getElementById('form-filter')?.value || '';
+    loadAuditLogs(e.target.value, formFilter);
+  });
+
+  document.getElementById('form-filter')?.addEventListener('change', (e) => {
+    auditPagination.offset = 0;
+    const eventFilter = document.getElementById('event-filter')?.value || '';
+    loadAuditLogs(eventFilter, e.target.value);
+  });
+
+  document.getElementById('audit-prev-page')?.addEventListener('click', () => {
+    auditPagination.offset = Math.max(0, auditPagination.offset - auditPagination.limit);
+    const eventFilter = document.getElementById('event-filter')?.value || '';
+    const formFilter = document.getElementById('form-filter')?.value || '';
+    loadAuditLogs(eventFilter, formFilter);
+  });
+
+  document.getElementById('audit-next-page')?.addEventListener('click', () => {
+    auditPagination.offset += auditPagination.limit;
+    const eventFilter = document.getElementById('event-filter')?.value || '';
+    const formFilter = document.getElementById('form-filter')?.value || '';
+    loadAuditLogs(eventFilter, formFilter);
+  });
+}
+
+// Format log details
+function formatLogDetails(details) {
+  if (!details) return '<em>-</em>';
+
+  const parts = [];
+  if (details.formName) parts.push(`Form: ${escapeHtml(details.formName)}`);
+  if (details.formId && !details.formName) parts.push(`Form ID: ${escapeHtml(details.formId.substring(0, 12))}...`);
+  if (details.submissionId) parts.push(`Submission: ${escapeHtml(details.submissionId.substring(0, 12))}...`);
+  if (details.keyName) parts.push(`Key: ${escapeHtml(details.keyName)}`);
+  if (details.changes) {
+    const changes = Object.keys(details.changes).join(', ');
+    parts.push(`Changed: ${changes}`);
+  }
+
+  return parts.length > 0 ? parts.join(' | ') : '<em>-</em>';
+}
+
+// Format date/time
+function formatDateTime(timestamp) {
+  if (!timestamp) return 'N/A';
+  const date = new Date(timestamp);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 // Exit Form Builder
