@@ -1,0 +1,54 @@
+// ==========================================================================
+// CTA SECTION
+// ==========================================================================
+
+.compare-cta {
+  padding: 80px 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.cta-box {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 24px;
+  padding: 60px 40px;
+  text-align: center;
+
+  h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: var(--text-muted);
+    font-size: 1.125rem;
+    margin-bottom: 32px;
+  }
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  .btn {
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 768px) {
+  .compare-cta {
+    padding: 60px 0;
+  }
+
+  .cta-box {
+    padding: 40px 24px;
+
+    h2 {
+      font-size: 1.5rem;
+    }
+  }
+}

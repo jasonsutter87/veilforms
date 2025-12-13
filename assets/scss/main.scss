@@ -5,6 +5,10 @@
 
 @use 'shared/variables' as *;
 @use 'shared/mixins' as *;
+@use 'shared/header' as *;
+@use 'shared/cta' as *;
+
+
 
 // Tailwind layers
 @tailwind base;
@@ -72,6 +76,28 @@
 
   .sr-only {
     @include visually-hidden;
+  }
+
+  .skip-link {
+    @include visually-hidden;
+
+    &:focus {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 9999;
+      width: auto;
+      height: auto;
+      padding: 0.75rem 1.5rem;
+      clip: auto;
+      overflow: visible;
+      white-space: normal;
+      background: $primary;
+      color: white;
+      border-radius: $border-radius;
+      text-decoration: none;
+      font-weight: $font-weight-medium;
+    }
   }
 }
 
@@ -211,68 +237,6 @@
 }
 
 // ==========================================================================
-// HEADER
-// ==========================================================================
-
-.site-header {
-  background: $surface;
-  border-bottom: 1px solid $border;
-  padding: 1rem 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  .header-container {
-    @include container(1200px);
-    @include flex-between;
-  }
-
-  .logo {
-    font-size: 1.25rem;
-    font-weight: $font-weight-bold;
-    color: $text;
-    text-decoration: none;
-
-    .logo-veil {
-      color: $primary;
-    }
-  }
-
-  .nav-links {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-
-    a {
-      color: $text-muted;
-      font-size: 0.875rem;
-      font-weight: $font-weight-medium;
-      transition: color $transition-fast;
-
-      &:hover {
-        color: $text;
-      }
-    }
-
-    @media (max-width: $breakpoint-md) {
-      display: none;
-    }
-  }
-
-  .mobile-toggle {
-    display: none;
-    padding: 0.5rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-
-    @media (max-width: $breakpoint-md) {
-      display: block;
-    }
-  }
-}
-
-// ==========================================================================
 // FOOTER
 // ==========================================================================
 
@@ -358,38 +322,3 @@
   }
 }
 
-// ==========================================================================
-// CTA SECTION
-// ==========================================================================
-
-.cta-section {
-  background: linear-gradient(135deg, $primary 0%, $primary-dark 100%);
-  padding: 4rem 0;
-  text-align: center;
-  color: white;
-
-  h2 {
-    font-size: 2rem;
-    font-weight: $font-weight-bold;
-    margin-bottom: 0.75rem;
-
-    @include md {
-      font-size: 2.5rem;
-    }
-  }
-
-  p {
-    font-size: 1.125rem;
-    opacity: 0.9;
-    margin-bottom: 1.5rem;
-  }
-
-  .btn {
-    background: white;
-    color: $primary;
-
-    &:hover {
-      background: $gray-100;
-    }
-  }
-}

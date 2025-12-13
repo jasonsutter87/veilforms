@@ -4,4 +4,6 @@ description: 'Privacy-focused form security insights, tutorials, and industry ne
 priority: 0.7
 type: 'blog'
 layout: 'list'
+css:
+  - blog.css
 ---
