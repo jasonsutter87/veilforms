@@ -4,6 +4,7 @@ description: "Authenticate with the VeilForms API"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # API Authentication

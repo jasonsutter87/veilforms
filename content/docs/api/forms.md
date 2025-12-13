@@ -4,6 +4,7 @@ description: "API endpoints for managing forms"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # Forms API

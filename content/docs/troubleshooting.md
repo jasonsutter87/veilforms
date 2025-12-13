@@ -4,6 +4,7 @@ description: "Common issues and solutions for VeilForms integration"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # Troubleshooting

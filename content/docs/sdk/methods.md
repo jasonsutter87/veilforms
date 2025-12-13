@@ -67,6 +67,7 @@ VeilForms.init('vf-abc123', {
 ```
 
 ---
+priority: 0.5
 
 ### VeilForms.submit(data, options)
 
@@ -135,6 +136,7 @@ const result = await VeilForms.submit(
 | `Submission failed: 429` | Rate limit exceeded |
 
 ---
+priority: 0.5
 
 ### VeilForms.track(event, data)
 
@@ -181,6 +183,7 @@ window.addEventListener('beforeunload', () => {
 ```
 
 ---
+priority: 0.5
 
 ### VeilForms.bindForms()
 
@@ -216,6 +219,7 @@ VeilForms.bindForms();
 ```
 
 ---
+priority: 0.5
 
 ## Utility Methods
 
@@ -251,6 +255,7 @@ console.log(data);
 ```
 
 ---
+priority: 0.5
 
 ### VeilForms.utils.hashField(value, salt)
 
@@ -294,6 +299,7 @@ const isDuplicate = submissions.some(s => s.emailHash === newEmailHash);
 ```
 
 ---
+priority: 0.5
 
 ### VeilForms.utils.detectPII(data)
 
@@ -375,6 +381,7 @@ if (result.hasPII && !userConsented) {
 ```
 
 ---
+priority: 0.5
 
 ## TypeScript Definitions
 
@@ -422,6 +429,7 @@ export default VeilForms;
 ```
 
 ---
+priority: 0.5
 
 ## Method Comparison
 

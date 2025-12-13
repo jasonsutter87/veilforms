@@ -4,6 +4,7 @@ description: "Install the VeilForms SDK in your project"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # SDK Installation
