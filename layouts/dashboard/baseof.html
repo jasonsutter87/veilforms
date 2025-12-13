@@ -41,7 +41,17 @@
             </svg>
             API Keys
           </a>
-          <a href="/dashboard/#settings" class="nav-item" data-page="settings">
+          <a href="/dashboard/#audit-logs" class="nav-item" data-page="audit-logs" id="nav-audit-logs">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <line x1="10" y1="9" x2="8" y2="9"></line>
+            </svg>
+            Audit Logs
+          </a>
+          <a href="/dashboard/#settings" class="nav-item" data-page="settings" id="nav-settings">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -283,7 +293,128 @@
           </div>
 
           <!-- Settings View -->
-          <div class="settings-view" id="settings-view" style="display: none;"></div>
+          <div class="settings-view" id="settings-view" style="display: none;">
+            <div class="settings-header">
+              <h2>Account Settings</h2>
+              <p class="settings-subtitle">Manage your account preferences and security settings</p>
+            </div>
+
+            <!-- Profile Section -->
+            <div class="settings-section">
+              <h3>Profile</h3>
+              <form id="profile-form">
+                <div class="form-group">
+                  <label for="settings-email">Email Address</label>
+                  <input type="email" id="settings-email" disabled>
+                  <small>Contact support to change your email address</small>
+                </div>
+                <div class="form-group">
+                  <label for="settings-name">Display Name</label>
+                  <input type="text" id="settings-name" placeholder="Your name" maxlength="100">
+                </div>
+                <button type="submit" class="btn btn-primary">Save Profile</button>
+              </form>
+            </div>
+
+            <!-- Security Section -->
+            <div class="settings-section">
+              <h3>Security</h3>
+              <form id="password-form">
+                <div class="form-group">
+                  <label for="current-password">Current Password</label>
+                  <input type="password" id="current-password" required>
+                </div>
+                <div class="form-group">
+                  <label for="new-password">New Password</label>
+                  <input type="password" id="new-password" required minlength="8">
+                  <small>Minimum 8 characters</small>
+                </div>
+                <div class="form-group">
+                  <label for="confirm-password">Confirm New Password</label>
+                  <input type="password" id="confirm-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Change Password</button>
+              </form>
+            </div>
+
+            <!-- Branding Section -->
+            <div class="settings-section">
+              <h3>Branding (Pro Feature)</h3>
+              <form id="branding-form">
+                <div class="form-group">
+                  <label for="custom-logo">Custom Logo URL</label>
+                  <input type="url" id="custom-logo" placeholder="https://your-domain.com/logo.png">
+                  <small>Logo displayed on form submissions and emails</small>
+                </div>
+                <div class="form-group">
+                  <label for="brand-color">Brand Color</label>
+                  <div class="color-input-wrapper">
+                    <input type="color" id="brand-color" value="#6366f1">
+                    <input type="text" id="brand-color-hex" value="#6366f1" pattern="^#[0-9A-Fa-f]{6}$">
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="save-branding-btn">Save Branding</button>
+              </form>
+            </div>
+
+            <!-- Data Retention Section -->
+            <div class="settings-section">
+              <h3>Data Retention</h3>
+              <form id="retention-form">
+                <div class="form-group">
+                  <label for="retention-days">Auto-delete submissions after</label>
+                  <select id="retention-days">
+                    <option value="0">Never (keep forever)</option>
+                    <option value="30">30 days</option>
+                    <option value="60">60 days</option>
+                    <option value="90">90 days</option>
+                    <option value="180">180 days</option>
+                    <option value="365">1 year</option>
+                  </select>
+                  <small>Submissions older than this will be automatically deleted</small>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Retention Settings</button>
+              </form>
+            </div>
+
+            <!-- Subscription Section -->
+            <div class="settings-section">
+              <h3>Subscription</h3>
+              <div class="subscription-info">
+                <div class="current-plan">
+                  <span class="plan-label">Current Plan</span>
+                  <span class="plan-name" id="current-plan-name">Free</span>
+                </div>
+                <div class="plan-features">
+                  <ul id="plan-features-list">
+                    <li>5 forms</li>
+                    <li>100 submissions/month</li>
+                    <li>7-day retention</li>
+                  </ul>
+                </div>
+                <button class="btn btn-primary" id="upgrade-plan-btn">Upgrade Plan</button>
+              </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="settings-section settings-danger">
+              <h3>Danger Zone</h3>
+              <div class="danger-item">
+                <div>
+                  <strong>Export All Data</strong>
+                  <p>Download all your forms and submissions as a JSON file</p>
+                </div>
+                <button class="btn btn-secondary" id="export-data-btn">Export Data</button>
+              </div>
+              <div class="danger-item">
+                <div>
+                  <strong>Delete Account</strong>
+                  <p>Permanently delete your account and all associated data</p>
+                </div>
+                <button class="btn btn-danger" id="delete-account-btn">Delete Account</button>
+              </div>
+            </div>
+          </div>
 
           <!-- Audit Logs View -->
           <div class="audit-logs-view" id="audit-logs-view" style="display: none;"></div>
