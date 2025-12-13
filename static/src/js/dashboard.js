@@ -2091,8 +2091,14 @@ function initSettingsEvents() {
 
   // Upgrade plan button
   document.getElementById('upgrade-plan-btn')?.addEventListener('click', () => {
-    window.location.href = '/pricing/';
+    showUpgradeModal();
   });
+
+  // Manage billing button
+  document.getElementById('manage-billing-btn')?.addEventListener('click', openBillingPortal);
+
+  // Cancel subscription button
+  document.getElementById('cancel-subscription-btn')?.addEventListener('click', cancelSubscription);
 
   // Export data button
   document.getElementById('export-data-btn')?.addEventListener('click', async () => {
@@ -2368,5 +2374,222 @@ function exitFormBuilder() {
   loadForms();
 }
 
+// =====================
+// Billing
+// =====================
+
+// Show Upgrade Modal
+function showUpgradeModal() {
+  const modal = document.getElementById('upgrade-modal');
+  if (!modal) {
+    // Create modal dynamically if it doesn't exist
+    const modalHtml = `
+      <div class="modal" id="upgrade-modal" style="display:block">
+        <div class="modal-content" style="max-width: 700px;">
+          <div class="modal-header">
+            <h2>Upgrade Your Plan</h2>
+            <button class="modal-close" onclick="document.getElementById('upgrade-modal').style.display='none'">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+              <div class="plan-card" data-plan="pro" style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; cursor: pointer; transition: border-color 0.2s;">
+                <h3 style="margin: 0 0 8px;">Pro</h3>
+                <div style="font-size: 2rem; font-weight: 700; margin-bottom: 16px;">$19<span style="font-size: 0.875rem; font-weight: 400; color: var(--text-muted);">/month</span></div>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.875rem; color: var(--text-muted);">
+                  <li style="margin-bottom: 8px;">25 forms</li>
+                  <li style="margin-bottom: 8px;">5,000 submissions/mo</li>
+                  <li style="margin-bottom: 8px;">Webhooks</li>
+                  <li style="margin-bottom: 8px;">Custom branding</li>
+                </ul>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="startCheckout('pro')">Select Pro</button>
+              </div>
+              <div class="plan-card" data-plan="team" style="border: 2px solid var(--primary); border-radius: 8px; padding: 20px; cursor: pointer; position: relative;">
+                <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 2px 12px; border-radius: 12px; font-size: 0.75rem;">Most Popular</span>
+                <h3 style="margin: 0 0 8px;">Team</h3>
+                <div style="font-size: 2rem; font-weight: 700; margin-bottom: 16px;">$49<span style="font-size: 0.875rem; font-weight: 400; color: var(--text-muted);">/month</span></div>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.875rem; color: var(--text-muted);">
+                  <li style="margin-bottom: 8px;">Unlimited forms</li>
+                  <li style="margin-bottom: 8px;">25,000 submissions/mo</li>
+                  <li style="margin-bottom: 8px;">Priority support</li>
+                  <li style="margin-bottom: 8px;">Advanced analytics</li>
+                </ul>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="startCheckout('team')">Select Team</button>
+              </div>
+              <div class="plan-card" data-plan="enterprise" style="border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+                <h3 style="margin: 0 0 8px;">Enterprise</h3>
+                <div style="font-size: 2rem; font-weight: 700; margin-bottom: 16px;">Custom</div>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.875rem; color: var(--text-muted);">
+                  <li style="margin-bottom: 8px;">Unlimited everything</li>
+                  <li style="margin-bottom: 8px;">Custom retention</li>
+                  <li style="margin-bottom: 8px;">SLA guarantee</li>
+                  <li style="margin-bottom: 8px;">Self-hosting option</li>
+                </ul>
+                <a href="/contact/" class="btn btn-secondary" style="width: 100%; margin-top: 16px; display: block; text-align: center;">Contact Sales</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  } else {
+    modal.style.display = 'block';
+  }
+}
+
+// Start Stripe Checkout
+async function startCheckout(plan) {
+  try {
+    // Show loading state
+    const btn = document.querySelector(`[onclick="startCheckout('${plan}')"]`);
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+    }
+
+    const data = await api('/api/billing/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan })
+    });
+
+    if (data.checkoutUrl) {
+      window.location.href = data.checkoutUrl;
+    } else {
+      throw new Error('No checkout URL returned');
+    }
+  } catch (err) {
+    alert('Failed to start checkout: ' + err.message);
+
+    // Reset button
+    const btn = document.querySelector(`[onclick="startCheckout('${plan}')"]`);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = `Select ${plan.charAt(0).toUpperCase() + plan.slice(1)}`;
+    }
+  }
+}
+
+// Open Billing Portal
+async function openBillingPortal() {
+  try {
+    const data = await api('/api/billing/portal', { method: 'POST' });
+
+    if (data.portalUrl) {
+      window.location.href = data.portalUrl;
+    } else {
+      throw new Error('No portal URL returned');
+    }
+  } catch (err) {
+    alert('Failed to open billing portal: ' + err.message);
+  }
+}
+
+// Cancel Subscription
+async function cancelSubscription() {
+  if (!confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.')) {
+    return;
+  }
+
+  try {
+    const data = await api('/api/billing/cancel', { method: 'POST' });
+
+    alert('Your subscription has been canceled. You will retain access until ' + new Date(data.cancelAt).toLocaleDateString());
+
+    // Refresh settings to show updated status
+    await loadSettings();
+  } catch (err) {
+    alert('Failed to cancel subscription: ' + err.message);
+  }
+}
+
+// Load Subscription Status
+async function loadSubscriptionStatus() {
+  try {
+    const data = await api('/api/billing/subscription');
+
+    if (data.subscription) {
+      const sub = data.subscription;
+
+      // Update UI elements
+      const planNameEl = document.getElementById('current-plan-name');
+      if (planNameEl) {
+        planNameEl.textContent = sub.planName;
+      }
+
+      // Show/hide billing management buttons based on subscription
+      const manageBillingBtn = document.getElementById('manage-billing-btn');
+      const cancelSubBtn = document.getElementById('cancel-subscription-btn');
+      const upgradeBtn = document.getElementById('upgrade-plan-btn');
+
+      if (sub.plan !== 'free' && sub.stripeSubscriptionId) {
+        // Paid plan - show manage and cancel buttons
+        if (manageBillingBtn) manageBillingBtn.style.display = 'inline-flex';
+        if (cancelSubBtn) {
+          cancelSubBtn.style.display = sub.cancelAtPeriodEnd ? 'none' : 'inline-flex';
+        }
+        if (upgradeBtn) upgradeBtn.textContent = 'Change Plan';
+
+        // Show subscription status
+        const statusEl = document.getElementById('subscription-status');
+        if (statusEl) {
+          if (sub.cancelAtPeriodEnd) {
+            statusEl.innerHTML = `<span style="color: var(--warning);">Cancels on ${new Date(sub.currentPeriodEnd).toLocaleDateString()}</span>`;
+          } else {
+            statusEl.innerHTML = `<span style="color: var(--success);">Active - Renews ${new Date(sub.currentPeriodEnd).toLocaleDateString()}</span>`;
+          }
+        }
+      } else {
+        // Free plan - show upgrade button only
+        if (manageBillingBtn) manageBillingBtn.style.display = 'none';
+        if (cancelSubBtn) cancelSubBtn.style.display = 'none';
+        if (upgradeBtn) upgradeBtn.textContent = 'Upgrade Plan';
+      }
+    }
+  } catch (err) {
+    console.log('Could not load subscription status:', err.message);
+  }
+}
+
+// Check for billing callback parameters
+function handleBillingCallback() {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get('billing') === 'success') {
+    const plan = params.get('plan') || 'premium';
+    alert(`Welcome to VeilForms ${plan.charAt(0).toUpperCase() + plan.slice(1)}! Your subscription is now active.`);
+
+    // Clean up URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    // Refresh user data
+    refreshUserData();
+  } else if (params.get('billing') === 'canceled') {
+    // User canceled checkout - no action needed
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}
+
+// Refresh user data from API
+async function refreshUserData() {
+  try {
+    const data = await api('/api/user/me');
+    if (data.user) {
+      state.user = data.user;
+      localStorage.setItem('veilforms_user', JSON.stringify(data.user));
+
+      // Update sidebar
+      const userInfo = document.querySelector('.user-info');
+      if (userInfo) {
+        userInfo.querySelector('.user-plan').textContent = state.user.subscription || 'Free';
+      }
+    }
+  } catch (err) {
+    console.log('Could not refresh user data:', err.message);
+  }
+}
+
 // Start
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  handleBillingCallback();
+});

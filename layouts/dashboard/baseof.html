@@ -385,6 +385,7 @@
                   <span class="plan-label">Current Plan</span>
                   <span class="plan-name" id="current-plan-name">Free</span>
                 </div>
+                <div class="subscription-status" id="subscription-status"></div>
                 <div class="plan-features">
                   <ul id="plan-features-list">
                     <li>5 forms</li>
@@ -392,7 +393,11 @@
                     <li>7-day retention</li>
                   </ul>
                 </div>
-                <button class="btn btn-primary" id="upgrade-plan-btn">Upgrade Plan</button>
+                <div class="subscription-actions">
+                  <button class="btn btn-primary" id="upgrade-plan-btn">Upgrade Plan</button>
+                  <button class="btn btn-secondary" id="manage-billing-btn" style="display: none;">Manage Billing</button>
+                  <button class="btn btn-secondary" id="cancel-subscription-btn" style="display: none;">Cancel Subscription</button>
+                </div>
               </div>
             </div>
 

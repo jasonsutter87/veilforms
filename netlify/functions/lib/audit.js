@@ -35,7 +35,17 @@ export const AuditEvents = {
   // Settings events
   SETTINGS_UPDATED: 'settings.updated',
   BRANDING_UPDATED: 'branding.updated',
-  RETENTION_UPDATED: 'retention.updated'
+  RETENTION_UPDATED: 'retention.updated',
+
+  // Billing events
+  BILLING_CHECKOUT_STARTED: 'billing.checkout_started',
+  BILLING_CHECKOUT_COMPLETED: 'billing.checkout_completed',
+  SUBSCRIPTION_CREATED: 'subscription.created',
+  SUBSCRIPTION_PLAN_CHANGED: 'subscription.plan_changed',
+  SUBSCRIPTION_CANCELED: 'subscription.canceled',
+  SUBSCRIPTION_REACTIVATED: 'subscription.reactivated',
+  PAYMENT_SUCCEEDED: 'payment.succeeded',
+  PAYMENT_FAILED: 'payment.failed'
 };
 
 /**
