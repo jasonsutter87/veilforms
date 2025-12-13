@@ -1,6 +1,7 @@
 ---
 title: "Documentation"
 description: "Learn how to integrate VeilForms - the client-first, privacy-focused form builder"
+priority: 0.7
 type: "pages"
 layout: "docs"
 cta: true

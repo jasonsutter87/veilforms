@@ -1,11 +1,13 @@
 ---
 title: "Why Client-Side Encryption Matters for Form Data"
 description: "Learn why encrypting form data in the browser before transmission is the gold standard for privacy. Discover how client-side encryption protects against data breaches, insider threats, and compliance risks."
+priority: 0.6
 date: 2025-12-10
 category: "Security"
 author: "VeilForms Team"
 readTime: 8
 tags: ["encryption", "privacy", "security", "client-side"]
+image: "images/share-image.svg"
 type: "blog"
 css: ["blog.css"]
 ---

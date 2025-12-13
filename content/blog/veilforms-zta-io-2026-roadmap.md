@@ -1,6 +1,7 @@
 ---
 title: "VeilForms + ZTA.io: Our 2026 Vision for Privacy-First Infrastructure"
 description: "Announcing VeilForms' roadmap for 2026 and our deeper integration with ZTA.io's zero-trust architecture. New features, enterprise capabilities, and our commitment to privacy."
+priority: 0.6
 date: 2025-12-12
 category: "Company"
 author: "VeilForms Team"

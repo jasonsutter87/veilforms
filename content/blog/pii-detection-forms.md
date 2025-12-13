@@ -1,6 +1,7 @@
 ---
 title: "Automatic PII Detection: Stop Collecting Data You Shouldn't"
 description: "Learn how automatic PII detection helps identify and protect sensitive data in form submissions. Reduce compliance risk and protect user privacy automatically."
+priority: 0.6
 date: 2025-12-01
 category: "Privacy"
 author: "VeilForms Team"

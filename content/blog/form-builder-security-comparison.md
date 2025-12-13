@@ -1,6 +1,7 @@
 ---
 title: "Form Builder Security: What Questions Should You Ask?"
 description: "Not all form builders treat security equally. Learn the critical security questions to ask before choosing a form service, and what answers you should expect."
+priority: 0.6
 date: 2025-12-05
 category: "Security"
 author: "VeilForms Team"

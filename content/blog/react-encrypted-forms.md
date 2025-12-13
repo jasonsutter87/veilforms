@@ -1,6 +1,7 @@
 ---
 title: "Adding Encrypted Forms to Your React App"
 description: "Step-by-step tutorial for integrating VeilForms with React. Build privacy-first forms with client-side encryption in your React application."
+priority: 0.6
 date: 2025-11-22
 category: "Tutorial"
 author: "VeilForms Team"

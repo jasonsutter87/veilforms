@@ -1,6 +1,7 @@
 ---
 title: "The Ultimate Web Form Security Checklist for 2025"
 description: "A comprehensive security checklist for web forms covering encryption, validation, CSRF protection, rate limiting, and more. Protect your users and your business."
+priority: 0.6
 date: 2025-11-28
 category: "Security"
 author: "VeilForms Team"

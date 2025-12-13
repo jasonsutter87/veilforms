@@ -1,6 +1,7 @@
 ---
 title: "Using Webhooks with Encrypted Form Submissions"
 description: "Learn how to receive real-time notifications for encrypted form submissions and decrypt data in your webhook handler for custom workflows."
+priority: 0.6
 date: 2025-11-15
 category: "Tutorial"
 author: "VeilForms Team"
