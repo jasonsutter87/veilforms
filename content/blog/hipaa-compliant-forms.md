@@ -1,6 +1,7 @@
 ---
 title: "Building HIPAA-Compliant Web Forms: A Complete Guide"
 description: "Learn how to build web forms that meet HIPAA requirements for handling Protected Health Information (PHI). Covers encryption, access controls, and audit logging."
+priority: 0.6
 date: 2025-12-03
 category: "Compliance"
 author: "VeilForms Team"

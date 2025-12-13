@@ -1,6 +1,7 @@
 ---
 title: "Form Analytics Without User Tracking: It's Possible"
 description: "Learn how to measure form performance, conversion rates, and user behavior without invasive tracking or compromising privacy."
+priority: 0.6
 date: 2025-11-18
 category: "Privacy"
 author: "VeilForms Team"

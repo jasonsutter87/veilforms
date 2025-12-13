@@ -1,6 +1,7 @@
 ---
 title: "What Happens to Your Form Data in a Breach? A Deep Dive"
 description: "Explore the real-world impact of data breaches on form submissions. Learn how different security approaches affect breach outcomes and what you can do to protect your users."
+priority: 0.6
 date: 2025-11-10
 category: "Security"
 author: "VeilForms Team"

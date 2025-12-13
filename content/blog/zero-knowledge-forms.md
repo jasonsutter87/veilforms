@@ -1,6 +1,7 @@
 ---
 title: "Zero-Knowledge Forms: What They Are and Why They Matter"
 description: "Explore zero-knowledge architecture for web forms. Learn how form providers can offer services without ever accessing your users' data."
+priority: 0.6
 date: 2025-11-25
 category: "Privacy"
 author: "VeilForms Team"
