@@ -1,6 +1,9 @@
 backend:
-  name: git-gateway
+  name: github
+  repo: jasonsutter87/veliforms
   branch: main
+  base_url: https://api.netlify.com
+  auth_endpoint: auth
 
 media_folder: "static/images/uploads"
 public_folder: "/images/uploads"
