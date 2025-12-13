@@ -482,7 +482,7 @@ if (typeof VeilForms !== 'undefined') {
 
 If you're still stuck:
 
-1. **Check documentation** — [docs.veilforms.com](https://veilforms.com/docs/)
+1. **Check documentation** — [docs.veilforms.com](/docs/)
 2. **Search issues** — [GitHub Issues](https://github.com/veilforms/veilforms/issues)
 3. **Contact support** — support@veilforms.com
 

@@ -12,7 +12,7 @@ The VeilForms API uses Bearer token authentication. All API requests must includ
 
 ## Getting Your API Key
 
-1. Log in to your [VeilForms Dashboard](https://veilforms.com/dashboard)
+1. Log in to your [VeilForms Dashboard](/dashboard/)
 2. Navigate to **Settings → API Keys**
 3. Click **Generate New Key**
 4. Copy and securely store your key

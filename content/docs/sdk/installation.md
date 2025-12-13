@@ -81,7 +81,7 @@ VeilForms.init('vf-abc123', {
 ```
 
 <div class="callout info">
-<strong>Get your credentials:</strong> Find your Form ID and Public Key in the <a href="https://veilforms.com/dashboard">VeilForms Dashboard</a> after creating a form.
+<strong>Get your credentials:</strong> Find your Form ID and Public Key in the <a href="/dashboard/">VeilForms Dashboard</a> after creating a form.
 </div>
 
 ## Bundle Sizes

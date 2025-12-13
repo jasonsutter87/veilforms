@@ -44,7 +44,7 @@ VeilForms.init('vf-abc123', {
 });
 ```
 
-Get your public key from the [Dashboard](https://veilforms.com/dashboard) after creating a form.
+Get your public key from the [Dashboard](/dashboard/) after creating a form.
 
 <div class="callout warning">
 <strong>Never expose your private key.</strong> The public key is safe to embed in client-side code. The private key must remain secret.
