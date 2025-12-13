@@ -4,6 +4,7 @@ description: "Using VeilForms for GDPR-compliant data collection"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # GDPR Compliance

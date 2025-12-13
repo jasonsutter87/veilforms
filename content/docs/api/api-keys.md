@@ -4,6 +4,7 @@ description: "Create, list, and revoke API keys programmatically"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # API Keys Management

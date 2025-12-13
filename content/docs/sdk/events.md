@@ -4,6 +4,7 @@ description: "Handle VeilForms events for success, error, and lifecycle callback
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # Events

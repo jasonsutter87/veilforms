@@ -4,6 +4,7 @@ description: "Receive real-time notifications when forms are submitted"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # Webhooks

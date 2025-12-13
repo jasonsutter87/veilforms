@@ -83,6 +83,7 @@ fetch('https://veilforms.com/api/forms', {
 ```
 
 ---
+priority: 0.5
 
 #### `forbidden`
 
@@ -105,6 +106,7 @@ fetch('https://veilforms.com/api/forms', {
 - Generate a new key with appropriate scope
 
 ---
+priority: 0.5
 
 #### `token_expired`
 
@@ -124,6 +126,7 @@ fetch('https://veilforms.com/api/forms', {
 - Implement token refresh logic
 
 ---
+priority: 0.5
 
 ### Validation Errors
 
@@ -151,6 +154,7 @@ fetch('https://veilforms.com/api/forms', {
 - Fix validation errors and retry
 
 ---
+priority: 0.5
 
 #### `invalid_json`
 
@@ -170,6 +174,7 @@ fetch('https://veilforms.com/api/forms', {
 - Validate JSON syntax before sending
 
 ---
+priority: 0.5
 
 #### `missing_required_field`
 
@@ -188,6 +193,7 @@ fetch('https://veilforms.com/api/forms', {
 ```
 
 ---
+priority: 0.5
 
 #### `invalid_field_type`
 
@@ -208,6 +214,7 @@ fetch('https://veilforms.com/api/forms', {
 ```
 
 ---
+priority: 0.5
 
 ### Resource Errors
 
@@ -233,6 +240,7 @@ fetch('https://veilforms.com/api/forms', {
 - Check if the resource was deleted
 
 ---
+priority: 0.5
 
 #### `already_exists`
 
@@ -253,6 +261,7 @@ fetch('https://veilforms.com/api/forms', {
 ```
 
 ---
+priority: 0.5
 
 #### `resource_deleted`
 
@@ -271,6 +280,7 @@ fetch('https://veilforms.com/api/forms', {
 ```
 
 ---
+priority: 0.5
 
 ### Rate Limiting Errors
 
@@ -324,6 +334,7 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 ```
 
 ---
+priority: 0.5
 
 ### Encryption Errors
 
@@ -344,6 +355,7 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 ```
 
 ---
+priority: 0.5
 
 #### `encryption_required`
 
@@ -362,6 +374,7 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 ```
 
 ---
+priority: 0.5
 
 #### `decryption_failed`
 
@@ -380,6 +393,7 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 ```
 
 ---
+priority: 0.5
 
 ### Webhook Errors
 
@@ -402,6 +416,7 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 ```
 
 ---
+priority: 0.5
 
 #### `invalid_webhook_url`
 
@@ -420,6 +435,7 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 ```
 
 ---
+priority: 0.5
 
 ### Server Errors
 
@@ -444,6 +460,7 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 - Contact support with the `request_id`
 
 ---
+priority: 0.5
 
 #### `service_unavailable`
 
@@ -462,6 +479,7 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 ```
 
 ---
+priority: 0.5
 
 ## Error Handling Best Practices
 

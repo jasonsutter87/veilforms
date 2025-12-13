@@ -4,6 +4,7 @@ description: "How to securely manage your VeilForms encryption keys"
 type: "pages"
 layout: "docs"
 css: ["docs.css"]
+priority: 0.5
 ---
 
 # Key Management
