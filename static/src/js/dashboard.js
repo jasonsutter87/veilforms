@@ -267,6 +267,13 @@ async function viewFormDetail(formId) {
             <option value="paused" ${form.status === 'paused' ? 'selected' : ''}>Paused</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="edit-form-pii-strip" ${form.settings?.piiStrip ? 'checked' : ''}>
+            Auto-strip PII before encryption
+          </label>
+          <small>Automatically detect and redact personal information</small>
+        </div>
         <button type="submit" class="btn btn-primary">Save Changes</button>
       </form>
     </div>
@@ -454,7 +461,11 @@ async function viewFormDetail(formId) {
 async function updateForm(formId) {
   const name = document.getElementById('edit-form-name').value;
   const status = document.getElementById('edit-form-status').value;
-  const webhookUrl = document.getElementById('edit-webhook-url').value;
+  const piiStrip = document.getElementById('edit-form-pii-strip').checked;
+
+  // Get the current form to preserve other settings
+  const form = state.forms.find(f => f.id === formId);
+  const currentSettings = form?.settings || {};
 
   try {
     await api(`/api/forms/${formId}`, {
@@ -462,7 +473,10 @@ async function updateForm(formId) {
       body: JSON.stringify({
         name,
         status,
-        settings: { webhookUrl: webhookUrl || null }
+        settings: {
+          ...currentSettings,
+          piiStrip
+        }
       })
     });
 
@@ -709,6 +723,20 @@ async function createForm() {
   if (!name) {
     alert('Please enter a form name');
     return;
+  }
+
+  // Validate webhook URL format if provided
+  if (webhookUrl) {
+    try {
+      const url = new URL(webhookUrl);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        alert('Webhook URL must use http:// or https://');
+        return;
+      }
+    } catch (err) {
+      alert('Please enter a valid webhook URL');
+      return;
+    }
   }
 
   try {
@@ -1190,9 +1218,165 @@ const fieldTypes = {
   divider: { label: 'Divider', icon: 'divider', isLayout: true }
 };
 
-// Generate unique field ID
+// Generate unique field ID using crypto API
 function generateFieldId() {
-  return 'field_' + Math.random().toString(36).substr(2, 9);
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return 'field_' + crypto.randomUUID().replace(/-/g, '').substring(0, 12);
+  }
+  // Fallback for older browsers
+  return 'field_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
+// Toast notification system
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+    color: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideIn 0.3s ease-out;
+    max-width: 400px;
+  `;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease-out';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Add animation styles if not present
+if (!document.getElementById('toast-styles')) {
+  const style = document.createElement('style');
+  style.id = 'toast-styles';
+  style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Validate field name is a valid JavaScript property name
+function isValidFieldName(name) {
+  if (!name || typeof name !== 'string') return false;
+  // Must start with letter or underscore, followed by letters, numbers, or underscores
+  const validPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+  return validPattern.test(name);
+}
+
+// Get unique field name (auto-increment if duplicate)
+function getUniqueFieldName(baseName, excludeFieldId = null) {
+  const existingNames = formBuilder.fields
+    .filter(f => f.id !== excludeFieldId)
+    .map(f => f.name)
+    .filter(Boolean);
+
+  if (!existingNames.includes(baseName)) {
+    return baseName;
+  }
+
+  let counter = 1;
+  let uniqueName = `${baseName}_${counter}`;
+  while (existingNames.includes(uniqueName)) {
+    counter++;
+    uniqueName = `${baseName}_${counter}`;
+  }
+
+  return uniqueName;
+}
+
+// Validate field configuration
+function validateField(field) {
+  const errors = [];
+  const typeConfig = fieldTypes[field.type];
+
+  // Skip validation for layout elements
+  if (typeConfig?.isLayout) {
+    if (field.type === 'heading' && !field.content) {
+      errors.push('Heading text is required');
+    }
+    if (field.type === 'paragraph' && !field.content) {
+      errors.push('Paragraph text is required');
+    }
+    return errors;
+  }
+
+  // Validate field name
+  if (!field.name) {
+    errors.push('Field name is required');
+  } else if (!isValidFieldName(field.name)) {
+    errors.push('Field name must be a valid identifier (letters, numbers, underscores only, cannot start with a number)');
+  }
+
+  // Check for duplicate field names
+  const duplicates = formBuilder.fields.filter(f => f.id !== field.id && f.name === field.name);
+  if (duplicates.length > 0) {
+    errors.push('Field name must be unique');
+  }
+
+  // Validate options for select/checkbox/radio
+  if (typeConfig?.hasOptions) {
+    if (!field.options || !Array.isArray(field.options) || field.options.length === 0) {
+      errors.push('At least one option is required');
+    } else {
+      const emptyOptions = field.options.filter(opt => !opt || opt.trim() === '');
+      if (emptyOptions.length > 0) {
+        errors.push('Options cannot be empty');
+      }
+    }
+  }
+
+  return errors;
+}
+
+// Validate all fields before save
+function validateAllFields() {
+  const allErrors = [];
+
+  formBuilder.fields.forEach((field, index) => {
+    const errors = validateField(field);
+    if (errors.length > 0) {
+      const typeConfig = fieldTypes[field.type];
+      const fieldLabel = typeConfig?.isLayout
+        ? `${typeConfig.label} (position ${index + 1})`
+        : `Field "${field.label || field.name || 'Untitled'}"`;
+      allErrors.push({
+        field: fieldLabel,
+        errors: errors
+      });
+    }
+  });
+
+  return allErrors;
 }
 
 // Create default field config
@@ -1200,11 +1384,15 @@ function createFieldConfig(type) {
   const typeConfig = fieldTypes[type];
   const fieldId = generateFieldId();
 
+  // Generate unique field name
+  const baseName = typeConfig.isLayout ? '' : type + '_' + fieldId.substring(6, 10);
+  const uniqueName = typeConfig.isLayout ? '' : getUniqueFieldName(baseName);
+
   const config = {
     id: fieldId,
     type,
     label: typeConfig.isLayout ? '' : typeConfig.label,
-    name: typeConfig.isLayout ? '' : type + '_' + fieldId.substr(6, 4),
+    name: uniqueName,
     required: false
   };
 
@@ -1275,6 +1463,28 @@ function showFormBuilder(formId, formName, existingFields = []) {
 
   // Initialize event listeners
   initFormBuilderEvents();
+
+  // Set up beforeunload warning for unsaved changes
+  setupBeforeUnloadWarning();
+}
+
+// Setup beforeunload warning
+function setupBeforeUnloadWarning() {
+  // Remove any existing handler first to avoid duplicates
+  window.removeEventListener('beforeunload', beforeUnloadHandler);
+
+  // Add new handler
+  window.addEventListener('beforeunload', beforeUnloadHandler);
+}
+
+// Beforeunload handler
+function beforeUnloadHandler(e) {
+  if (formBuilder.isDirty) {
+    e.preventDefault();
+    // Chrome requires returnValue to be set
+    e.returnValue = '';
+    return '';
+  }
 }
 
 // Initialize Form Builder Events
@@ -1406,7 +1616,10 @@ function duplicateField(fieldId) {
   const original = formBuilder.fields.find(f => f.id === fieldId);
   if (original) {
     const duplicate = { ...original, id: generateFieldId() };
-    duplicate.name = original.name + '_copy';
+    // Ensure unique field name for duplicate
+    if (duplicate.name) {
+      duplicate.name = getUniqueFieldName(original.name + '_copy');
+    }
     const index = formBuilder.fields.indexOf(original);
     formBuilder.fields.splice(index + 1, 0, duplicate);
     formBuilder.isDirty = true;
@@ -1742,8 +1955,72 @@ function attachPropertyListeners(field) {
     renderFormFields();
   };
 
-  // Text inputs
-  ['label', 'name', 'placeholder', 'defaultValue', 'content', 'min', 'max'].forEach(prop => {
+  // Special handling for field name with validation
+  const nameInput = document.getElementById('prop-name');
+  if (nameInput) {
+    // Show validation feedback
+    const showValidationError = (message) => {
+      let errorEl = nameInput.parentElement.querySelector('.validation-error');
+      if (!errorEl) {
+        errorEl = document.createElement('small');
+        errorEl.className = 'validation-error';
+        errorEl.style.cssText = 'color: #ef4444; display: block; margin-top: 4px; font-size: 0.75rem;';
+        nameInput.parentElement.appendChild(errorEl);
+      }
+      errorEl.textContent = message;
+      nameInput.style.borderColor = '#ef4444';
+    };
+
+    const clearValidationError = () => {
+      const errorEl = nameInput.parentElement.querySelector('.validation-error');
+      if (errorEl) errorEl.remove();
+      nameInput.style.borderColor = '';
+    };
+
+    nameInput.addEventListener('input', (e) => {
+      const newName = e.target.value;
+
+      // Clear previous errors
+      clearValidationError();
+
+      // Validate field name
+      if (newName && !isValidFieldName(newName)) {
+        showValidationError('Must be a valid identifier (letters, numbers, underscores only)');
+      } else if (newName) {
+        // Check for duplicates
+        const duplicates = formBuilder.fields.filter(f => f.id !== field.id && f.name === newName);
+        if (duplicates.length > 0) {
+          showValidationError('Field name must be unique');
+        }
+      }
+
+      updateField('name', newName);
+    });
+
+    nameInput.addEventListener('blur', (e) => {
+      const currentName = e.target.value;
+      // Auto-fix invalid names on blur
+      if (currentName && !isValidFieldName(currentName)) {
+        // Remove invalid characters
+        let fixed = currentName.replace(/[^a-zA-Z0-9_]/g, '_');
+        // Ensure it doesn't start with a number
+        if (/^\d/.test(fixed)) {
+          fixed = '_' + fixed;
+        }
+        // Make it unique
+        fixed = getUniqueFieldName(fixed, field.id);
+        e.target.value = fixed;
+        field.name = fixed;
+        formBuilder.isDirty = true;
+        renderFormFields();
+        clearValidationError();
+        showToast('Field name auto-corrected to valid format', 'info');
+      }
+    });
+  }
+
+  // Text inputs (excluding 'name' which is handled above)
+  ['label', 'placeholder', 'defaultValue', 'content', 'min', 'max'].forEach(prop => {
     const input = document.getElementById(`prop-${prop}`);
     if (input) {
       input.addEventListener('input', (e) => {
@@ -1821,7 +2098,29 @@ function showFormPreview() {
     return;
   }
 
-  let html = '<form class="preview-form">';
+  // Create view toggle controls
+  let html = `
+    <div class="preview-controls">
+      <button class="preview-view-toggle active" data-view="desktop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        Desktop
+      </button>
+      <button class="preview-view-toggle" data-view="mobile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        Mobile
+      </button>
+    </div>
+    <div class="preview-wrapper">
+      <form class="preview-form">`;
+
+  // Generate form fields
 
   formBuilder.fields.forEach(field => {
     const typeConfig = fieldTypes[field.type];
@@ -1879,31 +2178,112 @@ function showFormPreview() {
   });
 
   html += '<button type="button" class="btn-submit-preview">Submit (Preview)</button>';
-  html += '</form>';
+  html += '</form></div>';
 
   previewContainer.innerHTML = html;
   show('form-preview-modal');
+
+  // Add event listeners for view toggle
+  document.querySelectorAll('.preview-view-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Update active state
+      document.querySelectorAll('.preview-view-toggle').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Toggle view
+      const wrapper = document.querySelector('.preview-wrapper');
+      if (btn.dataset.view === 'mobile') {
+        wrapper.classList.add('mobile-view');
+      } else {
+        wrapper.classList.remove('mobile-view');
+      }
+    });
+  });
 }
 
 // Save Form Builder
 async function saveFormBuilder() {
+  const saveBtn = document.getElementById('save-form-btn');
+  const originalBtnText = saveBtn?.textContent || 'Save Form';
+
+  // Validate form has at least one field
   if (formBuilder.fields.length === 0) {
-    alert('Please add at least one field to the form.');
+    showToast('Please add at least one field to the form', 'error');
     return;
   }
 
+  // Validate all fields
+  const validationErrors = validateAllFields();
+  if (validationErrors.length > 0) {
+    let errorMessage = 'Please fix the following errors:\n\n';
+    validationErrors.forEach(({ field, errors }) => {
+      errorMessage += `${field}:\n`;
+      errors.forEach(error => {
+        errorMessage += `  - ${error}\n`;
+      });
+      errorMessage += '\n';
+    });
+    alert(errorMessage);
+    return;
+  }
+
+  // Disable save button and show loading state
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `
+      <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="animation: spin 1s linear infinite; margin-right: 8px;">
+        <circle cx="12" cy="12" r="10" opacity="0.25"></circle>
+        <path d="M12 2a10 10 0 0 1 10 10" opacity="0.75"></path>
+      </svg>
+      Saving...
+    `;
+  }
+
+  // Add spinner animation if not present
+  if (!document.getElementById('spinner-styles')) {
+    const style = document.createElement('style');
+    style.id = 'spinner-styles';
+    style.textContent = `
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .spinner { display: inline-block; vertical-align: middle; }
+    `;
+    document.head.appendChild(style);
+  }
+
   try {
-    await api(`/api/forms/${formBuilder.formId}`, {
+    // Send the update request
+    const response = await api(`/api/forms/${formBuilder.formId}`, {
       method: 'PUT',
       body: JSON.stringify({
         fields: formBuilder.fields
       })
     });
 
+    // Mark form as clean (no unsaved changes)
     formBuilder.isDirty = false;
-    alert('Form saved successfully!');
+
+    // Show success notification
+    showToast('Form saved successfully!', 'success');
+
+    // Update the form in state if needed
+    if (response && response.form) {
+      const formIndex = state.forms.findIndex(f => f.id === formBuilder.formId);
+      if (formIndex !== -1) {
+        state.forms[formIndex] = response.form;
+      }
+    }
   } catch (err) {
-    alert('Failed to save form: ' + err.message);
+    console.error('Save error:', err);
+    showToast(`Failed to save form: ${err.message || 'Unknown error'}`, 'error');
+  } finally {
+    // Re-enable save button
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalBtnText;
+    }
   }
 }
 
@@ -2350,6 +2730,9 @@ function exitFormBuilder() {
   formBuilder.fields = [];
   formBuilder.selectedFieldId = null;
   formBuilder.isDirty = false;
+
+  // Remove beforeunload warning when exiting builder
+  window.removeEventListener('beforeunload', beforeUnloadHandler);
 
   hide('form-builder-view');
   document.getElementById('page-title').textContent = 'Forms';

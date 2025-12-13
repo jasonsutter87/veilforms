@@ -1,0 +1,505 @@
+/* VeilForms Form Builder UX Enhancements */
+/* Toast notifications, loading states, animations, and visual feedback */
+
+/* =====================
+   Toast Notifications
+   ===================== */
+
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transform: translateX(100px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: all;
+  min-width: 300px;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-message {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.toast-close:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Toast types */
+.toast-success {
+  border-left: 4px solid var(--success);
+}
+
+.toast-success .toast-icon {
+  color: var(--success);
+}
+
+.toast-error {
+  border-left: 4px solid var(--danger);
+}
+
+.toast-error .toast-icon {
+  color: var(--danger);
+}
+
+.toast-warning {
+  border-left: 4px solid var(--warning);
+}
+
+.toast-warning .toast-icon {
+  color: var(--warning);
+}
+
+.toast-info {
+  border-left: 4px solid var(--primary);
+}
+
+.toast-info .toast-icon {
+  color: var(--primary);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .toast-container {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    max-width: none;
+  }
+
+  .toast {
+    min-width: 0;
+  }
+}
+
+/* =====================
+   Loading States
+   ===================== */
+
+.builder-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--text-muted);
+  gap: 16px;
+}
+
+.builder-loading-state .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.builder-loading-state p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* Button spinner */
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+/* =====================
+   Keyboard Shortcuts Hint
+   ===================== */
+
+.keyboard-shortcuts-hint {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 280px;
+  z-index: 100;
+  animation: slideInUp 0.3s ease-out;
+}
+
+.keyboard-shortcuts-hint.fade-out {
+  animation: fadeOut 0.3s ease-out forwards;
+}
+
+.shortcuts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.shortcuts-header strong {
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.shortcuts-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.shortcuts-close:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  gap: 12px;
+}
+
+.shortcut-item kbd {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.shortcut-item span {
+  color: var(--text-muted);
+}
+
+/* =====================
+   Enhanced Empty State
+   ===================== */
+
+.dropzone-hint {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.dropzone-hint svg {
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.dropzone-hint p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.dropzone-hint .hint-sub {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+/* =====================
+   Drag and Drop Visual Feedback
+   ===================== */
+
+.canvas-dropzone.drag-over {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.canvas-dropzone.drag-over .dropzone-hint {
+  color: var(--primary);
+}
+
+.field-type-btn.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.form-field-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.drag-placeholder {
+  height: 4px;
+  background: var(--primary);
+  border-radius: 2px;
+  margin: 8px 0;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* =====================
+   Field Selection & Hover
+   ===================== */
+
+.form-field-item {
+  transition: all 0.2s ease;
+}
+
+.form-field-item:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.form-field-item.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.form-field-item.selected .field-drag-handle {
+  color: var(--primary);
+}
+
+/* =====================
+   Field Add/Remove Animations
+   ===================== */
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Add animation when fields are added */
+.form-field-item {
+  animation: slideInUp 0.3s ease-out;
+}
+
+/* =====================
+   Confirmation Dialog Enhancements
+   ===================== */
+
+.confirm-dialog .modal-content {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.confirm-dialog .modal-backdrop {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* =====================
+   Enhanced Button States
+   ===================== */
+
+#save-form-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+#save-form-btn .btn-spinner {
+  border-color: currentColor;
+  border-top-color: transparent;
+}
+
+/* =====================
+   Property Panel Animations
+   ===================== */
+
+.field-properties {
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* =====================
+   Field Type Button Hover
+   ===================== */
+
+.field-type-btn {
+  transition: all 0.2s ease;
+}
+
+.field-type-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.field-type-btn:active {
+  transform: translateY(0);
+}
+
+/* =====================
+   Enhanced Dropzone States
+   ===================== */
+
+.canvas-dropzone.has-fields .dropzone-hint {
+  display: none;
+}
+
+/* =====================
+   Responsive Adjustments
+   ===================== */
+
+@media (max-width: 768px) {
+  .keyboard-shortcuts-hint {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+}
+
+/* =====================
+   Accessibility Improvements
+   ===================== */
+
+.toast:focus-within,
+.confirm-dialog .modal-content:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .toast {
+    border-width: 2px;
+  }
+
+  .form-field-item.selected {
+    border-width: 3px;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .form-field-item,
+  .field-type-btn,
+  .keyboard-shortcuts-hint,
+  .confirm-dialog .modal-content {
+    animation: none;
+    transition: none;
+  }
+
+  .spinner,
+  .btn-spinner {
+    animation: none;
+  }
+}
