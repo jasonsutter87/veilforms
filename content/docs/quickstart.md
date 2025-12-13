@@ -12,7 +12,7 @@ Get a privacy-first, client-side encrypted form running in 5 minutes.
 
 ## 1. Create an Account
 
-Sign up at [veilforms.com/signup](https://veilforms.com/signup). No credit card required for the free tier.
+Sign up at [veilforms.com/register](/register/). No credit card required for the free tier.
 
 ## 2. Create Your First Form
 
@@ -110,7 +110,7 @@ document.querySelector('form').addEventListener('veilforms:error', (e) => {
 
 ## 6. View Submissions
 
-Go to your [dashboard](https://veilforms.com/dashboard) to view submissions.
+Go to your [dashboard](/dashboard/) to view submissions.
 
 <div class="callout info">
 <strong>Client-Side Decryption:</strong> When you view submissions, your browser fetches encrypted blobs and decrypts them using your private key (stored in localStorage). We never see the plaintext.
