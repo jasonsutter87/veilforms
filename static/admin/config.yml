@@ -1,0 +1,96 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: "static/images/uploads"
+public_folder: "/images/uploads"
+
+site_url: https://veilforms.com
+display_url: https://veilforms.com
+logo_url: /favicon.svg
+
+slug:
+  encoding: "ascii"
+  clean_accents: true
+  sanitize_replacement: "-"
+
+collections:
+  - name: "blog"
+    label: "Blog Posts"
+    folder: "content/blog"
+    create: true
+    slug: "{{slug}}"
+    editor:
+      preview: true
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Description", name: "description", widget: "text" }
+      - { label: "Publish Date", name: "date", widget: "datetime", format: "YYYY-MM-DD" }
+      - { label: "Category", name: "category", widget: "select", options: ["Security", "Privacy", "Compliance", "Tutorial", "Company"] }
+      - { label: "Author", name: "author", widget: "string", default: "VeilForms Team" }
+      - { label: "Read Time (minutes)", name: "readTime", widget: "number", min: 1, max: 30 }
+      - { label: "Tags", name: "tags", widget: "list" }
+      - { label: "Featured Image", name: "image", widget: "image", required: false }
+      - { label: "Type", name: "type", widget: "hidden", default: "blog" }
+      - { label: "CSS", name: "css", widget: "hidden", default: ["blog.css"] }
+      - { label: "Body", name: "body", widget: "markdown" }
+
+  - name: "docs"
+    label: "Documentation"
+    folder: "content/docs"
+    create: true
+    nested:
+      depth: 3
+      summary: "{{title}}"
+    slug: "{{slug}}"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Description", name: "description", widget: "text" }
+      - { label: "Weight", name: "weight", widget: "number", required: false }
+      - { label: "Type", name: "type", widget: "hidden", default: "docs" }
+      - { label: "Body", name: "body", widget: "markdown" }
+
+  - name: "pages"
+    label: "Pages"
+    files:
+      - label: "Home"
+        name: "home"
+        file: "content/_index.md"
+        fields:
+          - { label: "Title", name: "title", widget: "string" }
+          - { label: "Description", name: "description", widget: "text" }
+          - { label: "Body", name: "body", widget: "markdown" }
+      - label: "Features"
+        name: "features"
+        file: "content/features/_index.md"
+        fields:
+          - { label: "Title", name: "title", widget: "string" }
+          - { label: "Description", name: "description", widget: "text" }
+          - { label: "Type", name: "type", widget: "hidden", default: "pages" }
+          - { label: "Layout", name: "layout", widget: "hidden", default: "features" }
+      - label: "Pricing"
+        name: "pricing"
+        file: "content/pricing/_index.md"
+        fields:
+          - { label: "Title", name: "title", widget: "string" }
+          - { label: "Description", name: "description", widget: "text" }
+          - { label: "Type", name: "type", widget: "hidden", default: "pages" }
+          - { label: "Layout", name: "layout", widget: "hidden", default: "pricing" }
+      - label: "Compare"
+        name: "compare"
+        file: "content/compare/_index.md"
+        fields:
+          - { label: "Title", name: "title", widget: "string" }
+          - { label: "Description", name: "description", widget: "text" }
+          - { label: "Type", name: "type", widget: "hidden", default: "pages" }
+          - { label: "Layout", name: "layout", widget: "hidden", default: "compare" }
+
+  - name: "settings"
+    label: "Site Settings"
+    files:
+      - label: "Site Configuration"
+        name: "config"
+        file: "hugo.toml"
+        fields:
+          - { label: "Site Title", name: "title", widget: "string" }
+          - { label: "Base URL", name: "baseURL", widget: "string" }
