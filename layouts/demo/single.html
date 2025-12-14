@@ -1,0 +1,310 @@
+{{ define "main" }}
+<section class="demo-hero">
+  <div class="site-container">
+    <h1>See Zero-Knowledge Encryption in Action</h1>
+    <p class="lead">This demo uses <strong>real cryptography</strong> - the same RSA-2048 + AES-256 encryption used in production. Generate keys, encrypt data, and prove we can't read it.</p>
+  </div>
+</section>
+
+<section class="demo-playground">
+  <div class="site-container">
+    <!-- Step 1: Key Generation -->
+    <div class="demo-step" id="step-keys">
+      <div class="step-header">
+        <span class="step-number">1</span>
+        <div>
+          <h2>Generate Your Keypair</h2>
+          <p>Create an RSA-2048 keypair. The public key encrypts data; only the private key can decrypt it.</p>
+        </div>
+      </div>
+      <div class="step-content">
+        <button class="btn-primary" id="generate-keys">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+          </svg>
+          Generate RSA-2048 Keypair
+        </button>
+        <div class="key-display" id="key-display" style="display: none;">
+          <div class="key-box public">
+            <div class="key-header">
+              <span class="key-label">Public Key</span>
+              <span class="key-badge safe">Safe to share</span>
+            </div>
+            <pre id="public-key-preview"></pre>
+          </div>
+          <div class="key-box private">
+            <div class="key-header">
+              <span class="key-label">Private Key</span>
+              <span class="key-badge danger">Keep secret!</span>
+            </div>
+            <pre id="private-key-preview"></pre>
+          </div>
+        </div>
+        <div class="metrics-row" id="keygen-metrics" style="display: none;">
+          <div class="metric">
+            <span class="metric-value" id="keygen-time">-</span>
+            <span class="metric-label">Key generation</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">2048-bit</span>
+            <span class="metric-label">RSA modulus</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Form Input -->
+    <div class="demo-step disabled" id="step-input">
+      <div class="step-header">
+        <span class="step-number">2</span>
+        <div>
+          <h2>Enter Sensitive Data</h2>
+          <p>Type anything - PII, secrets, passwords. This data will be encrypted in your browser.</p>
+        </div>
+      </div>
+      <div class="step-content">
+        <form id="demo-form" class="demo-form-inputs">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="input-name">Full Name</label>
+              <input type="text" id="input-name" placeholder="John Doe" disabled>
+            </div>
+            <div class="form-group">
+              <label for="input-email">Email Address</label>
+              <input type="email" id="input-email" placeholder="john@example.com" disabled>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="input-ssn">Social Security Number</label>
+            <input type="text" id="input-ssn" placeholder="123-45-6789" disabled>
+            <small>Don't worry - this never leaves your browser unencrypted</small>
+          </div>
+          <div class="form-group">
+            <label for="input-message">Secret Message</label>
+            <textarea id="input-message" rows="3" placeholder="Enter any sensitive information..." disabled></textarea>
+          </div>
+        </form>
+        <div class="pii-detection" id="pii-detection" style="display: none;">
+          <div class="pii-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            PII Detected:
+          </div>
+          <div class="pii-tags" id="pii-tags"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Encryption -->
+    <div class="demo-step disabled" id="step-encrypt">
+      <div class="step-header">
+        <span class="step-number">3</span>
+        <div>
+          <h2>Encrypt & Send</h2>
+          <p>Watch the encryption happen. This is exactly what gets sent to our servers.</p>
+        </div>
+      </div>
+      <div class="step-content">
+        <button class="btn-primary" id="encrypt-btn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Encrypt Data
+        </button>
+        <div class="encryption-visualization" id="encryption-viz" style="display: none;">
+          <div class="viz-step" id="viz-step-1">
+            <div class="viz-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </div>
+            <span>Plaintext data</span>
+          </div>
+          <div class="viz-arrow">→</div>
+          <div class="viz-step" id="viz-step-2">
+            <div class="viz-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <span>AES-256-GCM</span>
+          </div>
+          <div class="viz-arrow">→</div>
+          <div class="viz-step" id="viz-step-3">
+            <div class="viz-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+              </svg>
+            </div>
+            <span>RSA-OAEP wrap</span>
+          </div>
+          <div class="viz-arrow">→</div>
+          <div class="viz-step" id="viz-step-4">
+            <div class="viz-icon success">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <span>Ciphertext</span>
+          </div>
+        </div>
+        <div class="output-tabs" id="output-tabs" style="display: none;">
+          <button class="tab active" data-tab="encrypted">Encrypted Payload</button>
+          <button class="tab" data-tab="network">Network Request</button>
+          <button class="tab" data-tab="raw">Raw Ciphertext</button>
+        </div>
+        <div class="output-panel" id="output-panel" style="display: none;">
+          <div class="tab-content active" id="tab-encrypted">
+            <pre id="encrypted-output"></pre>
+          </div>
+          <div class="tab-content" id="tab-network">
+            <pre id="network-output"></pre>
+          </div>
+          <div class="tab-content" id="tab-raw">
+            <pre id="raw-output"></pre>
+          </div>
+        </div>
+        <div class="metrics-row" id="encrypt-metrics" style="display: none;">
+          <div class="metric">
+            <span class="metric-value" id="encrypt-time">-</span>
+            <span class="metric-label">Encryption time</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value" id="payload-size">-</span>
+            <span class="metric-label">Payload size</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value" id="overhead">-</span>
+            <span class="metric-label">Encryption overhead</span>
+          </div>
+        </div>
+        <div class="server-callout" id="server-callout" style="display: none;">
+          <div class="callout-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+            </svg>
+          </div>
+          <div class="callout-content">
+            <strong>This is what VeilForms receives</strong>
+            <p>We store this ciphertext. Without your private key, it's meaningless data. Even if our servers are compromised, your data stays encrypted.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Decryption -->
+    <div class="demo-step disabled" id="step-decrypt">
+      <div class="step-header">
+        <span class="step-number">4</span>
+        <div>
+          <h2>Decrypt & Verify</h2>
+          <p>Use your private key to decrypt. This proves only you can read the data.</p>
+        </div>
+      </div>
+      <div class="step-content">
+        <button class="btn-success" id="decrypt-btn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+          </svg>
+          Decrypt with Private Key
+        </button>
+        <div class="decrypted-output" id="decrypted-output" style="display: none;">
+          <div class="decrypted-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Decryption Successful
+          </div>
+          <pre id="decrypted-data"></pre>
+        </div>
+        <div class="metrics-row" id="decrypt-metrics" style="display: none;">
+          <div class="metric">
+            <span class="metric-value" id="decrypt-time">-</span>
+            <span class="metric-label">Decryption time</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value" id="total-time">-</span>
+            <span class="metric-label">Total roundtrip</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="demo-summary" id="demo-summary" style="display: none;">
+      <h2>Zero-Knowledge Proven</h2>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="summary-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <h3>Your Data, Your Keys</h3>
+          <p>Encryption happened entirely in your browser. The private key never left your device.</p>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <h3>We See Ciphertext</h3>
+          <p>VeilForms only stores the encrypted blob. We mathematically cannot decrypt it.</p>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <polyline points="9 12 11 14 15 10"></polyline>
+            </svg>
+          </div>
+          <h3>Industry-Standard Crypto</h3>
+          <p>RSA-2048 + AES-256-GCM. The same algorithms used by banks and governments.</p>
+        </div>
+      </div>
+      <div class="cta-section">
+        <a href="/register/" class="btn-primary btn-large">Start Building Secure Forms</a>
+        <a href="/docs/" class="btn-outline btn-large">Read the Documentation</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="benchmark-section">
+  <div class="site-container">
+    <h2>Performance Benchmarks</h2>
+    <p class="subtitle">Real-world performance measured in your browser</p>
+    <div class="benchmark-grid" id="benchmark-grid">
+      <div class="benchmark-card">
+        <h3>Key Generation</h3>
+        <div class="benchmark-value" id="bench-keygen">Run demo to measure</div>
+        <p>Time to generate RSA-2048 keypair</p>
+      </div>
+      <div class="benchmark-card">
+        <h3>Encryption Overhead</h3>
+        <div class="benchmark-value" id="bench-encrypt">Run demo to measure</div>
+        <p>Additional time for hybrid encryption</p>
+      </div>
+      <div class="benchmark-card">
+        <h3>Decryption Time</h3>
+        <div class="benchmark-value" id="bench-decrypt">Run demo to measure</div>
+        <p>Time to decrypt with private key</p>
+      </div>
+      <div class="benchmark-card">
+        <h3>Payload Overhead</h3>
+        <div class="benchmark-value" id="bench-size">Run demo to measure</div>
+        <p>Size increase from encryption</p>
+      </div>
+    </div>
+    <p class="benchmark-note">Benchmarks run in your browser using Web Crypto API. Performance varies by device.</p>
+  </div>
+</section>
+{{ end }}

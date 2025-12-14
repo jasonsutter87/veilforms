@@ -1,10 +1,11 @@
 ---
-title: 'Demo'
-description: 'Try VeilForms encryption in real-time. See how client-side encryption protects your data.'
-priority: 0.7
-type: 'pages'
-layout: 'demo'
-cta: true
-css: ['demo.css']
-js: ['demo-page.js']
+title: 'Interactive Demo'
+description: 'See VeilForms encryption in action - real client-side encryption with live decryption'
+layout: 'single'
+type: 'demo'
+js:
+  - interactive-demo.js
+css:
+  - demo.css
+priority: 0.9
 ---
