@@ -69,6 +69,29 @@ export async function updateUser(email, updates) {
   return updated;
 }
 
+// Create user from OAuth provider (no password)
+export async function createOAuthUser(email, provider, providerId, name = null) {
+  const users = store(STORES.USERS);
+  const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  const user = {
+    id: userId,
+    email: email.toLowerCase(),
+    passwordHash: null, // OAuth users don't have passwords
+    oauthProvider: provider,
+    oauthProviderId: providerId,
+    name: name,
+    createdAt: new Date().toISOString(),
+    subscription: 'free',
+    forms: [],
+    emailVerified: true, // OAuth emails are pre-verified
+    emailVerifiedAt: new Date().toISOString()
+  };
+  await users.setJSON(email.toLowerCase(), user);
+  // Store userId -> email mapping for reverse lookup
+  await users.setJSON(`id_${userId}`, { email: email.toLowerCase() });
+  return user;
+}
+
 // === PASSWORD RESET TOKEN OPERATIONS ===
 
 export async function createPasswordResetToken(email, token) {
