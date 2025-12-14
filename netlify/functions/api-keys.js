@@ -8,22 +8,8 @@
 import { authenticateRequest } from './lib/auth.js';
 import { getStore } from '@netlify/blobs';
 import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
-
-// CORS headers
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:1313', 'http://localhost:3000'];
-
-function getCorsHeaders(origin) {
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true',
-    'Content-Type': 'application/json'
-  };
-}
+import { getCorsHeaders } from './lib/cors.js';
+import * as response from './lib/responses.js';
 
 // Generate a secure API key
 function generateApiKey() {
@@ -49,31 +35,27 @@ async function hashApiKey(key) {
 
 export default async function handler(req, context) {
   const origin = req.headers.get('origin') || '';
-  const headers = getCorsHeaders(origin);
+  const headers = getCorsHeaders(origin, {
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS']
+  });
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+    return response.noContent(headers);
   }
 
   // Rate limit
-  const rateLimit = checkRateLimit(req, { keyPrefix: 'api-keys', maxRequests: 20 });
+  const rateLimit = await checkRateLimit(req, { keyPrefix: 'api-keys', maxRequests: 20 });
   if (!rateLimit.allowed) {
-    return new Response(JSON.stringify({
-      error: 'Too many requests. Please try again later.',
-      retryAfter: rateLimit.retryAfter
-    }), {
-      status: 429,
-      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-    });
+    return response.tooManyRequests(
+      { ...headers, ...getRateLimitHeaders(rateLimit) },
+      rateLimit.retryAfter
+    );
   }
 
   // Authenticate
-  const auth = authenticateRequest(req);
+  const auth = await authenticateRequest(req);
   if (auth.error) {
-    return new Response(JSON.stringify({ error: auth.error }), {
-      status: auth.status,
-      headers
-    });
+    return response.error(auth.error, headers, auth.status);
   }
 
   const store = getStore({ name: 'vf-api-keys', consistency: 'strong' });
@@ -99,16 +81,10 @@ export default async function handler(req, context) {
       return handleRevokeKey(store, auth.user.id, keyId, headers);
     }
 
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   } catch (err) {
     console.error('API Keys error:', err);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers);
   }
 }
 
@@ -141,13 +117,10 @@ async function handleListKeys(store, userId, headers) {
     keys = [];
   }
 
-  return new Response(JSON.stringify({
+  return response.success({
     keys,
     total: keys.length
-  }), {
-    status: 200,
-    headers
-  });
+  }, headers);
 }
 
 /**
@@ -158,17 +131,11 @@ async function handleCreateKey(req, store, userId, headers) {
   const { name, permissions } = body;
 
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
-    return new Response(JSON.stringify({ error: 'Key name is required' }), {
-      status: 400,
-      headers
-    });
+    return response.badRequest('Key name is required', headers);
   }
 
   if (name.length > 50) {
-    return new Response(JSON.stringify({ error: 'Key name must be 50 characters or less' }), {
-      status: 400,
-      headers
-    });
+    return response.badRequest('Key name must be 50 characters or less', headers);
   }
 
   // Validate permissions
@@ -177,10 +144,7 @@ async function handleCreateKey(req, store, userId, headers) {
 
   for (const perm of keyPermissions) {
     if (!validPermissions.includes(perm)) {
-      return new Response(JSON.stringify({ error: `Invalid permission: ${perm}` }), {
-        status: 400,
-        headers
-      });
+      return response.badRequest(`Invalid permission: ${perm}`, headers);
     }
   }
 
@@ -194,12 +158,10 @@ async function handleCreateKey(req, store, userId, headers) {
   }
 
   if (existingKeys.length >= 5) {
-    return new Response(JSON.stringify({
-      error: 'Maximum number of API keys reached (5). Delete an existing key first.'
-    }), {
-      status: 400,
+    return response.badRequest(
+      'Maximum number of API keys reached (5). Delete an existing key first.',
       headers
-    });
+    );
   }
 
   // Generate key
@@ -223,7 +185,7 @@ async function handleCreateKey(req, store, userId, headers) {
   existingKeys.push(keyHash);
   await store.setJSON(userKeysKey, existingKeys);
 
-  return new Response(JSON.stringify({
+  return response.created({
     key: {
       id: keyHash,
       name: keyData.name,
@@ -232,10 +194,7 @@ async function handleCreateKey(req, store, userId, headers) {
       createdAt: keyData.createdAt
     },
     warning: 'Save this API key now! This is the only time it will be shown. We cannot recover it.'
-  }), {
-    status: 201,
-    headers
-  });
+  }, headers);
 }
 
 /**
@@ -246,17 +205,11 @@ async function handleRevokeKey(store, userId, keyId, headers) {
   const keyData = await store.get(keyId, { type: 'json' });
 
   if (!keyData) {
-    return new Response(JSON.stringify({ error: 'API key not found' }), {
-      status: 404,
-      headers
-    });
+    return response.notFound('API key not found', headers);
   }
 
   if (keyData.userId !== userId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), {
-      status: 403,
-      headers
-    });
+    return response.forbidden('Access denied', headers);
   }
 
   // Delete the key
@@ -273,13 +226,10 @@ async function handleRevokeKey(store, userId, keyId, headers) {
   userKeys = userKeys.filter(k => k !== keyId);
   await store.setJSON(userKeysKey, userKeys);
 
-  return new Response(JSON.stringify({
+  return response.success({
     success: true,
     revoked: keyId
-  }), {
-    status: 200,
-    headers
-  });
+  }, headers);
 }
 
 export const config = {

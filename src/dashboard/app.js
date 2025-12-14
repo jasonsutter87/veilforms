@@ -4,7 +4,7 @@
  * All decryption happens in YOUR browser
  */
 
-import { generateKeyPair, decryptSubmission } from '../core/encryption.js';
+import { generateKeyPair, decryptSubmission, exportPrivateKeys, importPrivateKeys } from '../core/encryption.js';
 import { createAnonymousId } from '../core/identity.js';
 
 class VeilFormsDashboard {
@@ -324,6 +324,61 @@ class VeilFormsDashboard {
     }
 
     return response.json();
+  }
+
+  /**
+   * Export all private keys with password protection
+   * @param {string} password - Password to encrypt the keys (min 8 chars)
+   * @returns {Promise<Object>} - Encrypted key bundle
+   */
+  async exportEncryptedKeys(password) {
+    if (Object.keys(this.privateKeys).length === 0) {
+      throw new Error('No private keys to export');
+    }
+
+    return await exportPrivateKeys(this.privateKeys, password);
+  }
+
+  /**
+   * Import private keys from encrypted bundle
+   * @param {Object} encryptedBundle - The encrypted key bundle
+   * @param {string} password - Password to decrypt the keys
+   */
+  async importEncryptedKeys(encryptedBundle, password) {
+    const decryptedKeys = await importPrivateKeys(encryptedBundle, password);
+
+    // Merge with existing keys
+    this.privateKeys = {
+      ...this.privateKeys,
+      ...decryptedKeys,
+    };
+
+    // Save to localStorage
+    localStorage.setItem('veilforms_private_keys', JSON.stringify(this.privateKeys));
+
+    return Object.keys(decryptedKeys).length;
+  }
+
+  /**
+   * Download encrypted key bundle as file
+   * @param {Object} bundle - The encrypted key bundle
+   * @param {string} filename - File name (default: veilforms-keys-TIMESTAMP.veilkeys)
+   */
+  downloadKeyBundle(bundle, filename = null) {
+    const timestamp = new Date().toISOString().split('T')[0];
+    const defaultFilename = `veilforms-keys-${timestamp}.veilkeys`;
+    const finalFilename = filename || defaultFilename;
+
+    const dataStr = JSON.stringify(bundle, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = finalFilename;
+    link.click();
+
+    URL.revokeObjectURL(url);
   }
 }
 

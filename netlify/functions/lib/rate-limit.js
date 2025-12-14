@@ -1,20 +1,28 @@
-// Simple in-memory rate limiting for serverless functions
-// Note: This resets on cold starts. For production, consider using Redis or Netlify Blob
+// Persistent rate limiting using Netlify Blob storage
+// Survives cold starts and works across function instances
 
-const rateLimitStore = new Map();
+import { getStore } from '@netlify/blobs';
 
 const WINDOW_MS = 60 * 1000; // 1 minute window
 const MAX_REQUESTS = 10; // 10 requests per minute
 const LOCKOUT_THRESHOLD = 5; // Failed attempts before lockout
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minute lockout
 
+// Get blob store for rate limiting data
+function getRateLimitStore() {
+  return getStore({ name: 'veilforms-ratelimit', consistency: 'strong' });
+}
+
 // Clean up old entries periodically
-function cleanup() {
+async function cleanup(store, key) {
   const now = Date.now();
-  for (const [key, data] of rateLimitStore.entries()) {
-    if (now - data.windowStart > WINDOW_MS * 2) {
-      rateLimitStore.delete(key);
+  try {
+    const data = await store.get(key, { type: 'json' });
+    if (data && now - data.windowStart > WINDOW_MS * 2) {
+      await store.delete(key);
     }
+  } catch (e) {
+    // Ignore cleanup errors
   }
 }
 
@@ -26,20 +34,22 @@ function getClientId(req) {
 }
 
 // Check rate limit
-export function checkRateLimit(req, options = {}) {
+export async function checkRateLimit(req, options = {}) {
   const {
     windowMs = WINDOW_MS,
     maxRequests = MAX_REQUESTS,
     keyPrefix = 'rate'
   } = options;
 
-  cleanup();
-
+  const store = getRateLimitStore();
   const clientId = getClientId(req);
   const key = `${keyPrefix}:${clientId}`;
   const now = Date.now();
 
-  let data = rateLimitStore.get(key);
+  // Clean up old entries for this key
+  await cleanup(store, key);
+
+  let data = await store.get(key, { type: 'json' });
 
   if (!data || now - data.windowStart > windowMs) {
     // New window
@@ -47,13 +57,14 @@ export function checkRateLimit(req, options = {}) {
       windowStart: now,
       count: 1
     };
-    rateLimitStore.set(key, data);
+    await store.setJSON(key, data);
     return { allowed: true, remaining: maxRequests - 1 };
   }
 
   data.count++;
 
   if (data.count > maxRequests) {
+    // Don't update store if already over limit
     return {
       allowed: false,
       remaining: 0,
@@ -61,17 +72,17 @@ export function checkRateLimit(req, options = {}) {
     };
   }
 
+  await store.setJSON(key, data);
   return { allowed: true, remaining: maxRequests - data.count };
 }
 
 // Track failed login attempts for account lockout
-const failedAttempts = new Map();
-
-export function recordFailedAttempt(email) {
+export async function recordFailedAttempt(email) {
+  const store = getRateLimitStore();
   const key = `lockout:${email.toLowerCase()}`;
   const now = Date.now();
 
-  let data = failedAttempts.get(key);
+  let data = await store.get(key, { type: 'json' });
 
   if (!data || now - data.firstAttempt > LOCKOUT_DURATION_MS) {
     // Reset after lockout duration
@@ -87,17 +98,19 @@ export function recordFailedAttempt(email) {
     }
   }
 
-  failedAttempts.set(key, data);
+  await store.setJSON(key, data);
   return data;
 }
 
-export function clearFailedAttempts(email) {
-  failedAttempts.delete(`lockout:${email.toLowerCase()}`);
+export async function clearFailedAttempts(email) {
+  const store = getRateLimitStore();
+  await store.delete(`lockout:${email.toLowerCase()}`);
 }
 
-export function isAccountLocked(email) {
+export async function isAccountLocked(email) {
+  const store = getRateLimitStore();
   const key = `lockout:${email.toLowerCase()}`;
-  const data = failedAttempts.get(key);
+  const data = await store.get(key, { type: 'json' });
 
   if (!data || !data.lockedUntil) {
     return { locked: false };
@@ -106,7 +119,7 @@ export function isAccountLocked(email) {
   const now = Date.now();
   if (now >= data.lockedUntil) {
     // Lockout expired
-    failedAttempts.delete(key);
+    await store.delete(key);
     return { locked: false };
   }
 

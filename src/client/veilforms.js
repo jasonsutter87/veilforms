@@ -1,7 +1,12 @@
 /**
  * VeilForms Client SDK
+ * Version: 1.0.0
  * Drop-in privacy-first form handler
  * Encrypts data client-side before submission
+ *
+ * @version 1.0.0
+ * @license MIT
+ * @see https://veilforms.com/docs
  */
 
 import { encryptSubmission, hashField } from '../core/encryption.js';
@@ -10,6 +15,9 @@ import { detectPII, stripPII } from '../core/pii.js';
 
 const VeilForms = (function() {
   'use strict';
+
+  // SDK Version
+  const VERSION = '1.0.0';
 
   const config = {
     endpoint: null,
@@ -164,10 +172,10 @@ const VeilForms = (function() {
       submissionId,
       payload,
       timestamp: Date.now(),
-      // No PII metadata - just form version
+      // No PII metadata - just SDK version
       meta: {
         sdk: 'veilforms-js',
-        version: '1.0.0',
+        sdkVersion: VERSION,
       },
     };
 
@@ -215,6 +223,7 @@ const VeilForms = (function() {
 
   // Public API
   return {
+    version: VERSION,
     init,
     submit,
     track,

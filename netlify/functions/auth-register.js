@@ -2,77 +2,68 @@ import crypto from 'crypto';
 import { hashPassword, createToken, validatePassword, PASSWORD_REQUIREMENTS } from './lib/auth.js';
 import { createUser, getUser, createEmailVerificationToken } from './lib/storage.js';
 import { sendEmailVerification } from './lib/email.js';
-
-// CORS: Configure allowed origins (set ALLOWED_ORIGINS env var for production)
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:1313', 'http://localhost:3000'];
-
-function getCorsHeaders(origin) {
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Credentials': 'true',
-    'Content-Type': 'application/json'
-  };
-}
+import { checkEmailRateLimit, getEmailRateLimitHeaders } from './lib/email-rate-limit.js';
+import { getCorsHeaders } from './lib/cors.js';
+import * as response from './lib/responses.js';
 
 export default async function handler(req, context) {
   const origin = req.headers.get('origin') || '';
   const headers = getCorsHeaders(origin);
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+    return response.noContent(headers);
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   try {
     const { email, password } = await req.json();
 
     if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email and password required' }), {
-        status: 400,
-        headers
-      });
+      return response.badRequest('Email and password required', headers);
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return new Response(JSON.stringify({ error: 'Invalid email format' }), {
-        status: 400,
-        headers
-      });
+      return response.badRequest('Invalid email format', headers);
+    }
+
+    // Check email rate limit (5 verification emails per hour)
+    const rateLimit = await checkEmailRateLimit(email, 'verification');
+    if (!rateLimit.allowed) {
+      const rateLimitHeaders = {
+        ...headers,
+        ...getEmailRateLimitHeaders(rateLimit, 'verification')
+      };
+      return response.error(
+        rateLimit.message,
+        rateLimitHeaders,
+        429,
+        {
+          retryAfter: rateLimit.retryAfter,
+          resetAt: new Date(rateLimit.resetAt).toISOString()
+        }
+      );
     }
 
     // Validate password strength
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.valid) {
-      return new Response(JSON.stringify({
-        error: 'Password does not meet requirements',
-        details: passwordCheck.errors,
-        requirements: PASSWORD_REQUIREMENTS
-      }), {
-        status: 400,
-        headers
-      });
+      return response.error(
+        'Password does not meet requirements',
+        headers,
+        400,
+        { details: passwordCheck.errors, requirements: PASSWORD_REQUIREMENTS }
+      );
     }
 
     // Check if user exists
     const existing = await getUser(email);
     if (existing) {
-      return new Response(JSON.stringify({ error: 'Email already registered' }), {
-        status: 409,
-        headers
-      });
+      return response.error('Email already registered', headers, 409);
     }
 
     // Create user
@@ -95,7 +86,7 @@ export default async function handler(req, context) {
     // Create JWT token (user can still get token, but login will check verification)
     const token = createToken({ id: user.id, email: user.email });
 
-    return new Response(JSON.stringify({
+    return response.created({
       success: true,
       token,
       user: {
@@ -105,16 +96,10 @@ export default async function handler(req, context) {
         emailVerified: false
       },
       message: 'Please check your email to verify your account'
-    }), {
-      status: 201,
-      headers
-    });
+    }, headers);
   } catch (err) {
     console.error('Register error:', err);
-    return new Response(JSON.stringify({ error: 'Registration failed' }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers, 'Registration failed');
   }
 }
 

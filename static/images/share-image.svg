@@ -1,60 +1,132 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+
+  <!-- Subtle grid pattern for depth -->
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0f172a"/>
-      <stop offset="100%" style="stop-color:#1e293b"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366f1"/>
-      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1a1a" stroke-width="1"/>
+    </pattern>
+
+    <!-- Gradient for glow effects -->
+    <radialGradient id="purpleGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
     </linearGradient>
   </defs>
 
-  <!-- Background -->
-  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Grid background -->
+  <rect width="1200" height="630" fill="url(#grid)" opacity="0.3"/>
 
-  <!-- Decorative elements -->
-  <circle cx="100" cy="100" r="200" fill="url(#accent)" opacity="0.1"/>
-  <circle cx="1100" cy="530" r="250" fill="url(#accent)" opacity="0.1"/>
+  <!-- Purple glow accent (top right) -->
+  <circle cx="1000" cy="100" r="300" fill="url(#purpleGlow)"/>
 
-  <!-- Lock icon -->
-  <g transform="translate(100, 200)">
-    <rect x="0" y="40" width="80" height="60" rx="8" fill="url(#accent)"/>
-    <path d="M15 40 V25 C15 10 25 0 40 0 S65 10 65 25 V40" stroke="url(#accent)" stroke-width="8" fill="none"/>
-    <circle cx="40" cy="70" r="8" fill="#0f172a"/>
+  <!-- Purple glow accent (bottom left) -->
+  <circle cx="200" cy="530" r="250" fill="url(#purpleGlow)"/>
+
+  <!-- Main content container -->
+  <g transform="translate(100, 0)">
+
+    <!-- Logo and Title (centered vertically) -->
+    <g transform="translate(0, 180)">
+      <!-- VeilForms Logo -->
+      <text x="0" y="0" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="96" font-weight="700" letter-spacing="-0.02em">
+        <tspan fill="#6366f1">Veil</tspan><tspan fill="#ffffff">Forms</tspan>
+      </text>
+
+      <!-- Tagline -->
+      <text x="0" y="80" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="32" font-weight="400" fill="#a1a1aa" letter-spacing="-0.01em">
+        Client-Side Encrypted Forms
+      </text>
+
+      <!-- Subheadline -->
+      <text x="0" y="140" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" font-weight="300" fill="#71717a" letter-spacing="0">
+        Zero-knowledge form submissions. Privacy by design.
+      </text>
+    </g>
+
+    <!-- Encryption visualization (right side) -->
+    <g transform="translate(700, 150)">
+
+      <!-- Shield with lock icon -->
+      <g transform="translate(0, 0)">
+        <!-- Shield shape -->
+        <path d="M 100 20 L 180 20 C 180 20 180 100 180 140 C 180 200 140 240 100 260 C 60 240 20 200 20 140 C 20 100 20 20 20 20 L 100 20 Z"
+              fill="url(#shieldGradient)"
+              stroke="#818cf8"
+              stroke-width="2"
+              opacity="0.9"/>
+
+        <!-- Lock icon inside shield -->
+        <g transform="translate(100, 120)">
+          <!-- Lock body -->
+          <rect x="-20" y="0" width="40" height="30" rx="4" fill="#0a0a0a" opacity="0.8"/>
+
+          <!-- Lock shackle -->
+          <path d="M -15 0 L -15 -15 C -15 -23 -8 -30 0 -30 C 8 -30 15 -23 15 -15 L 15 0"
+                fill="none"
+                stroke="#0a0a0a"
+                stroke-width="6"
+                stroke-linecap="round"
+                opacity="0.8"/>
+
+          <!-- Keyhole -->
+          <circle cx="0" cy="12" r="4" fill="#6366f1"/>
+          <rect x="-1.5" y="13" width="3" height="8" fill="#6366f1"/>
+        </g>
+      </g>
+
+      <!-- Encryption flow indicators -->
+      <!-- Data flow line 1 -->
+      <g opacity="0.6">
+        <circle cx="-60" cy="100" r="6" fill="#6366f1">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <line x1="-50" y1="100" x2="10" y2="100" stroke="#6366f1" stroke-width="2" stroke-dasharray="4 4">
+          <animate attributeName="stroke-dashoffset" values="0;-8" dur="1s" repeatCount="indefinite"/>
+        </line>
+      </g>
+
+      <!-- Data flow line 2 -->
+      <g opacity="0.6">
+        <circle cx="-60" cy="140" r="6" fill="#818cf8">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" begin="0.3s"/>
+        </circle>
+        <line x1="-50" y1="140" x2="10" y2="140" stroke="#818cf8" stroke-width="2" stroke-dasharray="4 4">
+          <animate attributeName="stroke-dashoffset" values="0;-8" dur="1s" repeatCount="indefinite"/>
+        </line>
+      </g>
+
+      <!-- Data flow line 3 -->
+      <g opacity="0.6">
+        <circle cx="-60" cy="180" r="6" fill="#a5b4fc">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" begin="0.6s"/>
+        </circle>
+        <line x1="-50" y1="180" x2="10" y2="180" stroke="#a5b4fc" stroke-width="2" stroke-dasharray="4 4">
+          <animate attributeName="stroke-dashoffset" values="0;-8" dur="1s" repeatCount="indefinite"/>
+        </line>
+      </g>
+
+      <!-- "Encrypted" label -->
+      <text x="100" y="300" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#6366f1" text-anchor="middle" letter-spacing="0.1em">
+        ENCRYPTED
+      </text>
+    </g>
+
   </g>
 
-  <!-- Text -->
-  <text x="220" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="white">
-    <tspan fill="#6366f1">Veil</tspan><tspan fill="white">Forms</tspan>
-  </text>
-
-  <text x="220" y="330" font-family="system-ui, -apple-system, sans-serif" font-size="32" fill="#94a3b8">
-    Privacy-first forms with client-side encryption
-  </text>
-
-  <text x="220" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#64748b">
-    Your users' data is encrypted before it ever leaves their browser
-  </text>
-
-  <!-- Features -->
-  <g transform="translate(220, 450)">
-    <rect x="0" y="0" width="200" height="40" rx="20" fill="url(#accent)" opacity="0.2"/>
-    <text x="100" y="27" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a5b4fc" text-anchor="middle">Client-Side Encryption</text>
+  <!-- Footer badge/indicator -->
+  <g transform="translate(100, 580)">
+    <rect x="0" y="0" width="140" height="32" rx="16" fill="#18181b" stroke="#27272a" stroke-width="1"/>
+    <circle cx="18" cy="16" r="6" fill="#22c55e"/>
+    <text x="30" y="21" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="500" fill="#a1a1aa">
+      Open Source
+    </text>
   </g>
 
-  <g transform="translate(440, 450)">
-    <rect x="0" y="0" width="160" height="40" rx="20" fill="url(#accent)" opacity="0.2"/>
-    <text x="80" y="27" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a5b4fc" text-anchor="middle">PII Detection</text>
-  </g>
-
-  <g transform="translate(620, 450)">
-    <rect x="0" y="0" width="150" height="40" rx="20" fill="url(#accent)" opacity="0.2"/>
-    <text x="75" y="27" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a5b4fc" text-anchor="middle">Zero Tracking</text>
-  </g>
-
-  <!-- URL -->
-  <text x="220" y="560" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#6366f1">
-    veilforms.com
-  </text>
 </svg>

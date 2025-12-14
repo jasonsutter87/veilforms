@@ -1,0 +1,218 @@
+// ==========================================================================
+// DARK MODE STYLES
+// ==========================================================================
+
+// CSS Custom Properties for theming
+:root {
+  // Light mode (default)
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #eef2ff;
+  --primary-hover: #4f46e5;
+  --secondary: #64748b;
+  --success: #10b981;
+  --success-light: #d1fae5;
+  --danger: #ef4444;
+  --danger-light: #fee2e2;
+  --warning: #f59e0b;
+  --warning-light: #fef3c7;
+  --info: #0ea5e9;
+  --surface: #ffffff;
+  --bg: #f8fafc;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-muted: #64748b;
+
+  // Transition for smooth theme switching
+  color-scheme: light;
+}
+
+// Dark mode - User preference
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1e293b;
+    --bg: #0f172a;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --primary-light: #1e1b4b;
+    --success-light: #064e3b;
+    --danger-light: #7f1d1d;
+    --warning-light: #78350f;
+
+    color-scheme: dark;
+  }
+
+  // Adjust shadows for dark mode
+  .form-card:hover,
+  .feature-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(99, 102, 241, 0.25);
+  }
+
+  // Adjust modal backdrop
+  .modal-backdrop {
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  // Adjust code blocks
+  pre, code {
+    background: var(--bg);
+    border-color: var(--border);
+  }
+
+  // Adjust input focus states
+  input:focus,
+  textarea:focus,
+  select:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  }
+}
+
+// Manual dark mode toggle (class-based)
+[data-theme="dark"] {
+  --surface: #1e293b;
+  --bg: #0f172a;
+  --border: #334155;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary-light: #1e1b4b;
+  --success-light: #064e3b;
+  --danger-light: #7f1d1d;
+  --warning-light: #78350f;
+
+  color-scheme: dark;
+
+  // Adjust shadows for dark mode
+  .form-card:hover,
+  .feature-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(99, 102, 241, 0.25);
+  }
+
+  // Adjust modal backdrop
+  .modal-backdrop {
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  // Adjust code blocks
+  pre, code {
+    background: var(--bg);
+    border-color: var(--border);
+  }
+
+  // Adjust input focus states
+  input:focus,
+  textarea:focus,
+  select:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  }
+}
+
+// Manual light mode override
+[data-theme="light"] {
+  --surface: #ffffff;
+  --bg: #f8fafc;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --primary-light: #eef2ff;
+  --success-light: #d1fae5;
+  --danger-light: #fee2e2;
+  --warning-light: #fef3c7;
+
+  color-scheme: light;
+}
+
+// Smooth transitions for theme changes
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+// Disable transitions on elements that shouldn't transition
+a, button, input, textarea, select {
+  transition: all 0.2s ease;
+}
+
+// Dark mode toggle button
+.theme-toggle {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  // Hide sun icon in light mode, moon icon in dark mode
+  .sun-icon {
+    display: none;
+  }
+
+  .moon-icon {
+    display: block;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .sun-icon {
+      display: block;
+    }
+
+    .moon-icon {
+      display: none;
+    }
+  }
+
+  [data-theme="dark"] & {
+    .sun-icon {
+      display: block;
+    }
+
+    .moon-icon {
+      display: none;
+    }
+  }
+
+  [data-theme="light"] & {
+    .sun-icon {
+      display: none;
+    }
+
+    .moon-icon {
+      display: block;
+    }
+  }
+
+  @media (max-width: 768px) {
+    bottom: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}

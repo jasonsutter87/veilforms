@@ -36,10 +36,78 @@
   </div>
 </section>
 
+<section class="encryption-flow">
+  <div class="site-container-340">
+    <h2>How Encryption Works</h2>
+    <svg viewBox="0 0 800 200" class="encryption-diagram" xmlns="http://www.w3.org/2000/svg">
+      <!-- Browser/Client -->
+      <g id="browser">
+        <rect x="10" y="50" width="140" height="100" rx="8" fill="#4F46E5" opacity="0.1" stroke="#4F46E5" stroke-width="2"/>
+        <text x="80" y="85" text-anchor="middle" font-size="14" font-weight="600" fill="#4F46E5">Browser</text>
+        <text x="80" y="110" text-anchor="middle" font-size="12" fill="#6B7280">Form Data</text>
+        <text x="80" y="125" text-anchor="middle" font-size="11" fill="#059669">(Plaintext)</text>
+      </g>
+
+      <!-- Arrow 1: Browser to Encryption -->
+      <path d="M 155 100 L 195 100" stroke="#4F46E5" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+      <text x="175" y="90" text-anchor="middle" font-size="10" fill="#6B7280">Encrypt</text>
+
+      <!-- Encryption (Lock Icon) -->
+      <g id="encryption">
+        <circle cx="220" cy="100" r="35" fill="#10B981" opacity="0.1" stroke="#10B981" stroke-width="2"/>
+        <path d="M 220 85 L 220 90 M 210 90 L 230 90 L 230 115 L 210 115 Z M 215 100 L 225 100 M 220 100 L 220 110"
+              stroke="#10B981" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <text x="220" y="135" text-anchor="middle" font-size="11" font-weight="600" fill="#10B981">Client-Side</text>
+        <text x="220" y="147" text-anchor="middle" font-size="10" fill="#6B7280">Encryption</text>
+      </g>
+
+      <!-- Arrow 2: Encryption to API -->
+      <path d="M 260 100 L 365 100" stroke="#10B981" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+      <text x="312" y="90" text-anchor="middle" font-size="10" fill="#6B7280">Encrypted</text>
+
+      <!-- API Server -->
+      <g id="api">
+        <rect x="370" y="50" width="140" height="100" rx="8" fill="#F59E0B" opacity="0.1" stroke="#F59E0B" stroke-width="2"/>
+        <text x="440" y="85" text-anchor="middle" font-size="14" font-weight="600" fill="#F59E0B">API</text>
+        <text x="440" y="110" text-anchor="middle" font-size="12" fill="#6B7280">No Access to</text>
+        <text x="440" y="125" text-anchor="middle" font-size="11" fill="#DC2626">Plaintext</text>
+      </g>
+
+      <!-- Arrow 3: API to Storage -->
+      <path d="M 515 100 L 625 100" stroke="#F59E0B" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+      <text x="570" y="90" text-anchor="middle" font-size="10" fill="#6B7280">Store</text>
+
+      <!-- Storage (Encrypted Blob) -->
+      <g id="storage">
+        <rect x="630" y="50" width="160" height="100" rx="8" fill="#6366F1" opacity="0.1" stroke="#6366F1" stroke-width="2"/>
+        <text x="710" y="85" text-anchor="middle" font-size="14" font-weight="600" fill="#6366F1">Blob Storage</text>
+        <text x="710" y="110" text-anchor="middle" font-size="12" fill="#6B7280">Encrypted Data</text>
+        <text x="710" y="125" text-anchor="middle" font-size="11" fill="#DC2626">(Ciphertext)</text>
+      </g>
+
+      <!-- Arrow marker definition -->
+      <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <polygon points="0 0, 10 3, 0 6" fill="#4F46E5" />
+        </marker>
+      </defs>
+
+      <!-- Legend -->
+      <text x="400" y="185" text-anchor="middle" font-size="13" fill="#374151" font-weight="600">
+        Zero-Knowledge: We never see your unencrypted data
+      </text>
+    </svg>
+  </div>
+</section>
+
 <section class="quickstart">
   <div class="site-container-340">
     <h2>Quick Start</h2>
-    <pre class="code-block"><code>&lt;script src="https://veilforms.com/js/veilforms.min.js"&gt;&lt;/script&gt;
+    <pre class="code-block"><code>&lt;script
+  src="https://veilforms.com/js/veilforms.min.js"
+  integrity="sha384-dxvu/QuhQhLna10DbAj9KnYMewa6zqats5B79Pv+Ae3ef2pfwjRLrRSJ76SEtWMp"
+  crossorigin="anonymous"&gt;
+&lt;/script&gt;
 &lt;script&gt;
   VeilForms.init('your-form-id', {
     encryption: true,

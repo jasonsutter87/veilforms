@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { isTokenRevoked, revokeToken as revokeTokenFromBlocklist } from './token-blocklist.js';
 
 // SECURITY: JWT_SECRET must be set in environment - no fallback
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -45,9 +46,10 @@ export function validatePassword(password) {
   };
 }
 
-// Hash password
+// Hash password with cost factor 12 (OWASP recommended for 2024+)
+// Cost factor 12 = 4096 iterations, provides strong protection against brute force
 export async function hashPassword(password) {
-  return bcrypt.hash(password, 10);
+  return bcrypt.hash(password, 12);
 }
 
 // Verify password
@@ -55,15 +57,34 @@ export async function verifyPassword(password, hash) {
   return bcrypt.compare(password, hash);
 }
 
-// Create JWT token
+// Create JWT token with explicit algorithm specification
 export function createToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRY,
+    algorithm: 'HS256',
+    issuer: 'veilforms',
+    audience: 'veilforms-api'
+  });
 }
 
-// Verify JWT token
-export function verifyToken(token) {
+// Verify JWT token with explicit algorithm specification
+// Also checks token blocklist for revoked tokens
+export async function verifyToken(token) {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    // First verify the token signature and expiry
+    const decoded = jwt.verify(token, JWT_SECRET, {
+      algorithms: ['HS256'],
+      issuer: 'veilforms',
+      audience: 'veilforms-api'
+    });
+
+    // Then check if token has been revoked
+    const revoked = await isTokenRevoked(token);
+    if (revoked) {
+      return null;
+    }
+
+    return decoded;
   } catch (err) {
     return null;
   }
@@ -81,13 +102,13 @@ export function getTokenFromHeader(headers) {
 }
 
 // Middleware helper - verify auth and return user
-export function authenticateRequest(req) {
+export async function authenticateRequest(req) {
   const token = getTokenFromHeader(req.headers);
   if (!token) {
     return { error: 'No token provided', status: 401 };
   }
 
-  const decoded = verifyToken(token);
+  const decoded = await verifyToken(token);
   if (!decoded) {
     return { error: 'Invalid token', status: 401 };
   }
@@ -102,4 +123,9 @@ export function generateApiKey() {
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
   return prefix + randomPart;
+}
+
+// Re-export token revocation for convenience
+export async function revokeToken(token) {
+  return revokeTokenFromBlocklist(token);
 }

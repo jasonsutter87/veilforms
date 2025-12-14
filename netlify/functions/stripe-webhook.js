@@ -18,23 +18,18 @@ import {
   mapSubscriptionStatus
 } from './lib/stripe.js';
 import { logAudit, AuditEvents } from './lib/audit.js';
+import * as response from './lib/responses.js';
 
 export default async function handler(req, context) {
   // Only accept POST requests
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return response.methodNotAllowed({ 'Content-Type': 'application/json' });
   }
 
   const signature = req.headers.get('stripe-signature');
 
   if (!signature) {
-    return new Response(JSON.stringify({ error: 'missing_signature' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return response.badRequest('missing_signature', { 'Content-Type': 'application/json' });
   }
 
   let event;
@@ -45,13 +40,7 @@ export default async function handler(req, context) {
     event = constructWebhookEvent(body, signature);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
-    return new Response(JSON.stringify({
-      error: 'invalid_signature',
-      message: 'Webhook signature verification failed'
-    }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return response.badRequest('Webhook signature verification failed', { 'Content-Type': 'application/json' });
   }
 
   if (process.env.NODE_ENV !== 'production') {
@@ -90,19 +79,10 @@ export default async function handler(req, context) {
         }
     }
 
-    return new Response(JSON.stringify({ received: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return response.success({ received: true }, { 'Content-Type': 'application/json' });
   } catch (error) {
     console.error('Webhook handler error:', error);
-    return new Response(JSON.stringify({
-      error: 'handler_error',
-      message: error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return response.serverError({ 'Content-Type': 'application/json' }, error.message);
   }
 }
 
@@ -255,7 +235,9 @@ async function handlePaymentFailed(invoice) {
     console.log(`Payment failed for user ${user.id}`);
   }
 
-  // TODO: Send email notification about failed payment
+  // Email notifications for failed payments are handled by Stripe's built-in email system.
+  // Configure notification settings in Stripe Dashboard > Settings > Emails > Billing
+  // This ensures users receive timely payment failure alerts directly from Stripe.
 }
 
 /**

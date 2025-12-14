@@ -37,8 +37,12 @@ After creating your form, you'll receive:
 ### Option A: Simple HTML
 
 ```html
-<!-- Add the SDK -->
-<script src="https://veilforms.com/js/veilforms.min.js"></script>
+<!-- Add the SDK v1.0.0 with SRI for security -->
+<script
+  src="https://veilforms.com/js/veilforms-1.0.0.min.js"
+  integrity="sha384-dxvu/QuhQhLna10DbAj9KnYMewa6zqats5B79Pv+Ae3ef2pfwjRLrRSJ76SEtWMp"
+  crossorigin="anonymous">
+</script>
 
 <!-- Initialize with your form ID and public key -->
 <script>

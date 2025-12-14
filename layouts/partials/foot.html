@@ -1,5 +1,9 @@
 {{ range .Params.js }}
+  {{ if eq . "dashboard.js" }}
+  <script type="module" src="{{ "src/js/" | relURL }}{{ . }}"></script>
+  {{ else }}
   <script defer src="{{ "src/js/" | relURL }}{{ . }}"></script>
+  {{ end }}
 {{ end }}
 
 <!-- Netlify Identity Widget for CMS -->

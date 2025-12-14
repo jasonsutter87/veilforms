@@ -10,18 +10,31 @@ $secondary: #64748b;
 $success: #10b981;
 $success-light: #d1fae5;
 $danger: #ef4444;
+$danger-light: #fee2e2;
 $warning: #f59e0b;
 $warning-light: #fef3c7;
 $info: #0ea5e9;
 $light: #f8fafc;
 $dark: #0f172a;
 
-// UI Colors
+// UI Colors - Light Mode (Default)
 $surface: #ffffff;
 $bg: #f8fafc;
 $border: #e2e8f0;
 $text: #1e293b;
 $text-muted: #64748b;
+$primary-hover: #4f46e5;
+
+// UI Colors - Dark Mode
+$surface-dark: #1e293b;
+$bg-dark: #0f172a;
+$border-dark: #334155;
+$text-dark: #f1f5f9;
+$text-muted-dark: #94a3b8;
+$primary-light-dark: #1e1b4b;
+$success-light-dark: #064e3b;
+$danger-light-dark: #7f1d1d;
+$warning-light-dark: #78350f;
 
 // Grays
 $gray-100: #f8fafc;

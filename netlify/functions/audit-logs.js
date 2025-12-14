@@ -8,57 +8,36 @@ import { authenticateRequest } from './lib/auth.js';
 import { getAuditLogs, getFormAuditLogs } from './lib/audit.js';
 import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
 import { getForm } from './lib/storage.js';
-
-// CORS headers
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:1313', 'http://localhost:3000'];
-
-function getCorsHeaders(origin) {
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true',
-    'Content-Type': 'application/json'
-  };
-}
+import { getCorsHeaders } from './lib/cors.js';
+import * as response from './lib/responses.js';
 
 export default async function handler(req, context) {
   const origin = req.headers.get('origin') || '';
-  const headers = getCorsHeaders(origin);
+  const headers = getCorsHeaders(origin, {
+    methods: ['GET', 'OPTIONS']
+  });
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+    return response.noContent(headers);
   }
 
   if (req.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   // Rate limit
-  const rateLimit = checkRateLimit(req, { keyPrefix: 'audit-logs', maxRequests: 30 });
+  const rateLimit = await checkRateLimit(req, { keyPrefix: 'audit-logs', maxRequests: 30 });
   if (!rateLimit.allowed) {
-    return new Response(JSON.stringify({
-      error: 'Too many requests. Please try again later.',
-      retryAfter: rateLimit.retryAfter
-    }), {
-      status: 429,
-      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-    });
+    return response.tooManyRequests(
+      { ...headers, ...getRateLimitHeaders(rateLimit) },
+      rateLimit.retryAfter
+    );
   }
 
   // Authenticate
-  const auth = authenticateRequest(req);
+  const auth = await authenticateRequest(req);
   if (auth.error) {
-    return new Response(JSON.stringify({ error: auth.error }), {
-      status: auth.status,
-      headers
-    });
+    return response.error(auth.error, headers, auth.status);
   }
 
   try {
@@ -72,32 +51,20 @@ export default async function handler(req, context) {
     if (formId) {
       const form = await getForm(formId);
       if (!form || form.userId !== auth.user.id) {
-        return new Response(JSON.stringify({ error: 'Form not found or access denied' }), {
-          status: 404,
-          headers
-        });
+        return response.notFound('Form not found or access denied', headers);
       }
 
       const result = await getFormAuditLogs(auth.user.id, formId, limit);
-      return new Response(JSON.stringify(result), {
-        status: 200,
-        headers
-      });
+      return response.success(result, headers);
     }
 
     // Get all audit logs for user
     const result = await getAuditLogs(auth.user.id, limit, offset, eventType);
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers
-    });
+    return response.success(result, headers);
   } catch (err) {
     console.error('Audit logs error:', err);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers);
   }
 }
 

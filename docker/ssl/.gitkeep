@@ -1,0 +1,13 @@
+# SSL Certificates Directory
+#
+# Place your SSL certificates here:
+# - cert.pem (certificate chain)
+# - key.pem (private key)
+#
+# For Let's Encrypt:
+# cp /etc/letsencrypt/live/your-domain/fullchain.pem ./cert.pem
+# cp /etc/letsencrypt/live/your-domain/privkey.pem ./key.pem
+#
+# For self-signed (development only):
+# openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#   -keyout key.pem -out cert.pem

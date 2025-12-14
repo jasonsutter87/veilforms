@@ -497,6 +497,106 @@ function escapeHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
+// Resume progress email template
+function getResumeEmailHtml(resumeUrl, formName, expiryHours) {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0a0a0a; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 480px; background-color: #18181b; border-radius: 12px; border: 1px solid #27272a;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #27272a;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #fafafa;">
+                <span style="color: #6366f1;">Veil</span>Forms
+              </h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding: 32px;">
+              <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #fafafa;">Continue your form</h2>
+              <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #a1a1aa;">
+                Your progress on <strong style="color: #fafafa;">${escapeHtml(formName)}</strong> has been saved. Click the button below to pick up where you left off.
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 0 0 24px;">
+                    <a href="${resumeUrl}" style="display: inline-block; padding: 12px 32px; font-size: 16px; font-weight: 600; color: #ffffff; background-color: #6366f1; text-decoration: none; border-radius: 8px;">Continue Form</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 16px; font-size: 14px; line-height: 22px; color: #71717a;">
+                This link will expire in <strong style="color: #a1a1aa;">${expiryHours} hours</strong>.
+              </p>
+              <p style="margin: 0; font-size: 14px; line-height: 22px; color: #71717a;">
+                If you didn't request this link, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 32px; text-align: center; border-top: 1px solid #27272a;">
+              <p style="margin: 0; font-size: 12px; color: #52525b;">
+                VeilForms &bull; Privacy-first form builder
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+function getResumeEmailText(resumeUrl, formName, expiryHours) {
+  return `
+Continue your form
+
+Your progress on "${formName}" has been saved. Click the link below to pick up where you left off:
+${resumeUrl}
+
+This link will expire in ${expiryHours} hours.
+
+If you didn't request this link, you can safely ignore this email.
+
+---
+VeilForms - Privacy-first form builder
+  `.trim();
+}
+
+// Send resume progress email
+export async function sendResumeEmail(email, resumeUrl, formName, expiryHours) {
+  const subject = `Continue your form: ${formName}`;
+  const html = getResumeEmailHtml(resumeUrl, formName, expiryHours);
+  const text = getResumeEmailText(resumeUrl, formName, expiryHours);
+
+  if (resend) {
+    try {
+      const result = await sendViaResend(email, subject, html, text);
+      console.log(`Resume email sent to ${email}`);
+      return result;
+    } catch (error) {
+      console.error('Resume email send failed:', error.message);
+      throw error;
+    }
+  }
+
+  // No email provider configured - log for development
+  console.log(`[DEV] Would send resume email to ${email}`);
+  console.log(`[DEV] Resume URL: ${resumeUrl}`);
+  return { provider: 'dev', id: 'dev-' + Date.now() };
+}
+
 // Send submission notification email
 export async function sendSubmissionNotification(recipients, formName, formId, submissionId, timestamp, includeData = false, data = null) {
   if (!Array.isArray(recipients) || recipients.length === 0) {

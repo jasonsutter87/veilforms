@@ -7,117 +7,81 @@ import {
   clearFailedAttempts,
   isAccountLocked
 } from './lib/rate-limit.js';
-
-// CORS: Configure allowed origins (set ALLOWED_ORIGINS env var for production)
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:1313', 'http://localhost:3000'];
-
-function getCorsHeaders(origin) {
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Credentials': 'true',
-    'Content-Type': 'application/json'
-  };
-}
+import { getCorsHeaders } from './lib/cors.js';
+import * as response from './lib/responses.js';
+import { errorResponse, ErrorCodes } from './lib/errors.js';
 
 export default async function handler(req, context) {
   const origin = req.headers.get('origin') || '';
   const headers = getCorsHeaders(origin);
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+    return response.noContent(headers);
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   // Check rate limit
-  const rateLimit = checkRateLimit(req, { keyPrefix: 'login' });
+  const rateLimit = await checkRateLimit(req, { keyPrefix: 'login' });
   if (!rateLimit.allowed) {
-    return new Response(JSON.stringify({
-      error: 'Too many requests. Please try again later.',
-      retryAfter: rateLimit.retryAfter
-    }), {
-      status: 429,
-      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-    });
+    return response.tooManyRequests({ ...headers, ...getRateLimitHeaders(rateLimit) }, rateLimit.retryAfter);
   }
 
   try {
     const { email, password } = await req.json();
 
     if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email and password required' }), {
-        status: 400,
-        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
+      return errorResponse(ErrorCodes.VALIDATION_MISSING_FIELD, { ...headers, ...getRateLimitHeaders(rateLimit) }, {
+        details: { required: ['email', 'password'] }
       });
     }
 
     // Check account lockout
-    const lockout = isAccountLocked(email);
+    const lockout = await isAccountLocked(email);
     if (lockout.locked) {
-      return new Response(JSON.stringify({
-        error: `Account temporarily locked. Try again in ${lockout.remainingMinutes} minutes.`,
-        lockedMinutes: lockout.remainingMinutes
-      }), {
-        status: 423,
-        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-      });
+      return response.error(
+        `Account temporarily locked. Try again in ${lockout.remainingMinutes} minutes.`,
+        { ...headers, ...getRateLimitHeaders(rateLimit) },
+        423,
+        { lockedMinutes: lockout.remainingMinutes }
+      );
     }
 
     // Get user
     const user = await getUser(email);
     if (!user) {
       // Record failed attempt (even for non-existent users to prevent enumeration)
-      recordFailedAttempt(email);
-      return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
-        status: 401,
-        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-      });
+      await recordFailedAttempt(email);
+      return errorResponse(ErrorCodes.AUTH_INVALID_CREDENTIALS, { ...headers, ...getRateLimitHeaders(rateLimit) });
     }
 
     // Verify password
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
-      const attempt = recordFailedAttempt(email);
+      const attempt = await recordFailedAttempt(email);
       const remaining = 5 - attempt.count;
 
-      return new Response(JSON.stringify({
-        error: 'Invalid credentials',
-        ...(remaining > 0 && remaining <= 3 ? { attemptsRemaining: remaining } : {})
-      }), {
-        status: 401,
-        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
+      return errorResponse(ErrorCodes.AUTH_INVALID_CREDENTIALS, { ...headers, ...getRateLimitHeaders(rateLimit) }, {
+        details: remaining > 0 && remaining <= 3 ? { attemptsRemaining: remaining } : {}
       });
     }
 
     // Success - clear any failed attempts
-    clearFailedAttempts(email);
+    await clearFailedAttempts(email);
 
     // Check email verification status
     if (!user.emailVerified) {
-      return new Response(JSON.stringify({
-        error: 'Please verify your email before logging in',
-        emailNotVerified: true,
-        email: user.email
-      }), {
-        status: 403,
-        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
+      return errorResponse(ErrorCodes.AUTH_EMAIL_NOT_VERIFIED, { ...headers, ...getRateLimitHeaders(rateLimit) }, {
+        details: { email: user.email }
       });
     }
 
     // Create JWT token
     const token = createToken({ id: user.id, email: user.email });
 
-    return new Response(JSON.stringify({
+    return response.success({
       success: true,
       token,
       user: {
@@ -126,15 +90,11 @@ export default async function handler(req, context) {
         subscription: user.subscription,
         emailVerified: user.emailVerified
       }
-    }), {
-      status: 200,
-      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-    });
+    }, { ...headers, ...getRateLimitHeaders(rateLimit) });
   } catch (err) {
     console.error('Login error:', err);
-    return new Response(JSON.stringify({ error: 'Login failed' }), {
-      status: 500,
-      headers
+    return errorResponse(ErrorCodes.SERVER_ERROR, headers, {
+      message: 'Login failed'
     });
   }
 }

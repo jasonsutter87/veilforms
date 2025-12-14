@@ -16,26 +16,24 @@ import {
   updateForm,
   deleteForm,
   getUserForms,
-  getSubmissions
+  getSubmissions,
+  getUserById
 } from './lib/storage.js';
 import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
 import { logAudit, AuditEvents, getAuditContext } from './lib/audit.js';
+import { getCorsHeaders } from './lib/cors.js';
+import { validateCsrfToken, generateCsrfToken, getCsrfHeaders } from './lib/csrf.js';
+import * as response from './lib/responses.js';
+import { isValidFormId, parseUrlPath, validateFormName, validateBranding, validateRetention, validateRecipients, isValidWebhookUrl } from './lib/validation.js';
 
-// CORS headers
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:1313', 'http://localhost:3000'];
-
-function getCorsHeaders(origin) {
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true',
-    'Content-Type': 'application/json'
-  };
-}
+// Form creation limits per subscription tier
+const FORM_LIMITS = {
+  free: 5,
+  starter: 20,
+  pro: 50,
+  business: Infinity,
+  enterprise: Infinity
+};
 
 // Generate RSA key pair for form encryption
 async function generateKeyPair() {
@@ -61,33 +59,29 @@ export default async function handler(req, context) {
   const headers = getCorsHeaders(origin);
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+    return response.noContent(headers);
   }
 
   // Rate limit
-  const rateLimit = checkRateLimit(req, { keyPrefix: 'forms-api', maxRequests: 30 });
+  const rateLimit = await checkRateLimit(req, { keyPrefix: 'forms-api', maxRequests: 30 });
   if (!rateLimit.allowed) {
-    return new Response(JSON.stringify({
-      error: 'Too many requests. Please try again later.',
-      retryAfter: rateLimit.retryAfter
-    }), {
-      status: 429,
-      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-    });
+    return response.tooManyRequests({ ...headers, ...getRateLimitHeaders(rateLimit) }, rateLimit.retryAfter);
   }
 
   // Authenticate
-  const auth = authenticateRequest(req);
+  const auth = await authenticateRequest(req);
   if (auth.error) {
-    return new Response(JSON.stringify({ error: auth.error }), {
-      status: auth.status,
-      headers
-    });
+    return response.error(auth.error, headers, auth.status);
+  }
+
+  // CSRF protection for state-changing operations
+  const isStateChanging = ['POST', 'PUT', 'DELETE'].includes(req.method);
+  if (isStateChanging && !validateCsrfToken(req)) {
+    return response.error('CSRF token validation failed', headers, 403);
   }
 
   // Parse URL to get formId and action
-  const url = new URL(req.url);
-  const pathParts = url.pathname.replace('/api/forms/', '').replace('/api/forms', '').split('/').filter(Boolean);
+  const pathParts = parseUrlPath(req.url, '/api/forms/');
   const formId = pathParts[0];
   const action = pathParts[1]; // 'stats' or 'regenerate-keys'
 
@@ -106,27 +100,18 @@ export default async function handler(req, context) {
     }
 
     // Validate formId format for all other operations
-    if (!formId || !/^vf_[a-z0-9_]+$/i.test(formId)) {
-      return new Response(JSON.stringify({ error: 'Valid form ID required' }), {
-        status: 400,
-        headers
-      });
+    if (!formId || !isValidFormId(formId)) {
+      return response.badRequest('Valid form ID required', headers);
     }
 
     // Get form and verify ownership
     const form = await getForm(formId);
     if (!form) {
-      return new Response(JSON.stringify({ error: 'Form not found' }), {
-        status: 404,
-        headers
-      });
+      return response.notFound('Form not found', headers);
     }
 
     if (form.userId !== auth.user.id) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403,
-        headers
-      });
+      return response.forbidden('Access denied', headers);
     }
 
     // Route based on method and action
@@ -150,16 +135,10 @@ export default async function handler(req, context) {
       return handleRegenerateKeys(formId, auth.user.id, headers, auditCtx);
     }
 
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   } catch (err) {
     console.error('Forms error:', err);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers);
   }
 }
 
@@ -187,13 +166,10 @@ async function handleListForms(userId, headers) {
       }
     }));
 
-  return new Response(JSON.stringify({
+  return response.success({
     forms: sanitizedForms,
     total: sanitizedForms.length
-  }), {
-    status: 200,
-    headers
-  });
+  }, headers);
 }
 
 /**
@@ -203,18 +179,38 @@ async function handleCreateForm(req, userId, headers, auditCtx) {
   const body = await req.json();
   const { name, settings } = body;
 
-  if (!name || typeof name !== 'string' || name.trim().length === 0) {
-    return new Response(JSON.stringify({ error: 'Form name is required' }), {
-      status: 400,
-      headers
-    });
+  const nameValidation = validateFormName(name);
+  if (!nameValidation.valid) {
+    return response.badRequest(nameValidation.error, headers);
   }
 
-  if (name.length > 100) {
-    return new Response(JSON.stringify({ error: 'Form name must be 100 characters or less' }), {
-      status: 400,
-      headers
-    });
+  // Check form creation limits based on subscription
+  const user = await getUserById(userId);
+  const subscription = user?.subscription || 'free';
+  const limit = FORM_LIMITS[subscription] || FORM_LIMITS.free;
+
+  // Get current form count (excluding deleted forms)
+  const existingForms = await getUserForms(userId);
+  const activeFormCount = existingForms.filter(f => f.status !== 'deleted').length;
+
+  if (activeFormCount >= limit) {
+    return response.error(
+      'Form creation limit reached',
+      headers,
+      402,
+      {
+        limit,
+        current: activeFormCount,
+        subscription,
+        message: subscription === 'free'
+          ? 'Upgrade to Pro for up to 50 forms, or Business for unlimited forms'
+          : subscription === 'starter'
+          ? 'Upgrade to Pro for up to 50 forms, or Business for unlimited forms'
+          : subscription === 'pro'
+          ? 'Upgrade to Business for unlimited forms'
+          : 'Contact support for assistance'
+      }
+    );
   }
 
   // Generate encryption keys
@@ -257,7 +253,7 @@ async function handleCreateForm(req, userId, headers, auditCtx) {
     formName: form.name
   }, auditCtx);
 
-  return new Response(JSON.stringify({
+  return response.created({
     form: {
       id: form.id,
       name: form.name,
@@ -268,17 +264,14 @@ async function handleCreateForm(req, userId, headers, auditCtx) {
       settings: form.settings
     },
     warning: 'Save your private key immediately! This is the only time it will be shown. We cannot recover it.'
-  }), {
-    status: 201,
-    headers
-  });
+  }, headers);
 }
 
 /**
  * GET /api/forms/:id - Get single form
  */
 async function handleGetForm(form, headers) {
-  return new Response(JSON.stringify({
+  return response.success({
     form: {
       id: form.id,
       name: form.name,
@@ -290,10 +283,7 @@ async function handleGetForm(form, headers) {
       publicKey: form.publicKey,
       settings: form.settings
     }
-  }), {
-    status: 200,
-    headers
-  });
+  }, headers);
 }
 
 /**
@@ -307,17 +297,9 @@ async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
   const changes = [];
 
   if (name !== undefined) {
-    if (typeof name !== 'string' || name.trim().length === 0) {
-      return new Response(JSON.stringify({ error: 'Invalid form name' }), {
-        status: 400,
-        headers
-      });
-    }
-    if (name.length > 100) {
-      return new Response(JSON.stringify({ error: 'Form name must be 100 characters or less' }), {
-        status: 400,
-        headers
-      });
+    const nameValidation = validateFormName(name);
+    if (!nameValidation.valid) {
+      return response.badRequest(nameValidation.error, headers);
     }
     updates.name = name.trim();
     changes.push('name');
@@ -325,10 +307,7 @@ async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
 
   if (status !== undefined) {
     if (!['active', 'paused'].includes(status)) {
-      return new Response(JSON.stringify({ error: 'Invalid status. Must be "active" or "paused"' }), {
-        status: 400,
-        headers
-      });
+      return response.badRequest('Invalid status. Must be "active" or "paused"', headers);
     }
     updates.status = status;
     changes.push('status');
@@ -341,57 +320,20 @@ async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
     };
 
     // Validate webhook URL if provided
-    if (settings.webhookUrl && settings.webhookUrl !== '') {
-      try {
-        new URL(settings.webhookUrl);
-      } catch {
-        return new Response(JSON.stringify({ error: 'Invalid webhook URL' }), {
-          status: 400,
-          headers
-        });
-      }
+    if (settings.webhookUrl && !isValidWebhookUrl(settings.webhookUrl)) {
+      return response.badRequest('Invalid webhook URL', headers);
     }
 
     // Validate allowed origins
-    if (settings.allowedOrigins) {
-      if (!Array.isArray(settings.allowedOrigins)) {
-        return new Response(JSON.stringify({ error: 'allowedOrigins must be an array' }), {
-          status: 400,
-          headers
-        });
-      }
+    if (settings.allowedOrigins && !Array.isArray(settings.allowedOrigins)) {
+      return response.badRequest('allowedOrigins must be an array', headers);
     }
 
     // Validate branding settings
     if (settings.branding) {
-      if (settings.branding.customColor && !/^#[0-9A-Fa-f]{6}$/.test(settings.branding.customColor)) {
-        return new Response(JSON.stringify({ error: 'Invalid branding color format (use #RRGGBB)' }), {
-          status: 400,
-          headers
-        });
-      }
-      // Validate customLogo URL
-      if (settings.branding.customLogo && settings.branding.customLogo !== '') {
-        if (settings.branding.customLogo.length > 2048) {
-          return new Response(JSON.stringify({ error: 'Logo URL too long (max 2048 characters)' }), {
-            status: 400,
-            headers
-          });
-        }
-        try {
-          const logoUrl = new URL(settings.branding.customLogo);
-          if (!['http:', 'https:'].includes(logoUrl.protocol)) {
-            return new Response(JSON.stringify({ error: 'Logo URL must use HTTP or HTTPS protocol' }), {
-              status: 400,
-              headers
-            });
-          }
-        } catch {
-          return new Response(JSON.stringify({ error: 'Invalid logo URL format' }), {
-            status: 400,
-            headers
-          });
-        }
+      const brandingValidation = validateBranding(settings.branding);
+      if (!brandingValidation.valid) {
+        return response.badRequest(brandingValidation.error, headers);
       }
       updates.settings.branding = {
         ...form.settings?.branding,
@@ -402,11 +344,9 @@ async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
 
     // Validate retention settings
     if (settings.retention) {
-      if (settings.retention.days && (settings.retention.days < 1 || settings.retention.days > 365)) {
-        return new Response(JSON.stringify({ error: 'Retention days must be between 1 and 365' }), {
-          status: 400,
-          headers
-        });
+      const retentionValidation = validateRetention(settings.retention);
+      if (!retentionValidation.valid) {
+        return response.badRequest(retentionValidation.error, headers);
       }
       updates.settings.retention = {
         ...form.settings?.retention,
@@ -419,30 +359,9 @@ async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
     if (settings.notifications) {
       // Validate recipient emails
       if (settings.notifications.recipients) {
-        if (!Array.isArray(settings.notifications.recipients)) {
-          return new Response(JSON.stringify({ error: 'Notification recipients must be an array' }), {
-            status: 400,
-            headers
-          });
-        }
-
-        // Validate each email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        for (const email of settings.notifications.recipients) {
-          if (!emailRegex.test(email)) {
-            return new Response(JSON.stringify({ error: `Invalid email address: ${email}` }), {
-              status: 400,
-              headers
-            });
-          }
-        }
-
-        // Limit to 5 recipients
-        if (settings.notifications.recipients.length > 5) {
-          return new Response(JSON.stringify({ error: 'Maximum 5 notification recipients allowed' }), {
-            status: 400,
-            headers
-          });
+        const recipientsValidation = validateRecipients(settings.notifications.recipients);
+        if (!recipientsValidation.valid) {
+          return response.badRequest(recipientsValidation.error, headers);
         }
       }
 
@@ -464,7 +383,7 @@ async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
     changes
   }, auditCtx);
 
-  return new Response(JSON.stringify({
+  return response.success({
     form: {
       id: updated.id,
       name: updated.name,
@@ -476,10 +395,7 @@ async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
       publicKey: updated.publicKey,
       settings: updated.settings
     }
-  }), {
-    status: 200,
-    headers
-  });
+  }, headers);
 }
 
 /**
@@ -497,13 +413,10 @@ async function handleDeleteForm(formId, userId, headers, auditCtx) {
     formId
   }, auditCtx);
 
-  return new Response(JSON.stringify({
+  return response.success({
     success: true,
     deleted: formId
-  }), {
-    status: 200,
-    headers
-  });
+  }, headers);
 }
 
 /**
@@ -578,7 +491,7 @@ async function handleGetStats(formId, form, headers) {
     .slice(0, 5)
     .map(([region, count]) => ({ region, count }));
 
-  return new Response(JSON.stringify({
+  return response.success({
     formId,
     stats: {
       total: form.submissionCount || 0,
@@ -592,10 +505,7 @@ async function handleGetStats(formId, form, headers) {
       topRegions,
       sdkVersions: Object.entries(sdkVersionCounts).map(([version, count]) => ({ version, count }))
     }
-  }), {
-    status: 200,
-    headers
-  });
+  }, headers);
 }
 
 /**
@@ -617,7 +527,7 @@ async function handleRegenerateKeys(formId, userId, headers, auditCtx) {
     keyRotatedAt: updated.keyRotatedAt
   }, auditCtx);
 
-  return new Response(JSON.stringify({
+  return response.success({
     form: {
       id: updated.id,
       publicKey,
@@ -625,10 +535,7 @@ async function handleRegenerateKeys(formId, userId, headers, auditCtx) {
       keyRotatedAt: updated.keyRotatedAt
     },
     warning: 'Save your new private key immediately! Old submissions will no longer be decryptable with this key.'
-  }), {
-    status: 200,
-    headers
-  });
+  }, headers);
 }
 
 export const config = {

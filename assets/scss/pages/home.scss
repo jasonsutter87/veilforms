@@ -101,6 +101,63 @@
   color: var(--text-muted);
 }
 
+// Encryption Flow Section
+.encryption-flow {
+  padding: 80px 0;
+  background: var(--surface);
+
+  h2 {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 60px 0;
+
+    h2 {
+      margin-bottom: 30px;
+      font-size: 1.75rem;
+    }
+  }
+}
+
+.encryption-diagram {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+
+  @media (max-width: 768px) {
+    // Scale down on mobile
+    max-width: 120%;
+    margin-left: -10%;
+  }
+
+  @media (max-width: 480px) {
+    max-width: 150%;
+    margin-left: -25%;
+  }
+
+  // Smooth text rendering
+  text {
+    font-family: var(--font-family);
+  }
+
+  // Add subtle animation to arrows
+  path[marker-end] {
+    animation: flowAnimation 2s ease-in-out infinite;
+  }
+}
+
+@keyframes flowAnimation {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 // Quick Start Section
 .quickstart {
   padding: 80px 0;

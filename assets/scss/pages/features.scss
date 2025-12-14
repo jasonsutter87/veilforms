@@ -92,7 +92,7 @@
     }
 
     h3 {
-      color: #f87171;
+      color: #dc2626;
     }
 
     li::before {
@@ -115,7 +115,7 @@
     }
 
     h3 {
-      color: #34d399;
+      color: #059669;
     }
 
     li::before {
@@ -223,8 +223,13 @@
   }
 
   .icon {
-    font-size: 2rem;
     margin-bottom: 12px;
+    color: var(--primary);
+
+    svg {
+      display: block;
+      margin: 0 auto;
+    }
   }
 
   h4 {
@@ -330,8 +335,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
     margin-bottom: 20px;
+    color: white;
+
+    svg {
+      display: block;
+    }
   }
 
   h3 {

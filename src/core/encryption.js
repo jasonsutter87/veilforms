@@ -175,3 +175,125 @@ function base64ToArrayBuffer(base64) {
   }
   return bytes.buffer;
 }
+
+/**
+ * Derive an encryption key from a password using PBKDF2
+ * @param {string} password - User's password
+ * @param {Uint8Array} salt - Random salt
+ * @param {number} iterations - Number of PBKDF2 iterations (default: 100000)
+ * @returns {Promise<CryptoKey>} - Derived encryption key
+ */
+async function deriveKeyFromPassword(password, salt, iterations = 100000) {
+  const encoder = new TextEncoder();
+  const passwordKey = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations,
+      hash: 'SHA-256',
+    },
+    passwordKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+/**
+ * Export private keys with password protection
+ * Encrypts all private keys using AES-GCM with PBKDF2-derived key
+ * @param {Object} privateKeys - Object mapping formId -> privateKey (JWK)
+ * @param {string} password - Password to encrypt the keys
+ * @returns {Promise<Object>} - Encrypted key bundle ready for download
+ */
+export async function exportPrivateKeys(privateKeys, password) {
+  if (!password || password.length < 8) {
+    throw new Error('Password must be at least 8 characters');
+  }
+
+  // Generate random salt and IV
+  const salt = crypto.getRandomValues(new Uint8Array(32));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const iterations = 100000;
+
+  // Derive encryption key from password
+  const encryptionKey = await deriveKeyFromPassword(password, salt, iterations);
+
+  // Serialize the private keys
+  const encoder = new TextEncoder();
+  const keysJson = JSON.stringify(privateKeys);
+  const keysData = encoder.encode(keysJson);
+
+  // Encrypt the keys
+  const encryptedData = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    encryptionKey,
+    keysData
+  );
+
+  // Return the encrypted bundle
+  return {
+    version: '1.0',
+    algorithm: 'PBKDF2-AES-GCM-256',
+    iterations,
+    salt: arrayBufferToBase64(salt),
+    iv: arrayBufferToBase64(iv),
+    ciphertext: arrayBufferToBase64(encryptedData),
+    exportedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Import private keys from encrypted bundle
+ * Decrypts keys using the password
+ * @param {Object} encryptedBundle - The encrypted key bundle
+ * @param {string} password - Password to decrypt the keys
+ * @returns {Promise<Object>} - Decrypted private keys object
+ */
+export async function importPrivateKeys(encryptedBundle, password) {
+  if (!encryptedBundle || !encryptedBundle.ciphertext) {
+    throw new Error('Invalid key bundle format');
+  }
+
+  if (!password) {
+    throw new Error('Password is required');
+  }
+
+  // Validate bundle version
+  if (encryptedBundle.version !== '1.0') {
+    throw new Error('Unsupported key bundle version');
+  }
+
+  // Extract bundle components
+  const salt = base64ToArrayBuffer(encryptedBundle.salt);
+  const iv = base64ToArrayBuffer(encryptedBundle.iv);
+  const ciphertext = base64ToArrayBuffer(encryptedBundle.ciphertext);
+  const iterations = encryptedBundle.iterations || 100000;
+
+  // Derive decryption key from password
+  const decryptionKey = await deriveKeyFromPassword(password, new Uint8Array(salt), iterations);
+
+  // Decrypt the keys
+  try {
+    const decryptedData = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: new Uint8Array(iv) },
+      decryptionKey,
+      ciphertext
+    );
+
+    const decoder = new TextDecoder();
+    const keysJson = decoder.decode(decryptedData);
+    return JSON.parse(keysJson);
+  } catch (error) {
+    // Decryption failure usually means wrong password
+    throw new Error('Invalid password or corrupted key bundle');
+  }
+}

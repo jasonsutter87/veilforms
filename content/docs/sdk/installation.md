@@ -15,13 +15,21 @@ Install the VeilForms SDK to add client-side encrypted forms to your website or 
 
 ### CDN (Recommended for Quick Start)
 
-Add the script tag to your HTML:
+Add the script tag to your HTML with SRI (Subresource Integrity) for security:
 
 ```html
-<script src="https://veilforms.com/js/veilforms.min.js"></script>
+<script
+  src="https://veilforms.com/js/veilforms-1.0.0.min.js"
+  integrity="sha384-dxvu/QuhQhLna10DbAj9KnYMewa6zqats5B79Pv+Ae3ef2pfwjRLrRSJ76SEtWMp"
+  crossorigin="anonymous">
+</script>
 ```
 
 The SDK is ~8KB gzipped and has no dependencies.
+
+<div class="callout info">
+<strong>What is SRI?</strong> Subresource Integrity ensures the SDK hasn't been tampered with during transit. The browser verifies the file hash matches before executing it.
+</div>
 
 ### NPM
 
@@ -44,7 +52,30 @@ yarn add veilforms
 ### ES Modules
 
 ```javascript
-import VeilForms from 'https://veilforms.com/js/veilforms.esm.js';
+// With SRI verification
+const script = document.createElement('script');
+script.type = 'module';
+script.textContent = `
+  import VeilForms from 'https://veilforms.com/js/veilforms-1.0.0.esm.js';
+`;
+script.integrity = 'sha384-hQ0Lff/lzvzuHG86JRh4P+NgzhDt9ZJE8BmjD44eX0zizRX3YIGoGXrlAieSyj99';
+script.crossOrigin = 'anonymous';
+document.head.appendChild(script);
+```
+
+Or in modern browsers with import maps:
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "veilforms": "https://veilforms.com/js/veilforms-1.0.0.esm.js"
+  }
+}
+</script>
+<script type="module">
+  import VeilForms from 'veilforms';
+</script>
 ```
 
 ## Verify Installation
@@ -282,23 +313,60 @@ script-src 'self' https://veilforms.com;
 connect-src 'self' https://veilforms.com;
 ```
 
-## Subresource Integrity
+## Subresource Integrity (SRI)
 
-For extra security, use SRI. Generate the hash from your deployed SDK:
+### Why Use SRI?
 
-```bash
-curl -s https://veilforms.com/js/veilforms.min.js | openssl dgst -sha384 -binary | openssl base64 -A
-```
+SRI protects your users from:
+- **CDN compromises** - Even if our CDN is hacked, tampered scripts won't execute
+- **Man-in-the-middle attacks** - Network attackers can't inject malicious code
+- **Supply chain attacks** - Browser verifies the exact file you intended to load
 
-Then use it in your script tag:
+### Current SRI Hashes
 
+Always use these integrity hashes when loading from our CDN:
+
+**IIFE Build** (veilforms.min.js):
 ```html
 <script
-  src="https://veilforms.com/js/veilforms.min.js"
-  integrity="sha384-YOUR_HASH_HERE"
+  src="https://veilforms.com/js/veilforms-1.0.0.min.js"
+  integrity="sha384-dxvu/QuhQhLna10DbAj9KnYMewa6zqats5B79Pv+Ae3ef2pfwjRLrRSJ76SEtWMp"
   crossorigin="anonymous">
 </script>
 ```
+
+**ESM Build** (veilforms.esm.js):
+```
+sha384-hQ0Lff/lzvzuHG86JRh4P+NgzhDt9ZJE8BmjD44eX0zizRX3YIGoGXrlAieSyj99
+```
+
+### Self-Hosting: Generate Your Own Hash
+
+If you're self-hosting, generate the SRI hash:
+
+```bash
+# For your own domain
+curl -s https://forms.yourdomain.com/js/veilforms.min.js | \
+  openssl dgst -sha384 -binary | \
+  openssl base64 -A
+
+# Local file
+openssl dgst -sha384 -binary veilforms.min.js | openssl base64 -A
+```
+
+Then use it:
+
+```html
+<script
+  src="https://forms.yourdomain.com/js/veilforms.min.js"
+  integrity="sha384-YOUR_GENERATED_HASH"
+  crossorigin="anonymous">
+</script>
+```
+
+### Hash Updates
+
+SRI hashes change with every SDK release. Check this page or our [GitHub releases](https://github.com/veilforms/veilforms/releases) for the latest hashes.
 
 ## Next Steps
 

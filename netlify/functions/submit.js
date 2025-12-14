@@ -6,6 +6,11 @@
 import { getStore } from '@netlify/blobs';
 import { getForm, updateForm, getUserById } from './lib/storage.js';
 import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
+import { fireWebhookWithRetry } from './lib/webhook-retry.js';
+import { checkIdempotencyKey, storeIdempotencyKey, getIdempotencyKeyFromRequest, getIdempotencyHeaders } from './lib/idempotency.js';
+import * as response from './lib/responses.js';
+import { isValidFormId, isValidSubmissionId } from './lib/validation.js';
+import { errorResponse, ErrorCodes } from './lib/errors.js';
 
 // Subscription limits
 const SUBMISSION_LIMITS = {
@@ -20,86 +25,118 @@ export default async function handler(req, context) {
   const origin = req.headers.get('origin') || '*';
   const headers = {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Idempotency-Key, Idempotency-Key',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json'
   };
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+    return response.noContent(headers);
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   // Rate limit submissions (30 per minute per IP)
-  const rateLimit = checkRateLimit(req, { keyPrefix: 'submit', maxRequests: 30 });
+  const rateLimit = await checkRateLimit(req, { keyPrefix: 'submit', maxRequests: 30 });
   if (!rateLimit.allowed) {
-    return new Response(JSON.stringify({
-      error: 'Too many submissions. Please try again later.',
-      retryAfter: rateLimit.retryAfter
-    }), {
-      status: 429,
-      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-    });
+    return response.tooManyRequests(
+      { ...headers, ...getRateLimitHeaders(rateLimit) },
+      rateLimit.retryAfter
+    );
+  }
+
+  // SECURITY: Check payload size before parsing (1MB limit)
+  const contentLength = req.headers.get('content-length');
+  const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
+
+  if (contentLength && parseInt(contentLength) > MAX_PAYLOAD_SIZE) {
+    return response.error('Payload too large. Maximum size is 1MB', headers, 413);
   }
 
   try {
-    const body = await req.json();
+    // Read body with size validation
+    const rawBody = await req.text();
+
+    // Double-check actual size in case Content-Length header was missing/wrong
+    const bodySize = new TextEncoder().encode(rawBody).length;
+    if (bodySize > MAX_PAYLOAD_SIZE) {
+      return response.error('Payload too large. Maximum size is 1MB', headers, 413);
+    }
+
+    const body = JSON.parse(rawBody);
     const { formId, submissionId, payload, timestamp, meta, spamProtection } = body;
 
     // Validate required fields
     if (!formId || !submissionId || !payload) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: formId, submissionId, payload' }), {
-        status: 400,
-        headers
+      return errorResponse(ErrorCodes.VALIDATION_MISSING_FIELD, headers, {
+        details: { required: ['formId', 'submissionId', 'payload'] }
       });
     }
 
     // Validate formId format (prevent injection)
-    if (!/^vf_[a-z0-9_]+$/i.test(formId)) {
-      return new Response(JSON.stringify({ error: 'Invalid form ID format' }), {
-        status: 400,
-        headers
+    if (!isValidFormId(formId)) {
+      return errorResponse(ErrorCodes.VALIDATION_INVALID_FORMAT, headers, {
+        field: 'formId',
+        hint: 'Form ID must be a valid UUID format.'
       });
     }
 
+    // Check for idempotency key (prevents duplicate submissions)
+    const idempotencyKey = getIdempotencyKeyFromRequest(req);
+    if (idempotencyKey) {
+      try {
+        const idempotencyCheck = await checkIdempotencyKey(idempotencyKey, formId);
+        if (idempotencyCheck.exists) {
+          // Return cached response - this is a duplicate request
+          const idempotencyHeaders = {
+            ...headers,
+            ...getIdempotencyHeaders(idempotencyCheck)
+          };
+          return new Response(
+            JSON.stringify(idempotencyCheck.response),
+            {
+              status: 200,
+              headers: idempotencyHeaders
+            }
+          );
+        }
+      } catch (idempotencyError) {
+        // Invalid idempotency key format
+        return response.badRequest(idempotencyError.message, headers);
+      }
+    }
+
     // Validate submissionId format
-    if (!/^(vf-[a-f0-9-]{36}|[a-f0-9]{32})$/.test(submissionId)) {
-      return new Response(JSON.stringify({ error: 'Invalid submission ID format' }), {
-        status: 400,
-        headers
+    if (!isValidSubmissionId(submissionId)) {
+      return errorResponse(ErrorCodes.VALIDATION_INVALID_FORMAT, headers, {
+        field: 'submissionId',
+        hint: 'Submission ID must be a valid UUID format.'
       });
     }
 
     // Get form and validate it exists
     const form = await getForm(formId);
     if (!form) {
-      return new Response(JSON.stringify({ error: 'Form not found' }), {
-        status: 404,
-        headers
+      return errorResponse(ErrorCodes.RESOURCE_NOT_FOUND, headers, {
+        message: 'Form not found',
+        hint: 'The form ID may be incorrect or the form has been deleted. Please check your integration code.'
       });
     }
 
     // Check if form is active
     if (form.status === 'deleted' || form.status === 'paused') {
-      return new Response(JSON.stringify({ error: 'Form is not accepting submissions' }), {
-        status: 403,
-        headers
+      return errorResponse(ErrorCodes.RESOURCE_FORBIDDEN, headers, {
+        message: 'Form is not accepting submissions',
+        hint: form.status === 'deleted' ? 'This form has been deleted.' : 'This form is currently paused. Contact the form owner to enable it.'
       });
     }
 
     // Check origin is allowed
     if (form.settings?.allowedOrigins && !form.settings.allowedOrigins.includes('*')) {
       if (!form.settings.allowedOrigins.includes(origin)) {
-        return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
-          status: 403,
-          headers
-        });
+        return response.forbidden('Origin not allowed', headers);
       }
     }
 
@@ -111,19 +148,13 @@ export default async function handler(req, context) {
 
       // Honeypot field must exist and be empty
       if (honeypotValue === undefined) {
-        return new Response(JSON.stringify({ error: 'Spam protection validation failed' }), {
-          status: 400,
-          headers
-        });
+        return response.badRequest('Spam protection validation failed', headers);
       }
 
       if (honeypotValue !== '') {
         // Bot detected - honeypot was filled
         console.warn('[SPAM] Honeypot triggered for form:', formId);
-        return new Response(JSON.stringify({ error: 'Spam detected' }), {
-          status: 403,
-          headers
-        });
+        return response.forbidden('Spam detected', headers);
       }
     }
 
@@ -134,18 +165,12 @@ export default async function handler(req, context) {
       const threshold = form.settings.spamProtection.recaptcha.threshold || 0.5;
 
       if (!recaptchaToken) {
-        return new Response(JSON.stringify({ error: 'reCAPTCHA token required' }), {
-          status: 400,
-          headers
-        });
+        return response.badRequest('reCAPTCHA token required', headers);
       }
 
       if (!recaptchaSecretKey) {
         console.error('[CONFIG] reCAPTCHA enabled but no secret key configured');
-        return new Response(JSON.stringify({ error: 'reCAPTCHA not properly configured' }), {
-          status: 500,
-          headers
-        });
+        return response.serverError(headers, 'reCAPTCHA not properly configured');
       }
 
       // Verify reCAPTCHA token with Google
@@ -153,12 +178,8 @@ export default async function handler(req, context) {
 
       if (!recaptchaValid.success) {
         console.warn('[SPAM] reCAPTCHA verification failed:', recaptchaValid.reason);
-        return new Response(JSON.stringify({
-          error: 'Spam protection verification failed',
+        return response.error('Spam protection verification failed', headers, 403, {
           reason: recaptchaValid.reason
-        }), {
-          status: 403,
-          headers
         });
       }
     }
@@ -168,14 +189,14 @@ export default async function handler(req, context) {
     const subscription = user?.subscription || 'free';
     const limit = SUBMISSION_LIMITS[subscription] || SUBMISSION_LIMITS.free;
     if (form.submissionCount >= limit) {
-      return new Response(JSON.stringify({
-        error: 'Submission limit reached for this form',
-        limit,
-        current: form.submissionCount,
-        subscription
-      }), {
-        status: 402,
-        headers
+      return errorResponse(ErrorCodes.QUOTA_EXCEEDED, headers, {
+        message: 'Submission limit reached for this form',
+        hint: 'The form owner has reached their plan limit. They need to upgrade their subscription or wait for the next billing cycle.',
+        details: {
+          limit,
+          current: form.submissionCount,
+          subscription
+        }
       });
     }
 
@@ -183,9 +204,10 @@ export default async function handler(req, context) {
     // SDK sends 'key', normalize to 'encryptedKey' for consistency
     const encryptedKey = payload.encryptedKey || payload.key;
     if (!payload.encrypted || !encryptedKey || !payload.iv || !payload.version) {
-      return new Response(JSON.stringify({ error: 'Invalid encrypted payload structure' }), {
-        status: 400,
-        headers
+      return errorResponse(ErrorCodes.ENCRYPTION_INVALID_KEY, headers, {
+        message: 'Invalid encrypted payload structure',
+        hint: 'The submission must be encrypted using the VeilForms SDK. Ensure all required encryption fields are present.',
+        details: { required: ['encrypted', 'encryptedKey', 'iv', 'version'] }
       });
     }
 
@@ -227,26 +249,31 @@ export default async function handler(req, context) {
     });
 
     // Fire webhook if configured (async, don't wait)
+    // Uses retry logic with exponential backoff
     if (form.settings?.webhookUrl) {
-      fireWebhook(form.settings.webhookUrl, submission, form.settings.webhookSecret).catch(err => {
-        console.error('Webhook failed:', err.message);
+      fireWebhookWithRetry(form.settings.webhookUrl, submission, form.settings.webhookSecret).catch(err => {
+        console.error('Webhook delivery error:', err.message);
       });
     }
 
-    return new Response(JSON.stringify({
+    // Prepare success response
+    const successResponse = {
       success: true,
       submissionId,
       timestamp: submission.timestamp
-    }), {
-      status: 200,
-      headers
-    });
+    };
+
+    // Store idempotency key if provided (24hr TTL)
+    if (idempotencyKey) {
+      await storeIdempotencyKey(idempotencyKey, formId, successResponse);
+    }
+
+    return response.success(successResponse, headers);
   } catch (error) {
     console.error('Submission error:', error);
 
-    return new Response(JSON.stringify({ error: 'Submission failed' }), {
-      status: 500,
-      headers
+    return errorResponse(ErrorCodes.SERVER_ERROR, headers, {
+      message: 'Submission failed'
     });
   }
 }
@@ -277,52 +304,6 @@ async function updateIndex(store, submissionId, timestamp) {
   }
 }
 
-/**
- * Fire webhook notification (fire-and-forget)
- */
-async function fireWebhook(url, submission, secret) {
-  const payload = {
-    event: 'submission.created',
-    formId: submission.formId,
-    submissionId: submission.id,
-    timestamp: submission.timestamp,
-    // Include encrypted payload - receiver must decrypt
-    payload: submission.payload
-  };
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'User-Agent': 'VeilForms-Webhook/1.0'
-  };
-
-  // Add signature if secret is configured
-  if (secret) {
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    const signature = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(JSON.stringify(payload))
-    );
-    headers['X-VeilForms-Signature'] = btoa(String.fromCharCode(...new Uint8Array(signature)));
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    throw new Error(`Webhook returned ${response.status}`);
-  }
-}
 
 /**
  * Verify reCAPTCHA v3 token with Google

@@ -7,6 +7,7 @@
 @use 'shared/mixins' as *;
 @use 'shared/header' as *;
 @use 'shared/cta' as *;
+@use 'shared/dark-mode' as *;
 
 
 
@@ -24,10 +25,12 @@
     --primary: #{$primary};
     --primary-dark: #{$primary-dark};
     --primary-light: #{$primary-light};
+    --primary-hover: #{$primary-hover};
     --secondary: #{$secondary};
     --success: #{$success};
     --success-light: #{$success-light};
     --danger: #{$danger};
+    --danger-light: #{$danger-light};
     --warning: #{$warning};
     --warning-light: #{$warning-light};
     --info: #{$info};
@@ -97,6 +100,18 @@
       border-radius: $border-radius;
       text-decoration: none;
       font-weight: $font-weight-medium;
+    }
+  }
+
+  // Respect user's motion preferences for accessibility
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }

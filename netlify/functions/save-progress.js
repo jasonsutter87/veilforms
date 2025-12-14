@@ -10,6 +10,8 @@ import { getStore } from '@netlify/blobs';
 import { getForm } from './lib/storage.js';
 import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
 import { sendResumeEmail } from './lib/email.js';
+import * as response from './lib/responses.js';
+import { isValidFormId, isValidEmail } from './lib/validation.js';
 
 // Store for partial submissions
 const PARTIAL_SUBMISSIONS_STORE = 'vf-partial-submissions';
@@ -47,26 +49,20 @@ export default async function handler(req, context) {
   };
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+    return response.noContent(headers);
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   // Rate limit (20 per hour per IP to prevent abuse)
-  const rateLimit = checkRateLimit(req, { keyPrefix: 'save-progress', maxRequests: 20, windowMs: 60 * 60 * 1000 });
+  const rateLimit = await checkRateLimit(req, { keyPrefix: 'save-progress', maxRequests: 20, windowMs: 60 * 60 * 1000 });
   if (!rateLimit.allowed) {
-    return new Response(JSON.stringify({
-      error: 'Too many save requests. Please try again later.',
-      retryAfter: rateLimit.retryAfter
-    }), {
-      status: 429,
-      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-    });
+    return response.tooManyRequests(
+      { ...headers, ...getRateLimitHeaders(rateLimit) },
+      rateLimit.retryAfter
+    );
   }
 
   try {
@@ -75,52 +71,34 @@ export default async function handler(req, context) {
 
     // Validate required fields
     if (!formId || !partialData) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: formId, partialData' }), {
-        status: 400,
-        headers
-      });
+      return response.badRequest('Missing required fields: formId, partialData', headers);
     }
 
     // Validate formId format
-    if (!/^vf_[a-z0-9_]+$/i.test(formId)) {
-      return new Response(JSON.stringify({ error: 'Invalid form ID format' }), {
-        status: 400,
-        headers
-      });
+    if (!isValidFormId(formId)) {
+      return response.badRequest('Invalid form ID format', headers);
     }
 
     // Get form and validate it exists
     const form = await getForm(formId);
     if (!form) {
-      return new Response(JSON.stringify({ error: 'Form not found' }), {
-        status: 404,
-        headers
-      });
+      return response.notFound('Form not found', headers);
     }
 
     // Check if form is active
     if (form.status === 'deleted' || form.status === 'paused') {
-      return new Response(JSON.stringify({ error: 'Form is not accepting submissions' }), {
-        status: 403,
-        headers
-      });
+      return response.forbidden('Form is not accepting submissions', headers);
     }
 
     // Check if save progress is enabled for this form
     if (!form.settings?.saveProgress?.enabled) {
-      return new Response(JSON.stringify({ error: 'Save progress feature not enabled for this form' }), {
-        status: 403,
-        headers
-      });
+      return response.forbidden('Save progress feature not enabled for this form', headers);
     }
 
     // Validate encrypted partial data structure
     const encryptedKey = partialData.encryptedKey || partialData.key;
     if (!partialData.encrypted || !encryptedKey || !partialData.iv || !partialData.version) {
-      return new Response(JSON.stringify({ error: 'Invalid encrypted payload structure' }), {
-        status: 400,
-        headers
-      });
+      return response.badRequest('Invalid encrypted payload structure', headers);
     }
 
     // Normalize payload to use encryptedKey
@@ -131,12 +109,8 @@ export default async function handler(req, context) {
 
     // Validate email if email resume is enabled and email provided
     if (email && form.settings.saveProgress.emailResume) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return new Response(JSON.stringify({ error: 'Invalid email address' }), {
-          status: 400,
-          headers
-        });
+      if (!isValidEmail(email)) {
+        return response.badRequest('Invalid email address', headers);
       }
     }
 
@@ -188,23 +162,17 @@ export default async function handler(req, context) {
       }
     }
 
-    return new Response(JSON.stringify({
+    return response.success({
       success: true,
       resumeToken,
       resumeUrl,
       expiresAt,
       emailSent
-    }), {
-      status: 200,
-      headers
-    });
+    }, headers);
   } catch (error) {
     console.error('Save progress error:', error);
 
-    return new Response(JSON.stringify({ error: 'Failed to save progress' }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers, 'Failed to save progress');
   }
 }
 

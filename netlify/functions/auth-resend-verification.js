@@ -2,68 +2,64 @@ import crypto from 'crypto';
 import { getUser, createEmailVerificationToken, getEmailVerificationTokenByEmail, deleteEmailVerificationToken } from './lib/storage.js';
 import { sendEmailVerification } from './lib/email.js';
 import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
-
-// CORS: Configure allowed origins (set ALLOWED_ORIGINS env var for production)
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:1313', 'http://localhost:3000'];
-
-function getCorsHeaders(origin) {
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Credentials': 'true',
-    'Content-Type': 'application/json'
-  };
-}
+import { checkEmailRateLimit, getEmailRateLimitHeaders } from './lib/email-rate-limit.js';
+import { getCorsHeaders } from './lib/cors.js';
+import * as response from './lib/responses.js';
 
 export default async function handler(req, context) {
   const origin = req.headers.get('origin') || '';
   const headers = getCorsHeaders(origin);
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+    return response.noContent(headers);
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   // Strict rate limit for resend (2 per minute)
-  const rateLimit = checkRateLimit(req, { keyPrefix: 'resend-verify', maxRequests: 2 });
+  const rateLimit = await checkRateLimit(req, { keyPrefix: 'resend-verify', maxRequests: 2 });
   if (!rateLimit.allowed) {
-    return new Response(JSON.stringify({
-      error: 'Too many requests. Please wait before requesting another verification email.',
-      retryAfter: rateLimit.retryAfter
-    }), {
-      status: 429,
-      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-    });
+    return response.error(
+      'Too many requests. Please wait before requesting another verification email.',
+      { ...headers, ...getRateLimitHeaders(rateLimit) },
+      429,
+      { retryAfter: rateLimit.retryAfter }
+    );
   }
 
   try {
     const { email } = await req.json();
 
     if (!email) {
-      return new Response(JSON.stringify({ error: 'Email is required' }), {
-        status: 400,
-        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-      });
+      return response.badRequest('Email is required', { ...headers, ...getRateLimitHeaders(rateLimit) });
+    }
+
+    // Check email-specific rate limit (5 per hour per email)
+    const emailRateLimit = await checkEmailRateLimit(email, 'verification');
+    if (!emailRateLimit.allowed) {
+      const emailRateLimitHeaders = {
+        ...headers,
+        ...getRateLimitHeaders(rateLimit),
+        ...getEmailRateLimitHeaders(emailRateLimit, 'verification')
+      };
+      return response.error(
+        emailRateLimit.message,
+        emailRateLimitHeaders,
+        429,
+        {
+          retryAfter: emailRateLimit.retryAfter,
+          resetAt: new Date(emailRateLimit.resetAt).toISOString()
+        }
+      );
     }
 
     // Always return success to prevent email enumeration
-    const successResponse = () => new Response(JSON.stringify({
+    const successResponse = () => response.success({
       success: true,
       message: 'If an unverified account exists, we sent a new verification email.'
-    }), {
-      status: 200,
-      headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-    });
+    }, { ...headers, ...getRateLimitHeaders(rateLimit) });
 
     // Get user
     const user = await getUser(email);
@@ -73,14 +69,11 @@ export default async function handler(req, context) {
 
     // Check if already verified
     if (user.emailVerified) {
-      return new Response(JSON.stringify({
+      return response.success({
         success: true,
         message: 'Email is already verified',
         alreadyVerified: true
-      }), {
-        status: 200,
-        headers: { ...headers, ...getRateLimitHeaders(rateLimit) }
-      });
+      }, { ...headers, ...getRateLimitHeaders(rateLimit) });
     }
 
     // Delete existing token if any
@@ -107,10 +100,7 @@ export default async function handler(req, context) {
     return successResponse();
   } catch (err) {
     console.error('Resend verification error:', err);
-    return new Response(JSON.stringify({ error: 'An error occurred' }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers, 'An error occurred');
   }
 }
 

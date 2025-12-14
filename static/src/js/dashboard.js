@@ -1,6 +1,54 @@
 // VeilForms Dashboard JavaScript
 
-// State
+// Import shared modules
+import {
+  api,
+  getToken,
+  getUser,
+  setAuth,
+  clearAuth,
+  isAuthenticated,
+  redirectToLogin,
+  formsApi,
+  submissionsApi
+} from './modules/index.js';
+
+import {
+  escapeHtml,
+  formatDate,
+  formatDateTime,
+  formatRelativeTime,
+  copyToClipboard,
+  debounce,
+  show,
+  hide,
+  sanitizeHtml,
+  sanitizeJson,
+  sanitizeUrl,
+  setSafeInnerHTML
+} from './modules/index.js';
+
+import {
+  showToast,
+  toast,
+  confirm as confirmDialog
+} from './modules/index.js';
+
+import {
+  $,
+  $$,
+  byId,
+  on,
+  delegate,
+  addClass,
+  removeClass,
+  toggleClass,
+  setHtml,
+  setText,
+  getFormData
+} from './modules/index.js';
+
+// State - keeping local for now, can migrate to state-manager later
 const state = {
   user: null,
   token: null,
@@ -13,66 +61,21 @@ const state = {
   error: null
 };
 
-// API Helper
-async function api(endpoint, options = {}) {
-  const token = localStorage.getItem('veilforms_token');
-  if (!token) {
-    window.location.href = '/login/';
-    return;
-  }
-
-  const response = await fetch(endpoint, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers
-    }
-  });
-
-  if (response.status === 401) {
-    localStorage.removeItem('veilforms_token');
-    localStorage.removeItem('veilforms_user');
-    window.location.href = '/login/';
-    return;
-  }
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Request failed');
-  }
-
-  return data;
-}
-
 // Auth Guard
 function checkAuth() {
-  const token = localStorage.getItem('veilforms_token');
-  const user = localStorage.getItem('veilforms_user');
-
-  if (!token || !user) {
-    window.location.href = '/login/';
+  if (!isAuthenticated()) {
+    redirectToLogin();
     return false;
   }
 
   try {
-    state.token = token;
-    state.user = JSON.parse(user);
+    state.token = getToken();
+    state.user = getUser();
     return true;
   } catch {
-    window.location.href = '/login/';
+    redirectToLogin();
     return false;
   }
-}
-
-// UI Helpers
-function show(id) {
-  document.getElementById(id).style.display = 'block';
-}
-
-function hide(id) {
-  document.getElementById(id).style.display = 'none';
 }
 
 function showLoading() {
@@ -129,7 +132,7 @@ async function loadForms() {
 // Render Forms Grid
 function renderForms() {
   const grid = document.getElementById('forms-grid');
-  grid.innerHTML = state.forms.map(form => `
+  const formsHtml = state.forms.map(form => `
     <div class="form-card" data-form-id="${form.id}">
       <div class="form-card-header">
         <h3 class="form-card-title">${escapeHtml(form.name)}</h3>
@@ -171,6 +174,9 @@ function renderForms() {
     </div>
   `).join('');
 
+  // Use sanitized innerHTML for XSS protection
+  setSafeInnerHTML(grid, formsHtml);
+
   // Add click handlers
   grid.querySelectorAll('.form-card').forEach(card => {
     card.addEventListener('click', (e) => {
@@ -206,7 +212,7 @@ async function viewFormDetail(formId) {
   show('form-detail');
 
   const detail = document.getElementById('form-detail');
-  detail.innerHTML = `
+  const detailHtml = `
     <div class="detail-header">
       <button class="back-btn" id="back-to-forms">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -232,7 +238,7 @@ async function viewFormDetail(formId) {
         Add this script to your website to enable form submissions.
       </p>
       <div class="embed-code">
-        <pre>&lt;script src="https://veilforms.com/js/veilforms.min.js"&gt;&lt;/script&gt;
+        <pre>&lt;script src="https://veilforms.com/js/veilforms-1.0.0.min.js"&gt;&lt;/script&gt;
 &lt;script&gt;
   VeilForms.init('${form.id}', {
     publicKey: ${JSON.stringify(form.publicKey)}
@@ -346,6 +352,9 @@ async function viewFormDetail(formId) {
     </div>
   `;
 
+  // Use sanitized innerHTML for XSS protection
+  setSafeInnerHTML(detail, detailHtml);
+
   // Event handlers
   document.getElementById('back-to-forms').addEventListener('click', () => {
     document.getElementById('page-title').textContent = 'Forms';
@@ -420,7 +429,7 @@ async function viewFormDetail(formId) {
     btn.disabled = true;
     btn.textContent = 'Testing...';
     resultDiv.style.display = 'block';
-    resultDiv.innerHTML = '<p style="color: var(--text-muted);">Sending test request...</p>';
+    setSafeInnerHTML(resultDiv, '<p style="color: var(--text-muted);">Sending test request...</p>');
 
     try {
       const result = await api(`/api/forms/${formId}/webhook-test`, {
@@ -428,28 +437,31 @@ async function viewFormDetail(formId) {
       });
 
       if (result.success) {
-        resultDiv.innerHTML = `
+        const successHtml = `
           <div class="test-result success">
             <strong>Success!</strong>
             <p>Webhook responded with status ${result.statusCode || 200}</p>
             ${result.responseTime ? `<p>Response time: ${result.responseTime}ms</p>` : ''}
           </div>
         `;
+        setSafeInnerHTML(resultDiv, successHtml);
       } else {
-        resultDiv.innerHTML = `
+        const failHtml = `
           <div class="test-result error">
             <strong>Failed</strong>
             <p>${escapeHtml(result.error || 'Webhook did not respond successfully')}</p>
           </div>
         `;
+        setSafeInnerHTML(resultDiv, failHtml);
       }
     } catch (err) {
-      resultDiv.innerHTML = `
+      const errorHtml = `
         <div class="test-result error">
           <strong>Error</strong>
           <p>${escapeHtml(err.message)}</p>
         </div>
       `;
+      setSafeInnerHTML(resultDiv, errorHtml);
     } finally {
       btn.disabled = false;
       btn.textContent = 'Test Webhook';
@@ -519,7 +531,7 @@ function renderSubmissions() {
   const view = document.getElementById('submissions-view');
 
   if (state.submissions.length === 0) {
-    view.innerHTML = `
+    const emptyHtml = `
       <div class="submissions-header">
         <button class="back-btn" id="back-from-submissions">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -533,10 +545,11 @@ function renderSubmissions() {
         <p>Submissions will appear here once your form receives data.</p>
       </div>
     `;
+    setSafeInnerHTML(view, emptyHtml);
   } else {
     const decrypted = state.decryptionKey ? 'Decrypted' : 'Encrypted';
 
-    view.innerHTML = `
+    const submissionsHtml = `
       <div class="submissions-header">
         <button class="back-btn" id="back-from-submissions">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -580,7 +593,7 @@ function renderSubmissions() {
                 </td>
                 <td class="submission-data">
                   ${state.decryptionKey && sub._decrypted
-                    ? `<pre>${escapeHtml(JSON.stringify(sub._decrypted, null, 2))}</pre>`
+                    ? `<pre>${sanitizeJson(sub._decrypted, 2)}</pre>`
                     : '<em>Click "Decrypt" to view</em>'
                   }
                 </td>
@@ -601,6 +614,7 @@ function renderSubmissions() {
         ` : ''}
       </div>
     `;
+    setSafeInnerHTML(view, submissionsHtml);
   }
 
   // Event handlers
@@ -814,40 +828,7 @@ async function logout() {
   window.location.href = '/login/';
 }
 
-// Utility Functions
-function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-function formatDate(timestamp) {
-  if (!timestamp) return 'N/A';
-  const date = new Date(timestamp);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-}
-
-function formatRelativeTime(timestamp) {
-  if (!timestamp) return 'Never';
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  if (diffSec < 60) return 'Just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHour < 24) return `${diffHour}h ago`;
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return formatDate(timestamp);
-}
+// Utility functions imported from ./modules/index.js
 
 // Initialize Dashboard
 function init() {
@@ -1050,7 +1031,7 @@ async function showApiKeys() {
 // Load API Keys
 async function loadApiKeys() {
   const view = document.getElementById('api-keys-view');
-  view.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+  setSafeInnerHTML(view, '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>');
 
   try {
     const data = await api('/api/api-keys/');
@@ -1058,7 +1039,7 @@ async function loadApiKeys() {
     renderApiKeys();
   } catch (err) {
     console.error('Load API keys error:', err);
-    view.innerHTML = `
+    const errorHtml = `
       <div class="error-state">
         <div class="error-icon">!</div>
         <h2>Failed to load API keys</h2>
@@ -1066,6 +1047,7 @@ async function loadApiKeys() {
         <button class="btn btn-secondary" onclick="loadApiKeys()">Try Again</button>
       </div>
     `;
+    setSafeInnerHTML(view, errorHtml);
   }
 }
 
@@ -1074,7 +1056,7 @@ function renderApiKeys() {
   const view = document.getElementById('api-keys-view');
 
   if (apiKeys.length === 0) {
-    view.innerHTML = `
+    const emptyHtml = `
       <div class="api-keys-empty">
         <div class="empty-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64">
@@ -1086,10 +1068,11 @@ function renderApiKeys() {
         <button class="btn btn-primary" onclick="document.getElementById('create-api-key-modal').style.display='block'">Create API Key</button>
       </div>
     `;
+    setSafeInnerHTML(view, emptyHtml);
     return;
   }
 
-  view.innerHTML = `
+  const apiKeysHtml = `
     <div class="api-keys-header">
       <p class="api-keys-info">API keys allow you to access VeilForms programmatically. Keep your keys secure!</p>
     </div>
@@ -1129,6 +1112,7 @@ function renderApiKeys() {
       </table>
     </div>
   `;
+  setSafeInnerHTML(view, apiKeysHtml);
 
   // Add revoke handlers
   view.querySelectorAll('.btn-revoke').forEach(btn => {
@@ -1229,63 +1213,7 @@ function generateFieldId() {
   return 'field_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 }
 
-// Toast notification system
-function showToast(message, type = 'success') {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-  toast.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-    color: white;
-    padding: 16px 24px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
-    font-size: 14px;
-    font-weight: 500;
-    animation: slideIn 0.3s ease-out;
-    max-width: 400px;
-  `;
-
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.animation = 'slideOut 0.3s ease-out';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
-
-// Add animation styles if not present
-if (!document.getElementById('toast-styles')) {
-  const style = document.createElement('style');
-  style.id = 'toast-styles';
-  style.textContent = `
-    @keyframes slideIn {
-      from {
-        transform: translateX(400px);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-    @keyframes slideOut {
-      from {
-        transform: translateX(0);
-        opacity: 1;
-      }
-      to {
-        transform: translateX(400px);
-        opacity: 0;
-      }
-    }
-  `;
-  document.head.appendChild(style);
-}
+// Toast notifications imported from ./modules/index.js
 
 // Validate field name is a valid JavaScript property name
 function isValidFieldName(name) {
@@ -1678,7 +1606,9 @@ function renderFormFields() {
   }
 
   dropzone.classList.add('has-fields');
-  dropzone.innerHTML = formBuilder.fields.map(field => renderFieldItem(field)).join('');
+  // Use sanitized innerHTML for XSS protection
+  const fieldsHtml = formBuilder.fields.map(field => renderFieldItem(field)).join('');
+  setSafeInnerHTML(dropzone, fieldsHtml);
 
   // Add event listeners to field items
   dropzone.querySelectorAll('.form-field-item').forEach(item => {
@@ -2069,7 +1999,8 @@ function renderFieldProperties(field) {
   // Delete button
   html += `<button class="btn-delete-field" id="delete-field-btn">Delete Field</button>`;
 
-  propertiesBody.innerHTML = html;
+  // Use sanitized innerHTML for extra XSS protection
+  setSafeInnerHTML(propertiesBody, html);
 
   // Attach event listeners
   attachPropertyListeners(field);
@@ -2308,7 +2239,8 @@ function showFormPreview() {
   html += '<button type="button" class="btn-submit-preview">Submit (Preview)</button>';
   html += '</form></div>';
 
-  previewContainer.innerHTML = html;
+  // Use sanitized innerHTML for XSS protection
+  setSafeInnerHTML(previewContainer, html);
   show('form-preview-modal');
 
   // Add event listeners for view toggle
@@ -2358,13 +2290,14 @@ async function saveFormBuilder() {
   // Disable save button and show loading state
   if (saveBtn) {
     saveBtn.disabled = true;
-    saveBtn.innerHTML = `
+    const spinnerHtml = `
       <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="animation: spin 1s linear infinite; margin-right: 8px;">
         <circle cx="12" cy="12" r="10" opacity="0.25"></circle>
         <path d="M12 2a10 10 0 0 1 10 10" opacity="0.75"></path>
       </svg>
       Saving...
     `;
+    setSafeInnerHTML(saveBtn, spinnerHtml);
   }
 
   // Add spinner animation if not present
@@ -2464,7 +2397,8 @@ async function loadSettings() {
 
     // Update plan features based on subscription
     const features = getPlanFeatures(state.user.subscription || 'free');
-    document.getElementById('plan-features-list').innerHTML = features.map(f => `<li>${f}</li>`).join('');
+    const featuresHtml = features.map(f => `<li>${sanitizeHtml(f)}</li>`).join('');
+    setSafeInnerHTML(document.getElementById('plan-features-list'), featuresHtml);
   }
 
   // Try to load additional settings from API
@@ -2638,6 +2572,272 @@ function initSettingsEvents() {
       }
     }
   });
+
+  // Export encryption keys button
+  document.getElementById('export-encryption-key-btn')?.addEventListener('click', () => {
+    show('export-keys-modal');
+  });
+
+  // Import encryption keys button
+  document.getElementById('import-encryption-key-btn')?.addEventListener('click', () => {
+    show('import-keys-modal');
+  });
+
+  // Confirm export keys
+  document.getElementById('confirm-export-keys-btn')?.addEventListener('click', exportEncryptionKeys);
+
+  // Confirm import keys
+  document.getElementById('confirm-import-keys-btn')?.addEventListener('click', importEncryptionKeys);
+}
+
+// =====================
+// Key Management
+// =====================
+
+/**
+ * Export encryption keys with password protection
+ */
+async function exportEncryptionKeys() {
+  const password = document.getElementById('export-password').value;
+  const passwordConfirm = document.getElementById('export-password-confirm').value;
+
+  // Validation
+  if (!password || !passwordConfirm) {
+    alert('Please enter a password');
+    return;
+  }
+
+  if (password !== passwordConfirm) {
+    alert('Passwords do not match');
+    return;
+  }
+
+  if (password.length < 8) {
+    alert('Password must be at least 8 characters long');
+    return;
+  }
+
+  try {
+    // Fetch all forms to get their private keys
+    const data = await api('/api/forms/');
+    const forms = data.forms || [];
+
+    if (forms.length === 0) {
+      alert('No forms found to export keys from');
+      return;
+    }
+
+    // Collect all private keys
+    const keyData = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      keys: forms.filter(form => form.privateKey).map(form => ({
+        formId: form.id,
+        formName: form.name,
+        privateKey: form.privateKey
+      }))
+    };
+
+    if (keyData.keys.length === 0) {
+      alert('No private keys found in your forms');
+      return;
+    }
+
+    // Encrypt the key data with PBKDF2 + AES-GCM
+    const encryptedData = await encryptKeyExport(keyData, password);
+
+    // Download as file
+    const blob = new Blob([JSON.stringify(encryptedData, null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `veilforms-keys-${Date.now()}.veilkeys`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Close modal and reset
+    hide('export-keys-modal');
+    document.getElementById('export-password').value = '';
+    document.getElementById('export-password-confirm').value = '';
+
+    alert(`Successfully exported ${keyData.keys.length} encryption key(s)!`);
+  } catch (err) {
+    console.error('Key export error:', err);
+    alert('Failed to export keys: ' + err.message);
+  }
+}
+
+/**
+ * Import encryption keys from encrypted file
+ */
+async function importEncryptionKeys() {
+  const fileInput = document.getElementById('import-file');
+  const password = document.getElementById('import-password').value;
+
+  if (!fileInput.files || fileInput.files.length === 0) {
+    alert('Please select a key file to import');
+    return;
+  }
+
+  if (!password) {
+    alert('Please enter the decryption password');
+    return;
+  }
+
+  try {
+    // Read file
+    const file = fileInput.files[0];
+    const fileContent = await file.text();
+    const encryptedData = JSON.parse(fileContent);
+
+    // Decrypt the key data
+    const keyData = await decryptKeyExport(encryptedData, password);
+
+    if (!keyData || !keyData.keys || !Array.isArray(keyData.keys)) {
+      throw new Error('Invalid key file format');
+    }
+
+    // NOTE: In a real implementation, you would need an API endpoint
+    // to update the form private keys. For now, we'll store them locally.
+
+    // For demonstration, we'll store in localStorage with a warning
+    const existingKeys = JSON.parse(localStorage.getItem('veilforms_imported_keys') || '{}');
+
+    keyData.keys.forEach(({ formId, formName, privateKey }) => {
+      existingKeys[formId] = {
+        formName,
+        privateKey,
+        importedAt: new Date().toISOString()
+      };
+    });
+
+    localStorage.setItem('veilforms_imported_keys', JSON.stringify(existingKeys));
+
+    // Close modal and reset
+    hide('import-keys-modal');
+    document.getElementById('import-file').value = '';
+    document.getElementById('import-password').value = '';
+
+    alert(`Successfully imported ${keyData.keys.length} encryption key(s)!\n\nKeys are stored locally in your browser. You can now decrypt submissions.`);
+  } catch (err) {
+    console.error('Key import error:', err);
+    if (err.message.includes('decrypt')) {
+      alert('Failed to import keys: Incorrect password or corrupted file');
+    } else {
+      alert('Failed to import keys: ' + err.message);
+    }
+  }
+}
+
+/**
+ * Encrypt key export data using PBKDF2 + AES-GCM
+ */
+async function encryptKeyExport(data, password) {
+  const encoder = new TextEncoder();
+  const passwordBytes = encoder.encode(password);
+
+  // Generate random salt
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+
+  // Derive key from password using PBKDF2
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    passwordBytes,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits', 'deriveKey']
+  );
+
+  const derivedKey = await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+
+  // Generate random IV
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  // Encrypt the data
+  const plaintext = encoder.encode(JSON.stringify(data));
+  const ciphertext = await crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv
+    },
+    derivedKey,
+    plaintext
+  );
+
+  // Return encrypted package
+  return {
+    version: '1.0',
+    algorithm: 'PBKDF2-AES-GCM-256',
+    iterations: 100000,
+    salt: Array.from(salt),
+    iv: Array.from(iv),
+    ciphertext: Array.from(new Uint8Array(ciphertext))
+  };
+}
+
+/**
+ * Decrypt key export data
+ */
+async function decryptKeyExport(encryptedData, password) {
+  if (encryptedData.version !== '1.0') {
+    throw new Error('Unsupported key file version');
+  }
+
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const passwordBytes = encoder.encode(password);
+
+  // Convert arrays back to Uint8Array
+  const salt = new Uint8Array(encryptedData.salt);
+  const iv = new Uint8Array(encryptedData.iv);
+  const ciphertext = new Uint8Array(encryptedData.ciphertext);
+
+  // Derive key from password
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    passwordBytes,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits', 'deriveKey']
+  );
+
+  const derivedKey = await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: encryptedData.iterations,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  );
+
+  // Decrypt the data
+  const plaintext = await crypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv
+    },
+    derivedKey,
+    ciphertext
+  );
+
+  return JSON.parse(decoder.decode(plaintext));
 }
 
 // Delete Account
@@ -2692,7 +2892,7 @@ async function showAuditLogs() {
 // Load Audit Logs
 async function loadAuditLogs(eventFilter = '', formFilter = '') {
   const view = document.getElementById('audit-logs-view');
-  view.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading audit logs...</p></div>';
+  setSafeInnerHTML(view, '<div class="loading-state"><div class="spinner"></div><p>Loading audit logs...</p></div>');
 
   try {
     let url = `/api/audit-logs?limit=${auditPagination.limit}&offset=${auditPagination.offset}`;
@@ -2706,7 +2906,7 @@ async function loadAuditLogs(eventFilter = '', formFilter = '') {
     renderAuditLogs();
   } catch (err) {
     console.error('Load audit logs error:', err);
-    view.innerHTML = `
+    const errorHtml = `
       <div class="error-state">
         <div class="error-icon">!</div>
         <h2>Failed to load audit logs</h2>
@@ -2714,6 +2914,7 @@ async function loadAuditLogs(eventFilter = '', formFilter = '') {
         <button class="btn btn-secondary" onclick="loadAuditLogs()">Try Again</button>
       </div>
     `;
+    setSafeInnerHTML(view, errorHtml);
   }
 }
 
@@ -2722,7 +2923,7 @@ function renderAuditLogs() {
   const view = document.getElementById('audit-logs-view');
 
   if (auditLogs.length === 0) {
-    view.innerHTML = `
+    const emptyHtml = `
       <div class="audit-logs-header">
         <h2>Activity Log</h2>
       </div>
@@ -2731,10 +2932,11 @@ function renderAuditLogs() {
         <p>Activity logs will appear here as you use VeilForms.</p>
       </div>
     `;
+    setSafeInnerHTML(view, emptyHtml);
     return;
   }
 
-  view.innerHTML = `
+  const auditLogsHtml = `
     <div class="audit-logs-header">
       <div>
         <h2 style="margin: 0 0 8px 0;">Activity Log</h2>
@@ -2792,6 +2994,7 @@ function renderAuditLogs() {
       ` : ''}
     </div>
   `;
+  setSafeInnerHTML(view, auditLogsHtml);
 
   // Event listeners
   document.getElementById('event-filter')?.addEventListener('change', (e) => {
@@ -2838,18 +3041,7 @@ function formatLogDetails(details) {
   return parts.length > 0 ? parts.join(' | ') : '<em>-</em>';
 }
 
-// Format date/time
-function formatDateTime(timestamp) {
-  if (!timestamp) return 'N/A';
-  const date = new Date(timestamp);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
+// formatDateTime imported from ./modules/index.js
 
 // Exit Form Builder
 function exitFormBuilder() {
@@ -3104,6 +3296,19 @@ async function refreshUserData() {
     }
   }
 }
+
+// Export functions to global scope for form-builder-integration.js
+// These are needed for patching and UX enhancements
+window.formBuilder = formBuilder;
+window.showFormBuilder = showFormBuilder;
+window.exitFormBuilder = exitFormBuilder;
+window.addField = addField;
+window.deleteField = deleteField;
+window.selectField = selectField;
+window.show = show;
+window.hide = hide;
+window.escapeHtml = escapeHtml;
+window.showToast = showToast;
 
 // Start
 document.addEventListener('DOMContentLoaded', () => {

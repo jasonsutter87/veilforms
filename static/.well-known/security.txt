@@ -1,0 +1,6 @@
+Contact: mailto:security@veilforms.com
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://veilforms.com/.well-known/security.txt
+Policy: https://veilforms.com/security/
+Acknowledgments: https://veilforms.com/security/#acknowledgments

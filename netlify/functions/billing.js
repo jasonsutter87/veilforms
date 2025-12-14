@@ -20,30 +20,18 @@ import {
   formatSubscriptionData
 } from './lib/stripe.js';
 import { logAudit, AuditEvents, getAuditContext } from './lib/audit.js';
-
-// CORS headers
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:1313', 'http://localhost:3000'];
-
-function getCorsHeaders(origin) {
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true',
-    'Content-Type': 'application/json'
-  };
-}
+import { getCorsHeaders } from './lib/cors.js';
+import * as response from './lib/responses.js';
 
 export default async function handler(req, context) {
   const origin = req.headers.get('origin') || '';
-  const headers = getCorsHeaders(origin);
+  const headers = getCorsHeaders(origin, {
+    methods: ['GET', 'POST', 'OPTIONS']
+  });
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers });
+    return response.noContent(headers);
   }
 
   // Parse path to get action
@@ -55,18 +43,12 @@ export default async function handler(req, context) {
     // Authenticate user
     const auth = await authenticateRequest(req);
     if (!auth.success) {
-      return new Response(JSON.stringify({ error: 'unauthorized', message: auth.error }), {
-        status: 401,
-        headers
-      });
+      return response.unauthorized(auth.error, headers);
     }
 
     const user = await getUser(auth.email);
     if (!user) {
-      return new Response(JSON.stringify({ error: 'not_found', message: 'User not found' }), {
-        status: 404,
-        headers
-      });
+      return response.notFound('User not found', headers);
     }
 
     switch (action) {
@@ -81,20 +63,11 @@ export default async function handler(req, context) {
       case 'reactivate':
         return handleReactivate(req, user, headers);
       default:
-        return new Response(JSON.stringify({ error: 'not_found', message: 'Endpoint not found' }), {
-          status: 404,
-          headers
-        });
+        return response.notFound('Endpoint not found', headers);
     }
   } catch (error) {
     console.error('Billing error:', error);
-    return new Response(JSON.stringify({
-      error: 'internal_error',
-      message: 'An error occurred processing your request'
-    }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers, 'An error occurred processing your request');
   }
 }
 
@@ -103,10 +76,7 @@ export default async function handler(req, context) {
  */
 async function handleCheckout(req, user, headers) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   const body = await req.json();
@@ -115,24 +85,12 @@ async function handleCheckout(req, user, headers) {
   // Validate plan
   const planConfig = getPlanConfig(plan);
   if (!planConfig || !planConfig.priceId) {
-    return new Response(JSON.stringify({
-      error: 'invalid_plan',
-      message: 'Invalid plan selected'
-    }), {
-      status: 400,
-      headers
-    });
+    return response.badRequest('Invalid plan selected', headers);
   }
 
   // Check if user is already on this plan
   if (user.subscription === plan) {
-    return new Response(JSON.stringify({
-      error: 'already_subscribed',
-      message: 'You are already subscribed to this plan'
-    }), {
-      status: 400,
-      headers
-    });
+    return response.badRequest('You are already subscribed to this plan', headers);
   }
 
   try {
@@ -161,23 +119,14 @@ async function handleCheckout(req, user, headers) {
       sessionId: session.id
     });
 
-    return new Response(JSON.stringify({
+    return response.success({
       success: true,
       checkoutUrl: session.url,
       sessionId: session.id
-    }), {
-      status: 200,
-      headers
-    });
+    }, headers);
   } catch (error) {
     console.error('Checkout error:', error);
-    return new Response(JSON.stringify({
-      error: 'checkout_failed',
-      message: error.message || 'Failed to create checkout session'
-    }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers, error.message || 'Failed to create checkout session');
   }
 }
 
@@ -186,20 +135,11 @@ async function handleCheckout(req, user, headers) {
  */
 async function handlePortal(req, user, headers) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   if (!user.stripeCustomerId) {
-    return new Response(JSON.stringify({
-      error: 'no_subscription',
-      message: 'No active subscription found'
-    }), {
-      status: 400,
-      headers
-    });
+    return response.badRequest('No active subscription found', headers);
   }
 
   try {
@@ -208,22 +148,13 @@ async function handlePortal(req, user, headers) {
 
     const session = await createPortalSession(user.stripeCustomerId, returnUrl);
 
-    return new Response(JSON.stringify({
+    return response.success({
       success: true,
       portalUrl: session.url
-    }), {
-      status: 200,
-      headers
-    });
+    }, headers);
   } catch (error) {
     console.error('Portal error:', error);
-    return new Response(JSON.stringify({
-      error: 'portal_failed',
-      message: 'Failed to create portal session'
-    }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers, 'Failed to create portal session');
   }
 }
 
@@ -232,10 +163,7 @@ async function handlePortal(req, user, headers) {
  */
 async function handleGetSubscription(req, user, headers) {
   if (req.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   const planConfig = getPlanConfig(user.subscription || 'free');
@@ -250,7 +178,7 @@ async function handleGetSubscription(req, user, headers) {
     }
   }
 
-  return new Response(JSON.stringify({
+  return response.success({
     success: true,
     subscription: {
       plan: user.subscription || 'free',
@@ -260,10 +188,7 @@ async function handleGetSubscription(req, user, headers) {
       status: subscriptionDetails?.status || (user.subscription === 'free' ? 'active' : 'unknown'),
       ...subscriptionDetails
     }
-  }), {
-    status: 200,
-    headers
-  });
+  }, headers);
 }
 
 /**
@@ -271,20 +196,11 @@ async function handleGetSubscription(req, user, headers) {
  */
 async function handleCancel(req, user, headers) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   if (!user.stripeSubscriptionId) {
-    return new Response(JSON.stringify({
-      error: 'no_subscription',
-      message: 'No active subscription to cancel'
-    }), {
-      status: 400,
-      headers
-    });
+    return response.badRequest('No active subscription to cancel', headers);
   }
 
   try {
@@ -296,23 +212,14 @@ async function handleCancel(req, user, headers) {
       cancelAt: subscription.current_period_end
     });
 
-    return new Response(JSON.stringify({
+    return response.success({
       success: true,
       message: 'Subscription will be canceled at the end of the billing period',
       cancelAt: new Date(subscription.current_period_end * 1000).toISOString()
-    }), {
-      status: 200,
-      headers
-    });
+    }, headers);
   } catch (error) {
     console.error('Cancel error:', error);
-    return new Response(JSON.stringify({
-      error: 'cancel_failed',
-      message: 'Failed to cancel subscription'
-    }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers, 'Failed to cancel subscription');
   }
 }
 
@@ -321,20 +228,11 @@ async function handleCancel(req, user, headers) {
  */
 async function handleReactivate(req, user, headers) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
-      status: 405,
-      headers
-    });
+    return response.methodNotAllowed(headers);
   }
 
   if (!user.stripeSubscriptionId) {
-    return new Response(JSON.stringify({
-      error: 'no_subscription',
-      message: 'No subscription to reactivate'
-    }), {
-      status: 400,
-      headers
-    });
+    return response.badRequest('No subscription to reactivate', headers);
   }
 
   try {
@@ -345,21 +243,12 @@ async function handleReactivate(req, user, headers) {
       subscriptionId: user.stripeSubscriptionId
     });
 
-    return new Response(JSON.stringify({
+    return response.success({
       success: true,
       message: 'Subscription reactivated successfully'
-    }), {
-      status: 200,
-      headers
-    });
+    }, headers);
   } catch (error) {
     console.error('Reactivate error:', error);
-    return new Response(JSON.stringify({
-      error: 'reactivate_failed',
-      message: 'Failed to reactivate subscription'
-    }), {
-      status: 500,
-      headers
-    });
+    return response.serverError(headers, 'Failed to reactivate subscription');
   }
 }

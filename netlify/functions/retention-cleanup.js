@@ -6,6 +6,7 @@
 
 import { getStore } from '@netlify/blobs';
 import { logAudit, AuditEvents } from './lib/audit.js';
+import * as response from './lib/responses.js';
 
 const FORMS_STORE = 'vf-forms';
 const BATCH_SIZE = 50; // Process forms in batches
@@ -55,21 +56,15 @@ export default async function handler(req, context) {
       console.log(`Retention cleanup complete. Forms processed: ${formsProcessed}, Submissions deleted: ${totalDeleted}`);
     }
 
-    return new Response(JSON.stringify({
+    return response.success({
       success: true,
       formsProcessed,
       totalDeleted,
       timestamp: new Date().toISOString()
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    }, { 'Content-Type': 'application/json' });
   } catch (error) {
     console.error('Retention cleanup error:', error);
-    return new Response(JSON.stringify({ error: 'Cleanup failed' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return response.serverError({ 'Content-Type': 'application/json' }, 'Cleanup failed');
   }
 }
 

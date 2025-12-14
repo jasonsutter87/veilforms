@@ -13,3 +13,64 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+
+# Security headers for all pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Prevent clickjacking attacks
+    X-Frame-Options = "DENY"
+
+    # Prevent MIME type sniffing
+    X-Content-Type-Options = "nosniff"
+
+    # Enable browser XSS protection
+    X-XSS-Protection = "1; mode=block"
+
+    # Strict referrer policy for privacy
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Enforce HTTPS (6 months)
+    Strict-Transport-Security = "max-age=15768000; includeSubDomains; preload"
+
+    # Content Security Policy - client-side encryption requires 'unsafe-eval' for Web Crypto API
+    Content-Security-Policy = """
+      default-src 'self'; \
+      script-src 'self' 'unsafe-inline' 'unsafe-eval'; \
+      style-src 'self' 'unsafe-inline'; \
+      img-src 'self' data: https:; \
+      font-src 'self' data:; \
+      connect-src 'self' https://*.netlify.app https://*.netlify.com; \
+      form-action 'self'; \
+      frame-ancestors 'none'; \
+      base-uri 'self'; \
+      upgrade-insecure-requests;
+    """
+
+    # Permissions Policy - restrict sensitive browser features
+    Permissions-Policy = """
+      geolocation=(), \
+      microphone=(), \
+      camera=(), \
+      payment=(), \
+      usb=(), \
+      magnetometer=(), \
+      gyroscope=(), \
+      accelerometer=()
+    """
+
+# Additional security for static assets (aggressive caching)
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

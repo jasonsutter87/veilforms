@@ -3,25 +3,21 @@
  * GET /api/health - Basic health check for monitoring
  */
 
+import * as response from './lib/responses.js';
+
 export default async function handler(req, context) {
   // Only accept GET requests
   if (req.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return response.methodNotAllowed({ 'Content-Type': 'application/json' });
   }
 
   // Basic health check response
-  return new Response(JSON.stringify({
+  return response.success({
     status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'veilforms',
     version: '1.0.0'
-  }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' }
-  });
+  }, { 'Content-Type': 'application/json' });
 }
 
 export const config = {

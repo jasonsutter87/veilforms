@@ -9,11 +9,7 @@ priority: 0.5
 
 # Self Hosting
 
-Deploy VeilForms on your own infrastructure for maximum control over your data.
-
-<div class="callout info">
-<strong>Enterprise Feature:</strong> Self-hosting is available on Enterprise plans. Contact sales@veilforms.com for licensing.
-</div>
+Deploy VeilForms on your own infrastructure for maximum control over your data. VeilForms is open source and can be self-hosted for free.
 
 ## Why Self-Host?
 
@@ -21,63 +17,18 @@ Deploy VeilForms on your own infrastructure for maximum control over your data.
 - **Compliance requirements** — Meet strict regulatory requirements
 - **Custom integrations** — Deep integration with your systems
 - **Air-gapped deployments** — No external network access required
+- **Cost efficiency** — No per-submission fees or user limits
 - **Custom domains** — Use your own domain for everything
 
-## Architecture Overview
+## Quick Start with Docker Compose
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Your Infrastructure                                         │
-│                                                             │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
-│  │ CDN/Proxy   │───▶│ API Server  │───▶│ Database    │     │
-│  │ (optional)  │    │ (Node.js)   │    │ (Postgres)  │     │
-│  └─────────────┘    └─────────────┘    └─────────────┘     │
-│         │                  │                               │
-│         │                  ▼                               │
-│         │           ┌─────────────┐                        │
-│         │           │ Blob Store  │                        │
-│         │           │ (S3/MinIO)  │                        │
-│         │           └─────────────┘                        │
-│         │                                                   │
-│         ▼                                                   │
-│  ┌─────────────┐                                           │
-│  │ Static Site │  (Dashboard, SDK)                         │
-│  └─────────────┘                                           │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Requirements
-
-### Minimum
-
-| Component | Requirement |
-|-----------|-------------|
-| Node.js | 18+ |
-| PostgreSQL | 14+ |
-| Storage | S3-compatible (AWS S3, MinIO, etc.) |
-| Memory | 512MB+ |
-| CPU | 1 vCPU |
-
-### Recommended (Production)
-
-| Component | Requirement |
-|-----------|-------------|
-| Node.js | 20 LTS |
-| PostgreSQL | 15+ with replication |
-| Storage | S3 with versioning |
-| Memory | 2GB+ |
-| CPU | 2+ vCPU |
-| Load Balancer | For high availability |
-
-## Quick Start with Docker
+The fastest way to get VeilForms running is with Docker Compose. This includes everything you need for production.
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/veilforms/veilforms-server.git
-cd veilforms-server
+git clone https://github.com/veilforms/veilforms.git
+cd veilforms/docker
 ```
 
 ### 2. Configure Environment
@@ -86,26 +37,20 @@ cd veilforms-server
 cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` with your settings:
 
 ```bash
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/veilforms
+# Required: Change these immediately
+POSTGRES_PASSWORD=your-secure-postgres-password
+REDIS_PASSWORD=your-secure-redis-password
+MINIO_ROOT_PASSWORD=your-secure-minio-password
 
-# Storage (S3-compatible)
-S3_ENDPOINT=http://localhost:9000
-S3_BUCKET=veilforms
-S3_ACCESS_KEY=YOUR_ACCESS_KEY_HERE
-S3_SECRET_KEY=YOUR_SECRET_KEY_HERE
+# Required: Generate a strong JWT secret
+JWT_SECRET=$(openssl rand -base64 32)
 
-# Security
-JWT_SECRET=GENERATE_A_RANDOM_64_CHAR_STRING_HERE
-ENCRYPTION_KEY=your-32-byte-hex-key
-
-# Optional
-SMTP_HOST=smtp.example.com
-SMTP_USER=noreply@example.com
-SMTP_PASS=your-smtp-password
+# Required: Set your domain
+URL=https://forms.yourdomain.com
+ALLOWED_ORIGINS=https://forms.yourdomain.com,https://yourdomain.com
 ```
 
 ### 3. Start Services
@@ -115,145 +60,309 @@ docker-compose up -d
 ```
 
 This starts:
-- PostgreSQL database
-- MinIO (S3-compatible storage)
-- VeilForms API server
-- VeilForms dashboard
+- **PostgreSQL** - Database for users, forms, and metadata
+- **Redis** - Rate limiting and caching
+- **MinIO** - S3-compatible encrypted blob storage
+- **VeilForms API** - Backend services
+- **VeilForms Web** - Dashboard and static site
+- **Nginx** - Reverse proxy with SSL and security
 
-### 4. Initialize Database
+### 4. Access Your Installation
 
-```bash
-docker-compose exec api npm run db:migrate
-docker-compose exec api npm run db:seed
+- **Dashboard**: http://localhost:8080
+- **API Health**: http://localhost:3000/health
+- **MinIO Console**: http://localhost:9001
+
+Create your admin account at http://localhost:8080/register
+
+For detailed setup instructions, see [`/docker/README.md`](https://github.com/veilforms/veilforms/blob/main/docker/README.md)
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Your Infrastructure                                         │
+│                                                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │ Nginx Proxy │───▶│ API Server  │───▶│ PostgreSQL  │     │
+│  │   SSL/TLS   │    │ (Node.js)   │    │  Database   │     │
+│  └──────┬──────┘    └──────┬──────┘    └─────────────┘     │
+│         │                  │                               │
+│         │                  ├──────────▶┌─────────────┐     │
+│         │                  │           │   Redis     │     │
+│         │                  │           │   Cache     │     │
+│         │                  │           └─────────────┘     │
+│         │                  │                               │
+│         │                  └──────────▶┌─────────────┐     │
+│         │                              │   MinIO     │     │
+│         │                              │ (S3 Blobs)  │     │
+│         │                              └─────────────┘     │
+│         │                                                   │
+│         └─────────────────────────────▶┌─────────────┐     │
+│                                        │ Static Site │     │
+│                                        │   (Hugo)    │     │
+│                                        └─────────────┘     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 5. Access Dashboard
+## System Requirements
 
-Open `http://localhost:3000` and create your admin account.
+### Minimum (Development/Testing)
 
-## Manual Installation
+| Component | Requirement |
+|-----------|-------------|
+| CPU | 1 vCPU |
+| Memory | 2GB RAM |
+| Storage | 10GB SSD |
+| Node.js | 18+ |
+| PostgreSQL | 14+ |
+| Docker | 20.10+ (if using Docker) |
 
-### 1. Install Dependencies
+### Recommended (Production)
 
-```bash
-npm install
-```
+| Component | Requirement |
+|-----------|-------------|
+| CPU | 2+ vCPU |
+| Memory | 4GB+ RAM |
+| Storage | 50GB+ SSD (depends on submission volume) |
+| Node.js | 20 LTS |
+| PostgreSQL | 15+ with replication |
+| Load Balancer | For high availability |
 
-### 2. Set Up PostgreSQL
+## Environment Variables
 
-```sql
-CREATE DATABASE veilforms;
-CREATE USER veilforms WITH PASSWORD 'your-password';
-GRANT ALL PRIVILEGES ON DATABASE veilforms TO veilforms;
-```
+### Required Variables
 
-### 3. Set Up S3 Storage
-
-Using AWS S3:
-
-```bash
-aws s3 mb s3://your-veilforms-bucket
-```
-
-Or MinIO locally:
-
-```bash
-docker run -d \
-  -p 9000:9000 \
-  -p 9001:9001 \
-  -e MINIO_ROOT_USER=YOUR_ADMIN_USER \
-  -e MINIO_ROOT_PASSWORD=YOUR_ADMIN_PASSWORD \
-  minio/minio server /data --console-address ":9001"
-```
-
-### 4. Run Migrations
-
-```bash
-npm run db:migrate
-```
-
-### 5. Start Server
-
-```bash
-npm start
-```
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
+| Variable | Description | Example |
 |----------|-------------|---------|
-| `PORT` | API server port | `3000` |
-| `DATABASE_URL` | PostgreSQL connection string | Required |
-| `S3_ENDPOINT` | S3 endpoint URL | Required |
-| `S3_BUCKET` | S3 bucket name | Required |
-| `S3_ACCESS_KEY` | S3 access key | Required |
-| `S3_SECRET_KEY` | S3 secret key | Required |
-| `S3_REGION` | S3 region | `us-east-1` |
-| `JWT_SECRET` | Secret for JWT signing | Required |
-| `JWT_EXPIRY` | JWT expiration time | `7d` |
-| `CORS_ORIGINS` | Allowed CORS origins | `*` |
-| `RATE_LIMIT` | Requests per minute | `100` |
-| `LOG_LEVEL` | Logging level | `info` |
-
-### Database Configuration
-
-For production, use connection pooling:
-
-```bash
-DATABASE_URL=postgresql://user:pass@host:5432/veilforms?pool_min=2&pool_max=10
-```
+| `JWT_SECRET` | Secret for JWT signing (32+ chars) | `openssl rand -base64 32` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/db` |
+| `URL` | Base URL of your installation | `https://forms.example.com` |
+| `ALLOWED_ORIGINS` | CORS allowed origins | `https://example.com` |
 
 ### Storage Configuration
+
+VeilForms supports any S3-compatible storage:
+
+#### MinIO (Included in Docker setup)
+
+```bash
+BLOB_STORE_ENDPOINT=http://minio:9000
+BLOB_STORE_BUCKET=veilforms
+BLOB_STORE_ACCESS_KEY=minioadmin
+BLOB_STORE_SECRET_KEY=minioadmin123
+```
 
 #### AWS S3
 
 ```bash
-S3_ENDPOINT=https://s3.amazonaws.com
-S3_BUCKET=your-bucket
-S3_ACCESS_KEY=YOUR_AWS_ACCESS_KEY
-S3_SECRET_KEY=YOUR_AWS_SECRET_KEY
-S3_REGION=us-east-1
+BLOB_STORE_ENDPOINT=https://s3.amazonaws.com
+BLOB_STORE_BUCKET=your-bucket
+BLOB_STORE_ACCESS_KEY=YOUR_AWS_ACCESS_KEY
+BLOB_STORE_SECRET_KEY=YOUR_AWS_SECRET_KEY
+BLOB_STORE_REGION=us-east-1
 ```
 
 #### DigitalOcean Spaces
 
 ```bash
-S3_ENDPOINT=https://nyc3.digitaloceanspaces.com
-S3_BUCKET=your-space
-S3_ACCESS_KEY=your-access-key
-S3_SECRET_KEY=your-secret-key
-S3_REGION=nyc3
+BLOB_STORE_ENDPOINT=https://nyc3.digitaloceanspaces.com
+BLOB_STORE_BUCKET=your-space
+BLOB_STORE_ACCESS_KEY=your-access-key
+BLOB_STORE_SECRET_KEY=your-secret-key
+BLOB_STORE_REGION=nyc3
 ```
 
 #### Backblaze B2
 
 ```bash
-S3_ENDPOINT=https://s3.us-west-002.backblazeb2.com
-S3_BUCKET=your-bucket
-S3_ACCESS_KEY=your-key-id
-S3_SECRET_KEY=your-app-key
-S3_REGION=us-west-002
+BLOB_STORE_ENDPOINT=https://s3.us-west-002.backblazeb2.com
+BLOB_STORE_BUCKET=your-bucket
+BLOB_STORE_ACCESS_KEY=your-key-id
+BLOB_STORE_SECRET_KEY=your-app-key
+BLOB_STORE_REGION=us-west-002
 ```
 
-## SDK Configuration
+### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REDIS_URL` | Redis connection string | - |
+| `RATE_LIMIT_MAX_REQUESTS` | Max requests per minute | `100` |
+| `RATE_LIMIT_WINDOW_MS` | Rate limit window (ms) | `60000` |
+| `STRIPE_SECRET_KEY` | Stripe API key (if using billing) | - |
+| `RESEND_API_KEY` | Email API key (if using notifications) | - |
+| `LOG_LEVEL` | Logging level | `info` |
+
+## Using the Self-Hosted SDK
 
 Point the SDK to your self-hosted instance:
 
+```html
+<!-- Use your own domain -->
+<script src="https://forms.yourdomain.com/js/veilforms.min.js"></script>
+<script>
+  VeilForms.init('vf-abc123', {
+    publicKey: 'your-public-key',
+    endpoint: 'https://forms.yourdomain.com/api/submit'
+  });
+</script>
+```
+
+Or with NPM:
+
 ```javascript
+import VeilForms from 'veilforms';
+
 VeilForms.init('vf-abc123', {
-  publicKey: '...',
+  publicKey: 'your-public-key',
   endpoint: 'https://forms.yourdomain.com/api/submit'
 });
 ```
 
-## Deploying to Production
+## Production Deployment Checklist
+
+Before going to production, ensure you've completed:
+
+### Security
+
+- [ ] Changed all default passwords in `.env`
+- [ ] Generated strong JWT secret (32+ characters)
+- [ ] Configured SSL/TLS certificates
+- [ ] Set restrictive CORS origins
+- [ ] Enabled HTTPS redirect in Nginx
+- [ ] Configured firewall rules (only expose 80/443)
+- [ ] Set `LOG_LEVEL=warn` or `LOG_LEVEL=error`
+- [ ] Reviewed security headers in `nginx.conf`
+- [ ] Disabled unnecessary ports
+
+### Database
+
+- [ ] Configured database backups (daily recommended)
+- [ ] Set up connection pooling
+- [ ] Configured PostgreSQL replication (optional)
+- [ ] Reviewed database indexes
+- [ ] Set up monitoring/alerting
+
+### Storage
+
+- [ ] Configured S3 bucket with proper permissions
+- [ ] Enabled versioning on S3 bucket
+- [ ] Set up cross-region replication (optional)
+- [ ] Configured lifecycle policies for old data
+- [ ] Tested backup and restore procedures
+
+### Monitoring
+
+- [ ] Set up health check monitoring
+- [ ] Configured log aggregation
+- [ ] Set up alerts for service failures
+- [ ] Configured metrics collection
+- [ ] Tested disaster recovery procedures
+
+### Performance
+
+- [ ] Configured Redis for rate limiting
+- [ ] Set appropriate rate limits
+- [ ] Enabled Nginx gzip compression
+- [ ] Configured CDN for static assets (optional)
+- [ ] Load tested your setup
+
+## Backup & Recovery
+
+### Database Backups
+
+```bash
+# Daily backup script
+docker-compose exec postgres pg_dump -U veilforms veilforms | \
+  gzip > backup-$(date +%Y%m%d).sql.gz
+
+# Restore from backup
+gunzip -c backup-20240115.sql.gz | \
+  docker-compose exec -T postgres psql -U veilforms veilforms
+```
+
+### Storage Backups
+
+Enable S3 versioning and replication:
+
+```bash
+# AWS S3 versioning
+aws s3api put-bucket-versioning \
+  --bucket your-bucket \
+  --versioning-configuration Status=Enabled
+
+# Cross-region replication
+aws s3api put-bucket-replication \
+  --bucket your-bucket \
+  --replication-configuration file://replication.json
+```
+
+## Monitoring
+
+### Health Checks
+
+```bash
+# API health
+curl https://forms.yourdomain.com/api/health
+# Response: {"status":"healthy","database":"connected","storage":"connected"}
+
+# Nginx health
+curl https://forms.yourdomain.com/health
+# Response: healthy
+```
+
+### Logs
+
+```bash
+# View all service logs
+docker-compose logs -f
+
+# View API logs only
+docker-compose logs -f api
+
+# View last 100 lines
+docker-compose logs --tail=100 api
+```
+
+### Metrics (Optional)
+
+VeilForms can export metrics in Prometheus format:
+
+```bash
+curl https://forms.yourdomain.com/api/metrics
+```
+
+Integrate with Prometheus, Grafana, or your monitoring stack.
+
+## Upgrading
+
+```bash
+# Pull latest changes
+cd veilforms
+git pull origin main
+
+# Pull latest Docker images
+cd docker
+docker-compose pull
+
+# Restart services
+docker-compose up -d
+
+# Run database migrations (if any)
+docker-compose exec api npm run migrate
+```
+
+For zero-downtime upgrades, use rolling deployments with Kubernetes or Docker Swarm.
+
+## Alternative Deployment Methods
 
 ### Kubernetes
 
+Example Kubernetes deployment:
+
 ```yaml
-# deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -270,7 +379,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: veilforms/server:latest
+        image: veilforms/api:latest
         ports:
         - containerPort: 3000
         env:
@@ -279,11 +388,6 @@ spec:
             secretKeyRef:
               name: veilforms-secrets
               key: database-url
-        - name: S3_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: veilforms-secrets
-              key: s3-access-key
         resources:
           requests:
             memory: "256Mi"
@@ -293,170 +397,106 @@ spec:
             cpu: "500m"
 ```
 
-### Terraform (AWS)
+### Manual Installation (No Docker)
 
-```hcl
-# main.tf
-module "veilforms" {
-  source = "github.com/veilforms/terraform-aws-veilforms"
+If you prefer not to use Docker:
 
-  name              = "veilforms"
-  vpc_id            = var.vpc_id
-  subnet_ids        = var.private_subnet_ids
-  instance_type     = "t3.small"
-  min_instances     = 2
-  max_instances     = 10
-  database_instance = "db.t3.micro"
+1. **Install dependencies**:
+   ```bash
+   npm install
+   cd netlify/functions && npm install
+   ```
 
-  tags = {
-    Environment = "production"
-  }
-}
-```
+2. **Build assets**:
+   ```bash
+   npm run build
+   ```
 
-### Docker Swarm
+3. **Set up PostgreSQL**:
+   ```sql
+   CREATE DATABASE veilforms;
+   CREATE USER veilforms WITH PASSWORD 'password';
+   GRANT ALL PRIVILEGES ON DATABASE veilforms TO veilforms;
+   ```
 
-```yaml
-# docker-stack.yml
-version: '3.8'
-services:
-  api:
-    image: veilforms/server:latest
-    deploy:
-      replicas: 3
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
-    environment:
-      - DATABASE_URL_FILE=/run/secrets/db_url
-    secrets:
-      - db_url
-      - s3_credentials
+4. **Run migrations**:
+   ```bash
+   psql -U veilforms -d veilforms -f docker/init.sql
+   ```
 
-secrets:
-  db_url:
-    external: true
-  s3_credentials:
-    external: true
-```
+5. **Start services**:
+   ```bash
+   # API
+   cd netlify/functions
+   node server.js
 
-## Security Hardening
+   # Web (separate terminal)
+   hugo server --bind 0.0.0.0 --baseURL https://your-domain.com
+   ```
 
-### Network Security
+## Troubleshooting
+
+### Database Connection Issues
 
 ```bash
-# Only expose necessary ports
-# API: 3000 (internal only, behind load balancer)
-# Dashboard: 443 (public, via CDN)
+# Check PostgreSQL is running
+docker-compose ps postgres
+
+# Test connection
+docker-compose exec postgres psql -U veilforms -d veilforms -c "SELECT 1;"
+
+# View PostgreSQL logs
+docker-compose logs postgres
 ```
 
-### Database Security
-
-```sql
--- Use separate roles
-CREATE ROLE veilforms_api WITH LOGIN PASSWORD 'xxx';
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO veilforms_api;
-
--- Read-only role for analytics
-CREATE ROLE veilforms_readonly WITH LOGIN PASSWORD 'yyy';
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO veilforms_readonly;
-```
-
-### Secrets Management
-
-Use a secrets manager:
+### Storage Connection Issues
 
 ```bash
-# AWS Secrets Manager
-aws secretsmanager create-secret \
-  --name veilforms/production/database \
-  --secret-string '{"url":"postgresql://..."}'
+# Check MinIO is running
+docker-compose ps minio
 
-# HashiCorp Vault
-vault kv put secret/veilforms/database url="postgresql://..."
+# Access MinIO console
+open http://localhost:9001
+
+# Recreate bucket
+docker-compose restart minio-setup
 ```
 
-## Monitoring
-
-### Health Checks
+### High Memory Usage
 
 ```bash
-curl https://forms.yourdomain.com/health
-# {"status":"healthy","version":"1.0.0","database":"connected","storage":"connected"}
+# Check container stats
+docker stats
+
+# Restart services
+docker-compose restart api
+
+# Increase container limits in docker-compose.yml
 ```
 
-### Prometheus Metrics
+### SSL/TLS Issues
 
 ```bash
-curl https://forms.yourdomain.com/metrics
-# veilforms_submissions_total{form="vf-abc123"} 142
-# veilforms_api_requests_total{method="POST",path="/api/submit"} 1523
-# veilforms_api_latency_seconds{quantile="0.99"} 0.145
+# Test SSL configuration
+openssl s_client -connect forms.yourdomain.com:443
+
+# Verify certificates
+openssl x509 -in ssl/cert.pem -text -noout
+
+# Renew Let's Encrypt certificates
+certbot renew
 ```
 
-### Logging
+## Support & Resources
 
-```javascript
-// Structured JSON logging
-{"level":"info","timestamp":"2024-01-15T10:30:00Z","message":"Submission received","formId":"vf-abc123","submissionId":"vf-xyz789"}
-```
-
-## Backup & Recovery
-
-### Database Backup
-
-```bash
-# Daily backup
-pg_dump -Fc veilforms > backup-$(date +%Y%m%d).dump
-
-# Restore
-pg_restore -d veilforms backup-20240115.dump
-```
-
-### Storage Backup
-
-Enable S3 versioning and cross-region replication:
-
-```bash
-aws s3api put-bucket-versioning \
-  --bucket your-bucket \
-  --versioning-configuration Status=Enabled
-```
-
-## Upgrades
-
-### Rolling Upgrade
-
-```bash
-# Pull latest
-docker pull veilforms/server:latest
-
-# Rolling restart (zero downtime)
-docker service update --image veilforms/server:latest veilforms_api
-```
-
-### Database Migrations
-
-```bash
-# Run migrations before deploying new version
-docker-compose exec api npm run db:migrate
-
-# Rollback if needed
-docker-compose exec api npm run db:migrate:rollback
-```
-
-## Support
-
-For self-hosted support:
-
-- **Documentation**: [docs.veilforms.com/self-hosting](https://docs.veilforms.com/self-hosting)
-- **GitHub Issues**: [github.com/veilforms/veilforms-server/issues](https://github.com/veilforms/veilforms-server/issues)
-- **Enterprise Support**: support@veilforms.com
+- **Docker Setup Guide**: [`/docker/README.md`](https://github.com/veilforms/veilforms/blob/main/docker/README.md)
+- **GitHub Repository**: [github.com/veilforms/veilforms](https://github.com/veilforms/veilforms)
+- **GitHub Issues**: [github.com/veilforms/veilforms/issues](https://github.com/veilforms/veilforms/issues)
+- **Community Discussions**: [github.com/veilforms/veilforms/discussions](https://github.com/veilforms/veilforms/discussions)
 
 ## Next Steps
 
-- [Key Management](/docs/guides/key-management/) — Secure your keys in self-hosted deployments
-- [GDPR Compliance](/docs/guides/gdpr/) — Compliance with self-hosting
+- [Key Management](/docs/guides/key-management/) — Secure your encryption keys
+- [GDPR Compliance](/docs/guides/gdpr/) — Compliance in self-hosted deployments
 - [API Reference](/docs/api/authentication/) — API documentation
+- [SDK Configuration](/docs/sdk/configuration/) — Configure the SDK for self-hosting

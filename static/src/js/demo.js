@@ -54,6 +54,9 @@ function initDemo() {
   demoName.addEventListener('input', updatePreview);
   demoEmail.addEventListener('input', updatePreview);
   demoMessage.addEventListener('input', updatePreview);
+
+  // Initialize with default message
+  updatePreview();
 }
 
 document.addEventListener('DOMContentLoaded', initDemo);
