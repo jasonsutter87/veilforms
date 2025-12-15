@@ -539,5 +539,5 @@ async function handleRegenerateKeys(formId, userId, headers, auditCtx) {
 }
 
 export const config = {
-  path: '/api/forms/*'
+  path: ['/api/forms', '/api/forms/*']
 };
