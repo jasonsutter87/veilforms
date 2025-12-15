@@ -68,6 +68,14 @@
 
 ## Next Up
 
+### Architecture Migration (Hybrid Stack)
+- [ ] Create Next.js app for `app.veilforms.com`
+- [ ] Migrate Netlify Functions → Next.js API routes
+- [ ] Migrate dashboard HTML/JS → React components
+- [ ] Keep Hugo for marketing site (`veilforms.com`)
+- [ ] Update auth redirects to point to app subdomain
+- [ ] Benefit: Better DX, proper bundling, no CSP/module hacks
+
 ### Visual Form Builder
 - [ ] Drag-and-drop field ordering
 - [ ] Field types: text, email, textarea, select, checkbox, radio
