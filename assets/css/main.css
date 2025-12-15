@@ -148,6 +148,175 @@
     font-size: 1.5rem;
   }
 }
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #eef2ff;
+  --primary-hover: #4f46e5;
+  --secondary: #64748b;
+  --success: #10b981;
+  --success-light: #d1fae5;
+  --danger: #ef4444;
+  --danger-light: #fee2e2;
+  --warning: #f59e0b;
+  --warning-light: #fef3c7;
+  --info: #0ea5e9;
+  --surface: #ffffff;
+  --bg: #f8fafc;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1e293b;
+    --bg: #0f172a;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --primary-light: #1e1b4b;
+    --success-light: #064e3b;
+    --danger-light: #7f1d1d;
+    --warning-light: #78350f;
+    color-scheme: dark;
+  }
+  .form-card:hover,
+  .feature-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(99, 102, 241, 0.25);
+  }
+  .modal-backdrop {
+    background: rgba(0, 0, 0, 0.85);
+  }
+  pre, code {
+    background: var(--bg);
+    border-color: var(--border);
+  }
+  input:focus,
+  textarea:focus,
+  select:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  }
+}
+[data-theme=dark] {
+  --surface: #1e293b;
+  --bg: #0f172a;
+  --border: #334155;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary-light: #1e1b4b;
+  --success-light: #064e3b;
+  --danger-light: #7f1d1d;
+  --warning-light: #78350f;
+  color-scheme: dark;
+}
+[data-theme=dark] .form-card:hover,
+[data-theme=dark] .feature-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+[data-theme=dark] .modal-backdrop {
+  background: rgba(0, 0, 0, 0.85);
+}
+[data-theme=dark] pre, [data-theme=dark] code {
+  background: var(--bg);
+  border-color: var(--border);
+}
+[data-theme=dark] input:focus,
+[data-theme=dark] textarea:focus,
+[data-theme=dark] select:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+[data-theme=light] {
+  --surface: #ffffff;
+  --bg: #f8fafc;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --primary-light: #eef2ff;
+  --success-light: #d1fae5;
+  --danger-light: #fee2e2;
+  --warning-light: #fef3c7;
+  color-scheme: light;
+}
+
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+a, button, input, textarea, select {
+  transition: all 0.2s ease;
+}
+
+.theme-toggle {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.theme-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+}
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+.theme-toggle svg {
+  width: 24px;
+  height: 24px;
+}
+.theme-toggle .sun-icon {
+  display: none;
+}
+.theme-toggle .moon-icon {
+  display: block;
+}
+@media (prefers-color-scheme: dark) {
+  .theme-toggle .sun-icon {
+    display: block;
+  }
+  .theme-toggle .moon-icon {
+    display: none;
+  }
+}
+[data-theme=dark] .theme-toggle .sun-icon {
+  display: block;
+}
+[data-theme=dark] .theme-toggle .moon-icon {
+  display: none;
+}
+[data-theme=light] .theme-toggle .sun-icon {
+  display: none;
+}
+[data-theme=light] .theme-toggle .moon-icon {
+  display: block;
+}
+@media (max-width: 768px) {
+  .theme-toggle {
+    bottom: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+  }
+  .theme-toggle svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -156,10 +325,12 @@
     --primary: #6366f1;
     --primary-dark: #4f46e5;
     --primary-light: #eef2ff;
+    --primary-hover: #4f46e5;
     --secondary: #64748b;
     --success: #10b981;
     --success-light: #d1fae5;
     --danger: #ef4444;
+    --danger-light: #fee2e2;
     --warning: #f59e0b;
     --warning-light: #fef3c7;
     --info: #0ea5e9;
@@ -236,6 +407,16 @@
     border-radius: 0.5rem;
     text-decoration: none;
     font-weight: 500;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 @layer components {

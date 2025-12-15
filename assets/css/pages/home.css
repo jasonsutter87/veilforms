@@ -95,6 +95,57 @@
   color: var(--text-muted);
 }
 
+.encryption-flow {
+  padding: 80px 0;
+  background: var(--surface);
+}
+.encryption-flow h2 {
+  text-align: center;
+  margin-bottom: 40px;
+}
+@media (max-width: 768px) {
+  .encryption-flow {
+    padding: 60px 0;
+  }
+  .encryption-flow h2 {
+    margin-bottom: 30px;
+    font-size: 1.75rem;
+  }
+}
+
+.encryption-diagram {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+@media (max-width: 768px) {
+  .encryption-diagram {
+    max-width: 120%;
+    margin-left: -10%;
+  }
+}
+@media (max-width: 480px) {
+  .encryption-diagram {
+    max-width: 150%;
+    margin-left: -25%;
+  }
+}
+.encryption-diagram text {
+  font-family: var(--font-family);
+}
+.encryption-diagram path[marker-end] {
+  animation: flowAnimation 2s ease-in-out infinite;
+}
+
+@keyframes flowAnimation {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
 .quickstart {
   padding: 80px 0;
 }

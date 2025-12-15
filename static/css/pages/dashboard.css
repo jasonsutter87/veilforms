@@ -57,6 +57,9 @@
   color: var(--text-muted);
   font-size: 1.5rem;
   cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
 }
 @media (max-width: 768px) {
   .sidebar-close {
@@ -165,12 +168,12 @@
   flex-direction: column;
   justify-content: center;
   gap: 5px;
-  width: 32px;
-  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  padding: 10px;
 }
 .menu-toggle span {
   display: block;
@@ -200,8 +203,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 12px 20px;
   font-size: 0.875rem;
+  min-height: 44px;
 }
 @media (max-width: 480px) {
   .topbar-actions .btn span {
@@ -300,12 +304,16 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 .form-card:hover {
   border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(99, 102, 241, 0.15);
+  transform: translateY(-4px);
+}
+.form-card:active {
+  transform: translateY(-2px);
 }
 
 .form-card-header {
@@ -371,7 +379,9 @@
   gap: 8px;
 }
 .form-card-actions button {
-  padding: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 12px;
   background: none;
   border: none;
   color: var(--text-muted);
@@ -787,7 +797,9 @@
 }
 
 .btn-revoke {
-  padding: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 12px;
   background: none;
   border: none;
   color: var(--text-muted);
@@ -1232,9 +1244,9 @@
   transition: opacity 0.2s;
 }
 .field-actions button {
-  width: 32px;
-  height: 32px;
-  padding: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 12px;
   background: none;
   border: none;
   color: var(--text-muted);
@@ -1246,8 +1258,8 @@
   transition: all 0.2s;
 }
 .field-actions button svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 .field-actions button:hover {
   background: var(--surface);
@@ -1300,8 +1312,8 @@
 }
 
 .properties-close {
-  width: 32px;
-  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   background: none;
   border: none;
   color: var(--text-muted);
@@ -1444,8 +1456,8 @@
 
 .btn-add-option,
 .btn-remove-option {
-  width: 32px;
-  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -1460,8 +1472,8 @@
 }
 .btn-add-option svg,
 .btn-remove-option svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 .btn-add-option:hover,
 .btn-remove-option:hover {

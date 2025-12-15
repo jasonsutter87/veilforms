@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeilForms Social Share Image Preview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            font-family: system-ui, -apple-system, sans-serif;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #6366f1;
+            margin-bottom: 10px;
+        }
+        .info {
+            color: #a1a1aa;
+            margin-bottom: 30px;
+        }
+        .preview {
+            border: 2px solid #27272a;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .specs {
+            margin-top: 30px;
+            padding: 20px;
+            background: #0a0a0a;
+            border-radius: 8px;
+            border: 1px solid #27272a;
+        }
+        .specs h2 {
+            margin-top: 0;
+            color: #6366f1;
+        }
+        .specs ul {
+            line-height: 1.8;
+            color: #a1a1aa;
+        }
+        .specs code {
+            background: #18181b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #818cf8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VeilForms Social Share Image</h1>
+        <p class="info">1200x630px - Standard Open Graph image size</p>
+        
+        <div class="preview">
+            <img src="share-image.svg" alt="VeilForms Social Share Image">
+        </div>
+
+        <div class="specs">
+            <h2>Image Specifications</h2>
+            <ul>
+                <li>Dimensions: <code>1200x630px</code> (Open Graph standard)</li>
+                <li>Format: SVG (vector, scales perfectly)</li>
+                <li>Background: <code>#0a0a0a</code> (VeilForms dark)</li>
+                <li>Primary color: <code>#6366f1</code> (Indigo 500)</li>
+                <li>Features: Animated encryption flow, shield with lock icon</li>
+                <li>Typography: System font stack for cross-platform consistency</li>
+            </ul>
+
+            <h2>Usage in HTML</h2>
+            <pre><code>&lt;meta property="og:image" content="https://veilforms.com/images/share-image.svg"&gt;
+&lt;meta property="og:image:width" content="1200"&gt;
+&lt;meta property="og:image:height" content="630"&gt;
+&lt;meta name="twitter:card" content="summary_large_image"&gt;
+&lt;meta name="twitter:image" content="https://veilforms.com/images/share-image.svg"&gt;</code></pre>
+        </div>
+    </div>
+</body>
+</html>

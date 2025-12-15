@@ -323,5 +323,4 @@ export function confirm(title, message, options = {}) {
   });
 }
 
-// Export legacy function name for backwards compatibility
-export { showToast };
+// showToast is already exported inline at function definition

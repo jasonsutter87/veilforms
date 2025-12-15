@@ -85,7 +85,7 @@
   background: var(--danger);
 }
 .comparison-card.bad h3 {
-  color: #f87171;
+  color: #dc2626;
 }
 .comparison-card.bad li::before {
   content: "✕";
@@ -104,7 +104,7 @@
   background: var(--success);
 }
 .comparison-card.good h3 {
-  color: #34d399;
+  color: #059669;
 }
 .comparison-card.good li::before {
   content: "✓";
@@ -211,8 +211,12 @@
   animation-delay: 0.4s;
 }
 .flow-step .icon {
-  font-size: 2rem;
   margin-bottom: 12px;
+  color: var(--primary);
+}
+.flow-step .icon svg {
+  display: block;
+  margin: 0 auto;
 }
 .flow-step h4 {
   font-size: 0.875rem;
@@ -314,8 +318,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
   margin-bottom: 20px;
+  color: white;
+}
+.feature-card .icon svg {
+  display: block;
 }
 .feature-card h3 {
   font-size: 1.25rem;

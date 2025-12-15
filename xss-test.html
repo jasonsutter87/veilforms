@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>XSS Sanitization Test - VeilForms</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    .test-case {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .test-case h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .payload {
+      background: #f5f5f5;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
+    .result {
+      background: #fff;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      min-height: 30px;
+    }
+    .status {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .pass { color: green; }
+    .fail { color: red; }
+  </style>
+</head>
+<body>
+  <h1>VeilForms XSS Sanitization Test Suite</h1>
+  <p>Testing DOMPurify integration for security against XSS attacks.</p>
+
+  <div class="test-case">
+    <h3>Test 1: Basic Script Tag Injection</h3>
+    <div class="payload">Payload: &lt;script&gt;alert('XSS')&lt;/script&gt;</div>
+    <div class="result" id="test1"></div>
+    <div class="status" id="status1"></div>
+  </div>
+
+  <div class="test-case">
+    <h3>Test 2: IMG Tag with onerror</h3>
+    <div class="payload">Payload: &lt;img src=x onerror="alert('XSS')"&gt;</div>
+    <div class="result" id="test2"></div>
+    <div class="status" id="status2"></div>
+  </div>
+
+  <div class="test-case">
+    <h3>Test 3: JavaScript URL</h3>
+    <div class="payload">Payload: &lt;a href="javascript:alert('XSS')"&gt;Click&lt;/a&gt;</div>
+    <div class="result" id="test3"></div>
+    <div class="status" id="status3"></div>
+  </div>
+
+  <div class="test-case">
+    <h3>Test 4: Data URL</h3>
+    <div class="payload">Payload: &lt;a href="data:text/html,&lt;script&gt;alert('XSS')&lt;/script&gt;"&gt;Click&lt;/a&gt;</div>
+    <div class="result" id="test4"></div>
+    <div class="status" id="status4"></div>
+  </div>
+
+  <div class="test-case">
+    <h3>Test 5: Event Handler Attribute</h3>
+    <div class="payload">Payload: &lt;div onclick="alert('XSS')"&gt;Click me&lt;/div&gt;</div>
+    <div class="result" id="test5"></div>
+    <div class="status" id="status5"></div>
+  </div>
+
+  <div class="test-case">
+    <h3>Test 6: JSON Data with Malicious Content</h3>
+    <div class="payload">Payload: {"name": "&lt;script&gt;alert('XSS')&lt;/script&gt;", "email": "test@example.com"}</div>
+    <div class="result" id="test6"></div>
+    <div class="status" id="status6"></div>
+  </div>
+
+  <div class="test-case">
+    <h3>Test 7: Safe HTML (Should Pass)</h3>
+    <div class="payload">Payload: &lt;p&gt;Hello &lt;strong&gt;World&lt;/strong&gt;&lt;/p&gt;</div>
+    <div class="result" id="test7"></div>
+    <div class="status" id="status7"></div>
+  </div>
+
+  <div class="test-case">
+    <h3>Test 8: Form Field with Malicious Placeholder</h3>
+    <div class="payload">Payload: &lt;input type="text" placeholder="&lt;script&gt;alert('XSS')&lt;/script&gt;"&gt;</div>
+    <div class="result" id="test8"></div>
+    <div class="status" id="status8"></div>
+  </div>
+
+  <script type="module">
+    import {
+      sanitizeHtml,
+      sanitizeJson,
+      sanitizeUrl,
+      setSafeInnerHTML,
+      DOMPurify
+    } from './static/src/js/modules/sanitize.js';
+
+    // Test payloads
+    const tests = [
+      {
+        id: 1,
+        payload: '<script>alert("XSS")</script>',
+        shouldContain: 'script',
+        shouldNotExecute: true
+      },
+      {
+        id: 2,
+        payload: '<img src=x onerror="alert(\'XSS\')">',
+        shouldContain: 'img',
+        shouldNotExecute: true
+      },
+      {
+        id: 3,
+        payload: '<a href="javascript:alert(\'XSS\')">Click</a>',
+        shouldContain: 'Click',
+        shouldNotExecute: true
+      },
+      {
+        id: 4,
+        payload: '<a href="data:text/html,<script>alert(\'XSS\')</script>">Click</a>',
+        shouldContain: 'Click',
+        shouldNotExecute: true
+      },
+      {
+        id: 5,
+        payload: '<div onclick="alert(\'XSS\')">Click me</div>',
+        shouldContain: 'Click me',
+        shouldNotExecute: true
+      },
+      {
+        id: 6,
+        payload: {name: '<script>alert("XSS")</script>', email: 'test@example.com'},
+        isJson: true,
+        shouldNotExecute: true
+      },
+      {
+        id: 7,
+        payload: '<p>Hello <strong>World</strong></p>',
+        shouldContain: 'strong',
+        shouldNotExecute: false // This is safe HTML
+      },
+      {
+        id: 8,
+        payload: '<input type="text" placeholder="<script>alert(\'XSS\')</script>">',
+        shouldNotExecute: true
+      }
+    ];
+
+    // Track XSS attempts
+    let xssAttempts = 0;
+    window.alert = function(msg) {
+      xssAttempts++;
+      console.error('XSS ATTEMPT BLOCKED:', msg);
+    };
+
+    // Run tests
+    tests.forEach(test => {
+      const resultEl = document.getElementById(`test${test.id}`);
+      const statusEl = document.getElementById(`status${test.id}`);
+
+      try {
+        if (test.isJson) {
+          // Test JSON sanitization
+          const sanitized = sanitizeJson(test.payload);
+          resultEl.textContent = sanitized;
+
+          // Check if the result is safe
+          const hasDangerousChars = sanitized.includes('<') || sanitized.includes('>');
+          if (!hasDangerousChars) {
+            statusEl.className = 'status pass';
+            statusEl.textContent = '✓ PASS - JSON properly escaped';
+          } else {
+            statusEl.className = 'status fail';
+            statusEl.textContent = '✗ FAIL - Dangerous characters not escaped';
+          }
+        } else {
+          // Test HTML sanitization
+          const sanitized = sanitizeHtml(test.payload);
+          setSafeInnerHTML(resultEl, sanitized);
+
+          // Check the sanitized output
+          const innerHTML = resultEl.innerHTML;
+          const hasScript = innerHTML.toLowerCase().includes('<script');
+          const hasOnerror = innerHTML.toLowerCase().includes('onerror');
+          const hasJsProtocol = innerHTML.toLowerCase().includes('javascript:');
+          const hasDataProtocol = innerHTML.toLowerCase().includes('data:');
+          const hasOnclick = innerHTML.toLowerCase().includes('onclick');
+
+          if (test.shouldNotExecute) {
+            const isDangerous = hasScript || hasOnerror || hasJsProtocol || hasDataProtocol || hasOnclick;
+            if (!isDangerous) {
+              statusEl.className = 'status pass';
+              statusEl.textContent = '✓ PASS - XSS payload neutralized';
+            } else {
+              statusEl.className = 'status fail';
+              statusEl.textContent = '✗ FAIL - Dangerous content detected';
+            }
+          } else {
+            // Safe HTML test
+            if (test.shouldContain && innerHTML.includes(test.shouldContain)) {
+              statusEl.className = 'status pass';
+              statusEl.textContent = '✓ PASS - Safe HTML preserved';
+            } else {
+              statusEl.className = 'status fail';
+              statusEl.textContent = '✗ FAIL - Safe HTML removed incorrectly';
+            }
+          }
+        }
+      } catch (error) {
+        statusEl.className = 'status fail';
+        statusEl.textContent = `✗ ERROR: ${error.message}`;
+      }
+    });
+
+    // Check for any XSS executions
+    setTimeout(() => {
+      if (xssAttempts > 0) {
+        alert(`CRITICAL: ${xssAttempts} XSS attempts executed! Sanitization FAILED.`);
+      } else {
+        console.log('✓ All XSS attempts blocked successfully!');
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
