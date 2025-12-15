@@ -72,11 +72,12 @@ export default async function handler(req, context) {
     await clearFailedAttempts(email);
 
     // Check email verification status
-    if (!user.emailVerified) {
-      return errorResponse(ErrorCodes.AUTH_EMAIL_NOT_VERIFIED, { ...headers, ...getRateLimitHeaders(rateLimit) }, {
-        details: { email: user.email }
-      });
-    }
+    // TODO: Re-enable after setting up RESEND_API_KEY
+    // if (!user.emailVerified) {
+    //   return errorResponse(ErrorCodes.AUTH_EMAIL_NOT_VERIFIED, { ...headers, ...getRateLimitHeaders(rateLimit) }, {
+    //     details: { email: user.email }
+    //   });
+    // }
 
     // Create JWT token
     const token = createToken({ id: user.id, email: user.email });
