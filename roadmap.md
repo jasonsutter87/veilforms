@@ -68,13 +68,14 @@
 
 ## Next Up
 
-### Architecture Migration (Hybrid Stack)
-- [ ] Create Next.js app for `app.veilforms.com`
-- [ ] Migrate Netlify Functions → Next.js API routes
+### Full Next.js Migration
+- [ ] Create Next.js app (`npx create-next-app@latest`)
+- [ ] Migrate Netlify Functions → `/app/api/` routes
 - [ ] Migrate dashboard HTML/JS → React components
-- [ ] Keep Hugo for marketing site (`veilforms.com`)
-- [ ] Update auth redirects to point to app subdomain
-- [ ] Benefit: Better DX, proper bundling, no CSP/module hacks
+- [ ] Migrate marketing pages (landing, pricing, docs) → static Next.js pages
+- [ ] Keep SCSS styles, Netlify Blobs storage
+- [ ] Deploy to Vercel or Netlify
+- [ ] Benefit: One stack, better DX, proper bundling, scales properly
 
 ### Visual Form Builder
 - [ ] Drag-and-drop field ordering
