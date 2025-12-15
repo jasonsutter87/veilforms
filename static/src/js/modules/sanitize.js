@@ -3,7 +3,8 @@
  * XSS protection using DOMPurify with strict CSP-compatible configuration
  */
 
-import DOMPurify from 'dompurify';
+// Use global DOMPurify loaded from CDN (see baseof.html)
+const DOMPurify = window.DOMPurify;
 
 /**
  * Configure DOMPurify with strict security settings for VeilForms
