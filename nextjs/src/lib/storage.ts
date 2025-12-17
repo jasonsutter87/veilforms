@@ -1,0 +1,621 @@
+/**
+ * VeilForms - Storage Library
+ * Netlify Blobs storage operations for users, forms, submissions, etc.
+ */
+
+import { getStore } from "@netlify/blobs";
+
+// Store names
+const STORES = {
+  USERS: "vf-users",
+  FORMS: "vf-forms",
+  SUBMISSIONS: "vf-submissions",
+  API_KEYS: "vf-api-keys",
+  PASSWORD_RESET_TOKENS: "vf-password-reset-tokens",
+  EMAIL_VERIFICATION_TOKENS: "vf-email-verification-tokens",
+};
+
+// Type definitions
+export interface User {
+  id: string;
+  email: string;
+  passwordHash: string | null;
+  oauthProvider?: string;
+  oauthProviderId?: string;
+  name?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  subscription: string;
+  forms: string[];
+  emailVerified: boolean;
+  emailVerifiedAt: string | null;
+}
+
+export interface Form {
+  id: string;
+  userId: string;
+  name: string;
+  publicKey: string;
+  settings: FormSettings;
+  submissionCount: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface FormSettings {
+  encryption: boolean;
+  piiStrip: boolean;
+  webhookUrl: string | null;
+  allowedOrigins: string[];
+  spamProtection: {
+    honeypot: boolean;
+    recaptcha: {
+      enabled: boolean;
+      siteKey: string;
+      secretKey: string;
+      threshold: number;
+    };
+  };
+  [key: string]: unknown;
+}
+
+export interface Submission {
+  id: string;
+  formId: string;
+  encryptedData: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface ApiKeyData {
+  userId: string;
+  keyHash: string;
+  permissions: string[];
+  createdAt: string;
+  lastUsed: string | null;
+}
+
+export interface TokenData {
+  email: string;
+  createdAt: string;
+  expiresAt: string;
+  token?: string;
+}
+
+// Get a store instance
+function store(name: string) {
+  return getStore({ name, consistency: "strong" });
+}
+
+// === USER OPERATIONS ===
+
+export async function createUser(
+  email: string,
+  passwordHash: string
+): Promise<User> {
+  const users = store(STORES.USERS);
+  const userId =
+    "user_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+
+  const user: User = {
+    id: userId,
+    email: email.toLowerCase(),
+    passwordHash,
+    createdAt: new Date().toISOString(),
+    subscription: "free",
+    forms: [],
+    emailVerified: false,
+    emailVerifiedAt: null,
+  };
+
+  await users.setJSON(email.toLowerCase(), user);
+  await users.setJSON(`id_${userId}`, { email: email.toLowerCase() });
+
+  return user;
+}
+
+export async function getUser(email: string): Promise<User | null> {
+  const users = store(STORES.USERS);
+  try {
+    return (await users.get(email.toLowerCase(), { type: "json" })) as User | null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getUserById(userId: string): Promise<User | null> {
+  const users = store(STORES.USERS);
+  try {
+    const mapping = (await users.get(`id_${userId}`, { type: "json" })) as {
+      email: string;
+    } | null;
+    if (mapping?.email) {
+      return await getUser(mapping.email);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateUser(
+  email: string,
+  updates: Partial<User>
+): Promise<User | null> {
+  const users = store(STORES.USERS);
+  const user = await getUser(email);
+  if (!user) return null;
+
+  const updated: User = {
+    ...user,
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+  await users.setJSON(email.toLowerCase(), updated);
+  return updated;
+}
+
+export async function createOAuthUser(
+  email: string,
+  provider: string,
+  providerId: string,
+  name: string | null = null
+): Promise<User> {
+  const users = store(STORES.USERS);
+  const userId =
+    "user_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+
+  const user: User = {
+    id: userId,
+    email: email.toLowerCase(),
+    passwordHash: null,
+    oauthProvider: provider,
+    oauthProviderId: providerId,
+    name,
+    createdAt: new Date().toISOString(),
+    subscription: "free",
+    forms: [],
+    emailVerified: true,
+    emailVerifiedAt: new Date().toISOString(),
+  };
+
+  await users.setJSON(email.toLowerCase(), user);
+  await users.setJSON(`id_${userId}`, { email: email.toLowerCase() });
+
+  return user;
+}
+
+// === PASSWORD RESET TOKEN OPERATIONS ===
+
+export async function createPasswordResetToken(
+  email: string,
+  token: string
+): Promise<TokenData> {
+  const tokens = store(STORES.PASSWORD_RESET_TOKENS);
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
+
+  const tokenData: TokenData = {
+    email: email.toLowerCase(),
+    createdAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+  };
+
+  await tokens.setJSON(token, tokenData);
+  return tokenData;
+}
+
+export async function getPasswordResetToken(
+  token: string
+): Promise<TokenData | null> {
+  const tokens = store(STORES.PASSWORD_RESET_TOKENS);
+  try {
+    const tokenData = (await tokens.get(token, { type: "json" })) as TokenData | null;
+    if (!tokenData) return null;
+
+    if (new Date(tokenData.expiresAt) < new Date()) {
+      await deletePasswordResetToken(token);
+      return null;
+    }
+
+    return tokenData;
+  } catch {
+    return null;
+  }
+}
+
+export async function deletePasswordResetToken(token: string): Promise<boolean> {
+  const tokens = store(STORES.PASSWORD_RESET_TOKENS);
+  await tokens.delete(token);
+  return true;
+}
+
+// === EMAIL VERIFICATION TOKEN OPERATIONS ===
+
+export async function createEmailVerificationToken(
+  email: string,
+  token: string
+): Promise<TokenData> {
+  const tokens = store(STORES.EMAIL_VERIFICATION_TOKENS);
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+
+  const tokenData: TokenData = {
+    email: email.toLowerCase(),
+    createdAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+  };
+
+  await tokens.setJSON(token, tokenData);
+  await tokens.setJSON(`email_${email.toLowerCase()}`, { token, ...tokenData });
+
+  return tokenData;
+}
+
+export async function getEmailVerificationToken(
+  token: string
+): Promise<TokenData | null> {
+  const tokens = store(STORES.EMAIL_VERIFICATION_TOKENS);
+  try {
+    const tokenData = (await tokens.get(token, { type: "json" })) as TokenData | null;
+    if (!tokenData) return null;
+
+    if (new Date(tokenData.expiresAt) < new Date()) {
+      await deleteEmailVerificationToken(token);
+      return null;
+    }
+
+    return tokenData;
+  } catch {
+    return null;
+  }
+}
+
+export async function getEmailVerificationTokenByEmail(
+  email: string
+): Promise<(TokenData & { token: string }) | null> {
+  const tokens = store(STORES.EMAIL_VERIFICATION_TOKENS);
+  try {
+    const data = (await tokens.get(`email_${email.toLowerCase()}`, {
+      type: "json",
+    })) as (TokenData & { token: string }) | null;
+    if (!data) return null;
+
+    if (new Date(data.expiresAt) < new Date()) {
+      await deleteEmailVerificationToken(data.token);
+      return null;
+    }
+
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteEmailVerificationToken(
+  token: string
+): Promise<boolean> {
+  const tokens = store(STORES.EMAIL_VERIFICATION_TOKENS);
+
+  try {
+    const tokenData = (await tokens.get(token, { type: "json" })) as TokenData | null;
+    if (tokenData) {
+      await tokens.delete(`email_${tokenData.email}`);
+    }
+  } catch {
+    // Ignore
+  }
+
+  await tokens.delete(token);
+  return true;
+}
+
+// === FORM OPERATIONS ===
+
+export async function createForm(
+  userId: string,
+  formData: {
+    name: string;
+    publicKey: string;
+    settings?: Partial<FormSettings>;
+  }
+): Promise<Form> {
+  const forms = store(STORES.FORMS);
+  const formId =
+    "vf_" +
+    Date.now().toString(36) +
+    "_" +
+    Math.random().toString(36).substr(2, 6);
+
+  const form: Form = {
+    id: formId,
+    userId,
+    name: formData.name,
+    publicKey: formData.publicKey,
+    settings: {
+      encryption: true,
+      piiStrip: formData.settings?.piiStrip || false,
+      webhookUrl: formData.settings?.webhookUrl || null,
+      allowedOrigins: formData.settings?.allowedOrigins || ["*"],
+      spamProtection: {
+        honeypot: formData.settings?.spamProtection?.honeypot !== false,
+        recaptcha: {
+          enabled:
+            formData.settings?.spamProtection?.recaptcha?.enabled || false,
+          siteKey:
+            formData.settings?.spamProtection?.recaptcha?.siteKey || "",
+          secretKey:
+            formData.settings?.spamProtection?.recaptcha?.secretKey || "",
+          threshold:
+            formData.settings?.spamProtection?.recaptcha?.threshold || 0.5,
+        },
+      },
+      ...formData.settings,
+    },
+    submissionCount: 0,
+    createdAt: new Date().toISOString(),
+  };
+
+  await forms.setJSON(formId, form);
+
+  // Add to user's form list
+  const userFormsKey = `user_forms_${userId}`;
+  let userForms: string[] = [];
+  try {
+    userForms =
+      ((await forms.get(userFormsKey, { type: "json" })) as string[] | null) || [];
+  } catch {
+    userForms = [];
+  }
+  userForms.push(formId);
+  await forms.setJSON(userFormsKey, userForms);
+
+  return form;
+}
+
+export async function getForm(formId: string): Promise<Form | null> {
+  const forms = store(STORES.FORMS);
+  try {
+    return (await forms.get(formId, { type: "json" })) as Form | null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateForm(
+  formId: string,
+  updates: Partial<Form>
+): Promise<Form | null> {
+  const forms = store(STORES.FORMS);
+  const form = await getForm(formId);
+  if (!form) return null;
+
+  const updated: Form = {
+    ...form,
+    ...updates,
+    settings: { ...form.settings, ...(updates.settings || {}) },
+    updatedAt: new Date().toISOString(),
+  };
+  await forms.setJSON(formId, updated);
+  return updated;
+}
+
+export async function deleteForm(
+  formId: string,
+  userId: string
+): Promise<boolean> {
+  const forms = store(STORES.FORMS);
+
+  await forms.delete(formId);
+
+  // Remove from user's form list
+  const userFormsKey = `user_forms_${userId}`;
+  let userForms: string[] = [];
+  try {
+    userForms =
+      ((await forms.get(userFormsKey, { type: "json" })) as string[] | null) || [];
+  } catch {
+    userForms = [];
+  }
+  userForms = userForms.filter((id) => id !== formId);
+  await forms.setJSON(userFormsKey, userForms);
+
+  return true;
+}
+
+export async function getUserForms(userId: string): Promise<Form[]> {
+  const forms = store(STORES.FORMS);
+  const userFormsKey = `user_forms_${userId}`;
+
+  try {
+    const formIds =
+      ((await forms.get(userFormsKey, { type: "json" })) as string[] | null) || [];
+    const formDetails = await Promise.all(formIds.map((id) => getForm(id)));
+    return formDetails.filter((f): f is Form => f !== null);
+  } catch {
+    return [];
+  }
+}
+
+// === API KEY OPERATIONS ===
+
+export async function createApiKey(
+  userId: string,
+  keyHash: string,
+  permissions: string[] = [
+    "forms:read",
+    "forms:write",
+    "submissions:read",
+    "submissions:delete",
+  ]
+): Promise<ApiKeyData> {
+  const keys = store(STORES.API_KEYS);
+
+  const keyData: ApiKeyData = {
+    userId,
+    keyHash,
+    permissions,
+    createdAt: new Date().toISOString(),
+    lastUsed: null,
+  };
+
+  await keys.setJSON(keyHash, keyData);
+
+  // Add to user's key list
+  const userKeysKey = `user_keys_${userId}`;
+  let userKeys: string[] = [];
+  try {
+    userKeys =
+      ((await keys.get(userKeysKey, { type: "json" })) as string[] | null) || [];
+  } catch {
+    userKeys = [];
+  }
+  userKeys.push(keyHash);
+  await keys.setJSON(userKeysKey, userKeys);
+
+  return keyData;
+}
+
+export async function getApiKeyData(
+  keyHash: string
+): Promise<ApiKeyData | null> {
+  const keys = store(STORES.API_KEYS);
+  try {
+    return (await keys.get(keyHash, { type: "json" })) as ApiKeyData | null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateApiKeyLastUsed(
+  keyHash: string
+): Promise<ApiKeyData | null> {
+  const keys = store(STORES.API_KEYS);
+  const keyData = await getApiKeyData(keyHash);
+  if (!keyData) return null;
+
+  keyData.lastUsed = new Date().toISOString();
+  await keys.setJSON(keyHash, keyData);
+  return keyData;
+}
+
+export async function revokeApiKey(
+  keyHash: string,
+  userId: string
+): Promise<boolean> {
+  const keys = store(STORES.API_KEYS);
+
+  await keys.delete(keyHash);
+
+  // Remove from user's key list
+  const userKeysKey = `user_keys_${userId}`;
+  let userKeys: string[] = [];
+  try {
+    userKeys =
+      ((await keys.get(userKeysKey, { type: "json" })) as string[] | null) || [];
+  } catch {
+    userKeys = [];
+  }
+  userKeys = userKeys.filter((k) => k !== keyHash);
+  await keys.setJSON(userKeysKey, userKeys);
+
+  return true;
+}
+
+// === SUBMISSION OPERATIONS ===
+
+interface SubmissionIndex {
+  submissions: Array<{ id: string; createdAt: string }>;
+}
+
+interface SubmissionsResult {
+  submissions: Submission[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function getSubmissions(
+  formId: string,
+  limit = 50,
+  offset = 0
+): Promise<SubmissionsResult> {
+  const submissions = store(`veilforms-${formId}`);
+
+  try {
+    const index =
+      ((await submissions.get("_index", {
+        type: "json",
+      })) as SubmissionIndex | null) || { submissions: [] };
+
+    const slice = index.submissions.slice(offset, offset + limit);
+    const submissionData = await Promise.all(
+      slice.map(async (item) => {
+        return (await submissions.get(item.id, { type: "json" })) as Submission | null;
+      })
+    );
+
+    return {
+      submissions: submissionData.filter((s): s is Submission => s !== null),
+      total: index.submissions.length,
+      limit,
+      offset,
+    };
+  } catch {
+    return { submissions: [], total: 0, limit, offset };
+  }
+}
+
+export async function getSubmission(
+  formId: string,
+  submissionId: string
+): Promise<Submission | null> {
+  const submissions = store(`veilforms-${formId}`);
+  try {
+    return (await submissions.get(submissionId, { type: "json" })) as Submission | null;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteSubmission(
+  formId: string,
+  submissionId: string
+): Promise<boolean> {
+  const submissions = store(`veilforms-${formId}`);
+
+  await submissions.delete(submissionId);
+
+  // Update index
+  try {
+    const index =
+      ((await submissions.get("_index", {
+        type: "json",
+      })) as SubmissionIndex | null) || { submissions: [] };
+    index.submissions = index.submissions.filter((s) => s.id !== submissionId);
+    await submissions.setJSON("_index", index);
+  } catch (e) {
+    console.warn("Index update failed:", e);
+  }
+
+  return true;
+}
+
+export async function deleteAllSubmissions(formId: string): Promise<number> {
+  const submissions = store(`veilforms-${formId}`);
+
+  try {
+    const index =
+      ((await submissions.get("_index", {
+        type: "json",
+      })) as SubmissionIndex | null) || { submissions: [] };
+    const count = index.submissions.length;
+
+    await Promise.all(index.submissions.map((s) => submissions.delete(s.id)));
+    await submissions.setJSON("_index", { submissions: [] });
+
+    return count;
+  } catch {
+    return 0;
+  }
+}

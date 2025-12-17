@@ -1,0 +1,328 @@
+// Auth Pages Styles (Login, Register, Forgot, Reset)
+
+.auth-page {
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+
+  @media (max-width: 768px) {
+    padding: 24px 16px;
+    min-height: calc(100vh - 160px);
+  }
+}
+
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+
+  h1 {
+    font-size: 1.75rem;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    border: none;
+    cursor: pointer;
+    margin-top: 8px;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 24px;
+
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    .subtitle {
+      margin-bottom: 24px;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+// Form Elements
+.form-group {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 1rem;
+
+    &:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+  }
+
+  small {
+    display: block;
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+}
+
+// Auth Links
+.auth-links {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+
+  a {
+    color: var(--primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  p + p {
+    margin-top: 12px;
+  }
+}
+
+// Messages
+.error-message,
+.message.error {
+  background: var(--danger-light);
+  border: 1px solid var(--danger-border);
+  color: #f87171;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.875rem;
+  display: none;
+
+  &.show {
+    display: block;
+  }
+}
+
+.success-message,
+.message.success {
+  background: var(--success-light);
+  border: 1px solid var(--success-border);
+  color: #34d399;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.875rem;
+  display: none;
+
+  &.show {
+    display: block;
+  }
+}
+
+// Feature List (Register page)
+.feature-list {
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: var(--bg);
+  border-radius: 8px;
+
+  li {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 8px;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &::before {
+      content: '\2713';
+      color: var(--success);
+    }
+  }
+
+  @media (max-width: 768px) {
+    margin-bottom: 20px;
+    padding: 12px 16px;
+
+    li {
+      font-size: 0.8125rem;
+    }
+  }
+}
+
+// Password Strength Indicator
+.password-strength {
+  margin-top: 12px;
+
+  small {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+}
+
+.password-requirements {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+
+  li {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &::before {
+      content: '\2717';
+      color: var(--danger);
+      font-size: 0.625rem;
+    }
+
+    &.valid {
+      color: var(--success);
+
+      &::before {
+        content: '\2713';
+        color: var(--success);
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Email Verification Page
+.verify-status {
+  text-align: center;
+
+  h1 {
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    margin-bottom: 24px;
+  }
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  margin: 0 auto 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.success-icon,
+.error-icon,
+.info-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.success-icon {
+  background: var(--success-light);
+  border: 2px solid var(--success);
+  color: var(--success);
+}
+
+.error-icon {
+  background: var(--danger-light);
+  border: 2px solid var(--danger);
+  color: var(--danger);
+}
+
+.info-icon {
+  background: var(--primary-light);
+  border: 2px solid var(--primary);
+  color: var(--primary);
+}
+
+.verify-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+
+  .btn-secondary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+
+    &:hover {
+      background: var(--bg);
+    }
+  }
+}
+
+.resend-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+
+  p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+  }
+
+  .success-message,
+  .error-message {
+    margin-top: 16px;
+    margin-bottom: 0;
+  }
+}

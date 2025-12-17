@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npx create-next-app@latest:*)"
+    ]
+  }
+}

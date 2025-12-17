@@ -1,0 +1,115 @@
+// Button Mixins
+@mixin btn {
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+@mixin btn-small {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+@mixin btn-medium {
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+@mixin btn-large {
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+@mixin btn-full {
+  width: 100%;
+  font-size: 16px;
+}
+
+@mixin btn-base {
+  @include btn;
+  @include btn-medium;
+
+  &.btn-small {
+    @include btn-small;
+  }
+
+  &.btn-large {
+    @include btn-large;
+  }
+
+  &.btn-full {
+    @include btn-full;
+  }
+}
+
+// Primary Button
+.btn, .btn-primary {
+  @include btn-base;
+  background: var(--primary);
+  color: white;
+
+  &:hover {
+    background: var(--primary-hover);
+    color: white;
+    text-decoration: none;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Outline Button
+.btn-outline {
+  @include btn-base;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+
+  &:hover {
+    border-color: var(--text-muted);
+    color: var(--text);
+    text-decoration: none;
+  }
+}
+
+// Ghost Button (no border)
+.btn-ghost {
+  @include btn-base;
+  background: transparent;
+  color: var(--text-muted);
+
+  &:hover {
+    color: var(--text);
+    text-decoration: none;
+  }
+}
+
+// Success Button
+.btn-success {
+  @include btn-base;
+  background: var(--success);
+  color: white;
+
+  &:hover {
+    background: darken(#10b981, 10%);
+  }
+}
+
+// Danger Button
+.btn-danger {
+  @include btn-base;
+  background: var(--danger);
+  color: white;
+
+  &:hover {
+    background: darken(#ef4444, 10%);
+  }
+}
