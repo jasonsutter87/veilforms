@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@netlify/blobs";
-import { getForm, updateForm, getUserById } from "@/lib/storage";
+import { updateForm, getUserById } from "@/lib/storage";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { fireWebhookWithRetry } from "@/lib/webhook-retry";
 import {
@@ -16,14 +16,8 @@ import {
 } from "@/lib/idempotency";
 import { isValidFormId, isValidSubmissionId } from "@/lib/validation";
 import { errorResponse, ErrorCodes } from "@/lib/errors";
-
-// Subscription limits
-const SUBMISSION_LIMITS: Record<string, number> = {
-  free: 100,
-  starter: 1000,
-  pro: 10000,
-  enterprise: Infinity,
-};
+import { getFormForSubmission } from "@/lib/form-helpers";
+import { getSubmissionLimit } from "@/lib/subscription-limits";
 
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
 
@@ -197,24 +191,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Get form and validate it exists
-    const form = await getForm(formId);
-    if (!form) {
-      return errorResponse(ErrorCodes.RESOURCE_NOT_FOUND, {
-        message: "Form not found",
-        hint: "The form ID may be incorrect or the form has been deleted.",
-      });
+    // Get form and validate it exists and is active
+    const { form, error } = await getFormForSubmission(formId);
+    if (error) {
+      return error;
     }
 
-    // Check if form is active
+    // Check if form is paused (getFormForSubmission already checks for deleted)
     const formStatus = (form as { status?: string }).status;
-    if (formStatus === "deleted" || formStatus === "paused") {
+    if (formStatus === "paused") {
       return errorResponse(ErrorCodes.RESOURCE_FORBIDDEN, {
         message: "Form is not accepting submissions",
-        hint:
-          formStatus === "deleted"
-            ? "This form has been deleted."
-            : "This form is currently paused.",
+        hint: "This form is currently paused.",
       });
     }
 
@@ -297,7 +285,7 @@ export async function POST(req: NextRequest) {
     // Check submission limits based on user's subscription
     const user = await getUserById(form.userId);
     const subscription = user?.subscription || "free";
-    const limit = SUBMISSION_LIMITS[subscription] || SUBMISSION_LIMITS.free;
+    const limit = getSubmissionLimit(subscription);
     if ((form.submissionCount || 0) >= limit) {
       return errorResponse(ErrorCodes.QUOTA_EXCEEDED, {
         message: "Submission limit reached for this form",

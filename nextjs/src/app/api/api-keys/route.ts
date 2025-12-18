@@ -6,8 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@netlify/blobs";
-import { authenticateRequest } from "@/lib/auth";
-import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
+import { authRoute } from "@/lib/route-handler";
 import { errorResponse, ErrorCodes } from "@/lib/errors";
 
 const API_KEYS_STORE = "vf-api-keys";
@@ -45,27 +44,9 @@ async function hashApiKey(key: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export async function GET(req: NextRequest) {
-  // Rate limit
-  const rateLimit = await checkRateLimit(req, {
-    keyPrefix: "api-keys",
-    maxRequests: 20,
-  });
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: "Too many requests", retryAfter: rateLimit.retryAfter },
-      { status: 429, headers: getRateLimitHeaders(rateLimit) }
-    );
-  }
-
-  // Authenticate
-  const auth = await authenticateRequest(req);
-  if (auth.error) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
-
+export const GET = authRoute(async (req, { user }) => {
   const store = getStore({ name: API_KEYS_STORE, consistency: "strong" });
-  const userKeysKey = `user_keys_${auth.user!.userId}`;
+  const userKeysKey = `user_keys_${user.userId}`;
 
   try {
     let keys: Array<{
@@ -107,27 +88,9 @@ export async function GET(req: NextRequest) {
     console.error("List API keys error:", err);
     return errorResponse(ErrorCodes.SERVER_ERROR);
   }
-}
+}, { rateLimit: { keyPrefix: "api-keys", maxRequests: 20 } });
 
-export async function POST(req: NextRequest) {
-  // Rate limit
-  const rateLimit = await checkRateLimit(req, {
-    keyPrefix: "api-keys",
-    maxRequests: 20,
-  });
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: "Too many requests", retryAfter: rateLimit.retryAfter },
-      { status: 429, headers: getRateLimitHeaders(rateLimit) }
-    );
-  }
-
-  // Authenticate
-  const auth = await authenticateRequest(req);
-  if (auth.error) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
-
+export const POST = authRoute(async (req, { user }) => {
   const store = getStore({ name: API_KEYS_STORE, consistency: "strong" });
 
   try {
@@ -167,7 +130,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check limit (max 5 keys per user on free plan)
-    const userKeysKey = `user_keys_${auth.user!.userId}`;
+    const userKeysKey = `user_keys_${user.userId}`;
     let existingKeys: string[] = [];
     try {
       existingKeys =
@@ -192,7 +155,7 @@ export async function POST(req: NextRequest) {
     const keyHash = await hashApiKey(rawKey);
 
     const keyData: ApiKeyData = {
-      userId: auth.user!.userId,
+      userId: user.userId,
       name: name.trim(),
       prefix: rawKey.substring(0, 7) + "...",
       keyHash,
@@ -226,4 +189,4 @@ export async function POST(req: NextRequest) {
     console.error("Create API key error:", err);
     return errorResponse(ErrorCodes.SERVER_ERROR);
   }
-}
+}, { rateLimit: { keyPrefix: "api-keys", maxRequests: 20 } });

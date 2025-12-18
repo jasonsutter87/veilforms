@@ -3,6 +3,8 @@
  * ID format validators and input sanitizers
  */
 
+import { validatePasswordStrength } from "./auth";
+
 // ID format patterns
 const ID_PATTERNS = {
   // Form ID: vf_abc123 or vf_abc_123
@@ -191,27 +193,26 @@ export function validateBranding(branding: unknown): ValidationResult {
 
 /**
  * Validate password meets requirements
- * - At least 12 characters
- * - Contains uppercase letter
- * - Contains lowercase letter
- * - Contains number
+ * Delegates to the comprehensive validation in auth.ts
+ *
+ * Note: This is a wrapper that converts the auth.ts validation result
+ * to the single-error format used by this module.
  */
 export function validatePassword(password: unknown): ValidationResult {
   if (!password || typeof password !== "string") {
     return { valid: false, error: "Password is required" };
   }
-  if (password.length < 12) {
-    return { valid: false, error: "Password must be at least 12 characters" };
+
+  // Use the comprehensive validation from auth.ts
+  const result = validatePasswordStrength(password);
+
+  if (!result.valid) {
+    return {
+      valid: false,
+      error: result.errors.join(", "),
+    };
   }
-  if (!/[A-Z]/.test(password)) {
-    return { valid: false, error: "Password must contain an uppercase letter" };
-  }
-  if (!/[a-z]/.test(password)) {
-    return { valid: false, error: "Password must contain a lowercase letter" };
-  }
-  if (!/[0-9]/.test(password)) {
-    return { valid: false, error: "Password must contain a number" };
-  }
+
   return { valid: true };
 }
 

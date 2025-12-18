@@ -5,36 +5,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
-import { getForm, updateForm } from "@/lib/storage";
+import { updateForm } from "@/lib/storage";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { logAudit, AuditEvents, getAuditContext } from "@/lib/audit";
 import { validateCsrfToken } from "@/lib/csrf";
 import { isValidFormId } from "@/lib/validation";
 import { errorResponse, ErrorCodes } from "@/lib/errors";
+import { generateKeyPair } from "@/lib/encryption";
+import { verifyFormOwnership } from "@/lib/form-helpers";
 
 type RouteParams = { params: Promise<{ id: string }> };
-
-// Generate RSA key pair for form encryption
-async function generateKeyPair(): Promise<{
-  publicKey: JsonWebKey;
-  privateKey: JsonWebKey;
-}> {
-  const keyPair = await crypto.subtle.generateKey(
-    {
-      name: "RSA-OAEP",
-      modulusLength: 2048,
-      publicExponent: new Uint8Array([1, 0, 1]),
-      hash: "SHA-256",
-    },
-    true,
-    ["encrypt", "decrypt"]
-  );
-
-  const publicKey = await crypto.subtle.exportKey("jwk", keyPair.publicKey);
-  const privateKey = await crypto.subtle.exportKey("jwk", keyPair.privateKey);
-
-  return { publicKey, privateKey };
-}
 
 export async function POST(req: NextRequest, { params }: RouteParams) {
   const { id: formId } = await params;
@@ -75,13 +55,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
   try {
     // Get form and verify ownership
-    const form = await getForm(formId);
-    if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
-
-    if (form.userId !== auth.user!.userId) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    const { form, error } = await verifyFormOwnership(formId, auth.user!.userId);
+    if (error) {
+      return error;
     }
 
     // Generate new encryption keys

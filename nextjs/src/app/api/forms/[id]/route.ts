@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
-import { getForm, updateForm } from "@/lib/storage";
+import { updateForm } from "@/lib/storage";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { logAudit, AuditEvents, getAuditContext } from "@/lib/audit";
 import { validateCsrfToken } from "@/lib/csrf";
@@ -20,6 +20,7 @@ import {
   isValidWebhookUrl,
 } from "@/lib/validation";
 import { errorResponse, ErrorCodes } from "@/lib/errors";
+import { verifyFormOwnership } from "@/lib/form-helpers";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -54,13 +55,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
   try {
     // Get form and verify ownership
-    const form = await getForm(formId);
-    if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
-
-    if (form.userId !== auth.user!.userId) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    const { form, error } = await verifyFormOwnership(formId, auth.user!.userId);
+    if (error) {
+      return error;
     }
 
     return NextResponse.json({
@@ -121,13 +118,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
   try {
     // Get form and verify ownership
-    const form = await getForm(formId);
-    if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
-
-    if (form.userId !== auth.user!.userId) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    const { form, error } = await verifyFormOwnership(formId, auth.user!.userId);
+    if (error) {
+      return error;
     }
 
     const body = await req.json();
@@ -291,13 +284,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
   try {
     // Get form and verify ownership
-    const form = await getForm(formId);
-    if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
-
-    if (form.userId !== auth.user!.userId) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    const { form, error } = await verifyFormOwnership(formId, auth.user!.userId);
+    if (error) {
+      return error;
     }
 
     // Soft delete by marking status

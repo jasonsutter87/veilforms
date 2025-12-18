@@ -13,6 +13,7 @@ import {
   getEmailRateLimitHeaders,
 } from "@/lib/email-rate-limit";
 import { errorResponse, ErrorCodes } from "@/lib/errors";
+import { buildResetUrl } from "@/lib/url-helpers";
 
 export async function POST(req: NextRequest) {
   // Stricter rate limit for password reset (3 per minute)
@@ -88,8 +89,7 @@ export async function POST(req: NextRequest) {
     await createPasswordResetToken(email, token);
 
     // Build reset URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://veilforms.com";
-    const resetUrl = `${baseUrl}/reset/?token=${token}`;
+    const resetUrl = buildResetUrl(token);
 
     // Send email
     try {

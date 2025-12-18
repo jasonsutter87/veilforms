@@ -6,6 +6,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import {
+  PASSWORD_REQUIREMENTS,
+  validatePasswordStrength,
+  checkPasswordStrength,
+} from "@/lib/auth";
 
 export interface User {
   id: string;
@@ -39,48 +44,16 @@ interface RegisterResponse {
   details?: string[];
 }
 
-// Password requirements (must match server)
-export const PASSWORD_REQUIREMENTS = {
-  minLength: 12,
-  requireUppercase: true,
-  requireLowercase: true,
-  requireNumber: true,
-};
+// Re-export password utilities from lib for convenience
+export { PASSWORD_REQUIREMENTS, checkPasswordStrength };
 
 // Validate password client-side
+// This wraps validatePasswordStrength to maintain the same interface
 export function validatePassword(password: string): {
   valid: boolean;
   errors: string[];
 } {
-  const errors: string[] = [];
-
-  if (!password || password.length < PASSWORD_REQUIREMENTS.minLength) {
-    errors.push(`At least ${PASSWORD_REQUIREMENTS.minLength} characters`);
-  }
-  if (PASSWORD_REQUIREMENTS.requireUppercase && !/[A-Z]/.test(password)) {
-    errors.push("One uppercase letter");
-  }
-  if (PASSWORD_REQUIREMENTS.requireLowercase && !/[a-z]/.test(password)) {
-    errors.push("One lowercase letter");
-  }
-  if (PASSWORD_REQUIREMENTS.requireNumber && !/[0-9]/.test(password)) {
-    errors.push("One number");
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-}
-
-// Check password strength indicators
-export function checkPasswordStrength(password: string) {
-  return {
-    length: password.length >= PASSWORD_REQUIREMENTS.minLength,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-  };
+  return validatePasswordStrength(password);
 }
 
 export function useAuth() {

@@ -45,6 +45,14 @@ interface AuthResult {
   status?: number;
 }
 
+interface PasswordStrengthIndicators {
+  length: boolean;
+  uppercase: boolean;
+  lowercase: boolean;
+  number: boolean;
+  special?: boolean;
+}
+
 /**
  * Validate password strength
  */
@@ -77,6 +85,24 @@ export function validatePasswordStrength(
   return {
     valid: errors.length === 0,
     errors,
+  };
+}
+
+/**
+ * Check password strength indicators for UI feedback
+ * Returns individual boolean flags for each requirement
+ */
+export function checkPasswordStrength(
+  password: string
+): PasswordStrengthIndicators {
+  return {
+    length: password.length >= PASSWORD_REQUIREMENTS.minLength,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    ...(PASSWORD_REQUIREMENTS.requireSpecial && {
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    }),
   };
 }
 

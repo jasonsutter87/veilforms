@@ -19,6 +19,7 @@ import {
 } from "@/lib/email-rate-limit";
 import { isValidEmail } from "@/lib/validation";
 import { errorResponse, ErrorCodes } from "@/lib/errors";
+import { buildVerificationUrl } from "@/lib/url-helpers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -87,8 +88,7 @@ export async function POST(req: NextRequest) {
     await createEmailVerificationToken(email, verificationToken);
 
     // Build verification URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://veilforms.com";
-    const verifyUrl = `${baseUrl}/verify/?token=${verificationToken}`;
+    const verifyUrl = buildVerificationUrl(verificationToken);
 
     // Send verification email (fire and forget)
     sendEmailVerification(email, verifyUrl).catch((err) => {
