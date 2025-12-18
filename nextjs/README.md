@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VeilForms - Next.js App
 
-## Getting Started
+Privacy-first form builder with client-side encryption. Built with Next.js 16, React 19, and TypeScript.
 
-First, run the development server:
+## Repository
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+https://github.com/jasonsutter87/veilforms.git
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Quick Start
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Install dependencies
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Copy environment template
+cp .env.example .env
 
-## Learn More
+# Start development server
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run test` | Run tests in watch mode |
+| `npm run test:run` | Run tests once |
+| `npm run test:coverage` | Run tests with coverage |
+| `npm run test:e2e` | Run Playwright E2E tests |
+| `npm run lint` | Run ESLint |
 
-## Deploy on Vercel
+## Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Framework**: Next.js 16 (App Router)
+- **UI**: React 19, TypeScript, SCSS
+- **State**: Zustand
+- **Drag & Drop**: @dnd-kit
+- **Storage**: Netlify Blobs
+- **Payments**: Stripe
+- **Testing**: Vitest (617 tests), Playwright (E2E)
+- **Logging**: Pino
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project Structure
+
+```
+nextjs/
+├── src/
+│   ├── app/              # Next.js App Router pages & API routes
+│   ├── components/       # React components
+│   ├── hooks/            # Custom React hooks
+│   ├── lib/              # Core utilities & services
+│   └── store/            # Zustand stores
+├── e2e/                  # Playwright E2E tests
+├── __tests__/            # Test setup & factories
+├── vitest.config.ts      # Vitest configuration
+└── playwright.config.ts  # Playwright configuration
+```
+
+## Architecture Highlights
+
+- **Security**: CSP headers, CORS hardening, input sanitization, JWT entropy validation
+- **Performance**: In-memory caching, bundle splitting, React.memo optimization
+- **DRY**: Route handler wrappers, centralized validation, form ownership helpers
+- **Logging**: Structured Pino logging throughout
+
+## Tests
+
+```bash
+# Run all unit/integration tests
+npm run test:run
+
+# Run with coverage
+npm run test:coverage
+
+# Run E2E tests
+npm run test:e2e
+```
+
+**617 tests passing** across 19 test files.
+
+## Environment Variables
+
+See `.env.example` for required environment variables.
+
+## License
+
+MIT License

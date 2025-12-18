@@ -151,7 +151,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-Current status: **196 tests passing**
+Current status: **617 tests passing** (Next.js app)
 
 ## License
 
