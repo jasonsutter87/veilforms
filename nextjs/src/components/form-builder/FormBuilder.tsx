@@ -11,12 +11,14 @@ import { FieldPalette } from "./FieldPalette";
 import { FormCanvas } from "./FormCanvas";
 import { FieldProperties } from "./FieldProperties";
 import { SortableField } from "./SortableField";
+import { PreviewModal } from "./PreviewModal";
 import type { FormField } from "@/store/dashboard";
 import { useHistory } from "@/hooks/useHistory";
 import { cleanupDeletedFieldReferences } from "@/lib/conditional-logic";
 
 interface FormBuilderProps {
   formId: string;
+  formName: string;
   initialFields?: FormField[];
   onSave: (fields: FormField[]) => Promise<void>;
   onBack: () => void;
@@ -45,7 +47,7 @@ const FIELD_DEFAULTS = Object.freeze({
   divider: Object.freeze({ type: "divider", label: "" }),
 }) as Readonly<Record<string, Readonly<Partial<FormField>>>>;
 
-export function FormBuilder({ formId, initialFields = [], onSave, onBack }: FormBuilderProps) {
+export function FormBuilder({ formId, formName, initialFields = [], onSave, onBack }: FormBuilderProps) {
   const {
     state: fields,
     pushState: setFields,
@@ -58,6 +60,7 @@ export function FormBuilder({ formId, initialFields = [], onSave, onBack }: Form
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const selectedField = fields.find((f) => f.id === selectedFieldId);
 
@@ -227,6 +230,17 @@ export function FormBuilder({ formId, initialFields = [], onSave, onBack }: Form
                     <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"></path>
                   </svg>
                 </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setPreviewOpen(true)}
+                  title="Preview Form"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <span>Preview</span>
+                </button>
                 <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
                   {saving ? "Saving..." : "Save Form"}
                 </button>
@@ -279,6 +293,15 @@ export function FormBuilder({ formId, initialFields = [], onSave, onBack }: Form
           )}
         </DragOverlay>
       </DndContext>
+
+      {/* Preview Modal */}
+      <PreviewModal
+        formId={formId}
+        formName={formName}
+        fields={fields}
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+      />
     </div>
   );
 }

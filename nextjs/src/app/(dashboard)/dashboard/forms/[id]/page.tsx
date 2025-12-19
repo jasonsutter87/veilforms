@@ -9,6 +9,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useDashboardStore, Form, Submission } from "@/store/dashboard";
+import { ExportModal } from "@/components/submissions/ExportModal";
+import type { ExportSubmission } from "@/lib/export";
 
 // Dynamic import for FormBuilder with SSR disabled and loading state
 const FormBuilder = dynamic(
@@ -80,6 +82,9 @@ export default function FormDetailPage() {
   const [decryptKeyInput, setDecryptKeyInput] = useState("");
   const [rememberKey, setRememberKey] = useState(false);
   const [decryptError, setDecryptError] = useState("");
+
+  // Export modal
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   // Load form on mount
   useEffect(() => {
@@ -295,6 +300,9 @@ export default function FormDetailPage() {
               <button className="btn btn-secondary" onClick={handleViewSubmissions}>
                 View Submissions
               </button>
+              <button className="btn btn-secondary" onClick={() => router.push(`/dashboard/forms/${formId}/analytics`)}>
+                View Analytics
+              </button>
               <button className="btn btn-primary" onClick={() => setViewMode("builder")}>
                 Edit Form
               </button>
@@ -460,16 +468,30 @@ export default function FormDetailPage() {
         <div className="submissions-view">
           <div className="submissions-header">
             <h3>Submissions ({submissions.length})</h3>
-            <button
-              className="btn btn-secondary"
-              onClick={() => setDecryptModalOpen(true)}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-              </svg>
-              Decrypt
-            </button>
+            <div className="submissions-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setDecryptModalOpen(true)}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Decrypt
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => setExportModalOpen(true)}
+                disabled={submissions.length === 0}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export
+              </button>
+            </div>
           </div>
 
           {submissionsLoading ? (
@@ -522,6 +544,7 @@ export default function FormDetailPage() {
       {viewMode === "builder" && currentForm && (
         <FormBuilder
           formId={currentForm.id}
+          formName={currentForm.name}
           initialFields={currentForm.fields || []}
           onSave={async (fields) => {
             const token = localStorage.getItem("veilforms_token");
@@ -589,6 +612,29 @@ export default function FormDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        submissions={
+          submissions.map((sub) => ({
+            id: sub.id,
+            createdAt: sub.createdAt,
+            data: sub.decryptedData || {},
+            metadata: sub.metadata,
+          })) as ExportSubmission[]
+        }
+        formInfo={{
+          id: currentForm.id,
+          name: currentForm.name,
+        }}
+        privateKey={decryptionKey}
+        onRequestKey={() => {
+          setExportModalOpen(false);
+          setDecryptModalOpen(true);
+        }}
+      />
     </div>
   );
 }

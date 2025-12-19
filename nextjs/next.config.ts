@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
   },
 
+  // Turbopack configuration (empty to silence migration warning)
+  turbopack: {},
+
   // Webpack configuration for code splitting
   webpack: (config, { isServer }) => {
     if (!isServer) {
