@@ -76,8 +76,8 @@ export const PUT = authRoute(
     }
 
     try {
-      // Get form and verify ownership
-      const { form, error } = await verifyFormOwnership(formId, user.userId);
+      // Get form and verify ownership (requires edit permission)
+      const { form, error } = await verifyFormOwnership(formId, user.userId, 'forms:edit');
       if (error) {
         return error;
       }
@@ -228,8 +228,8 @@ export const DELETE = authRoute(
     }
 
     try {
-      // Get form and verify ownership
-      const { form, error } = await verifyFormOwnership(formId, user.userId);
+      // Get form and verify ownership (requires delete permission)
+      const { form, error } = await verifyFormOwnership(formId, user.userId, 'forms:delete');
       if (error) {
         return error;
       }

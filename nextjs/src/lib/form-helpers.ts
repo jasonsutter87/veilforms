@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { getForm, Form } from "./storage";
 import { errorResponse, ErrorCodes } from "./errors";
+import { verifyTeamMembership, hasTeamPermission, type TeamPermission } from "./teams";
 
 export interface FormOwnershipResult {
   form: Form | null;
@@ -13,11 +14,12 @@ export interface FormOwnershipResult {
 }
 
 /**
- * Verify form exists and user owns it
+ * Verify form exists and user has access (owner or team member)
  */
 export async function verifyFormOwnership(
   formId: string,
-  userId: string
+  userId: string,
+  requiredPermission: TeamPermission = 'forms:view'
 ): Promise<FormOwnershipResult> {
   const form = await getForm(formId);
 
@@ -30,16 +32,25 @@ export async function verifyFormOwnership(
     };
   }
 
-  if (form.userId !== userId) {
-    return {
-      form: null,
-      error: errorResponse(ErrorCodes.RESOURCE_FORBIDDEN, {
-        message: "Access denied"
-      })
-    };
+  // Check direct ownership
+  if (form.userId === userId) {
+    return { form };
   }
 
-  return { form };
+  // Check team access if form belongs to a team
+  if (form.teamId) {
+    const hasAccess = await hasTeamPermission(form.teamId, userId, requiredPermission);
+    if (hasAccess) {
+      return { form };
+    }
+  }
+
+  return {
+    form: null,
+    error: errorResponse(ErrorCodes.RESOURCE_FORBIDDEN, {
+      message: "Access denied"
+    })
+  };
 }
 
 /**
