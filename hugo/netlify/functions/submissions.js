@@ -88,6 +88,12 @@ async function handleGetSingle(formId, submissionId, headers) {
     return response.notFound('Submission not found', headers);
   }
 
+  // SECURITY FIX (VULN-001): Verify submission belongs to this form
+  // Prevents IDOR - attacker cannot access submissions from other forms
+  if (submission.formId !== formId) {
+    return response.notFound('Submission not found', headers);
+  }
+
   return response.success({ submission }, headers);
 }
 
@@ -143,6 +149,12 @@ async function handleDeleteSingle(formId, submissionId, form, headers) {
   // Check submission exists
   const submission = await getSubmission(formId, submissionId);
   if (!submission) {
+    return response.notFound('Submission not found', headers);
+  }
+
+  // SECURITY FIX (VULN-001): Verify submission belongs to this form
+  // Prevents IDOR - attacker cannot delete submissions from other forms
+  if (submission.formId !== formId) {
     return response.notFound('Submission not found', headers);
   }
 
