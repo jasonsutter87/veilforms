@@ -61,6 +61,12 @@ export const AuditEvents = {
   TEAM_MEMBER_JOINED: "team.member_joined",
   TEAM_MEMBER_REMOVED: "team.member_removed",
   TEAM_MEMBER_ROLE_CHANGED: "team.member_role_changed",
+
+  // Domain events
+  DOMAIN_ADDED: "domain.added",
+  DOMAIN_VERIFIED: "domain.verified",
+  DOMAIN_VERIFICATION_FAILED: "domain.verification_failed",
+  DOMAIN_DELETED: "domain.deleted",
 } as const;
 
 export type AuditEventType = (typeof AuditEvents)[keyof typeof AuditEvents];

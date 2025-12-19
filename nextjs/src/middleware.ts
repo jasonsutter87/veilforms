@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  // Handle custom domain routing first
+  const customDomainResponse = await handleCustomDomain(request);
+  if (customDomainResponse) {
+    return customDomainResponse;
+  }
+
   // Only apply to API routes
   if (!request.nextUrl.pathname.startsWith('/api/')) {
     return NextResponse.next();
@@ -31,6 +37,80 @@ export function middleware(request: NextRequest) {
   });
 
   return response;
+}
+
+/**
+ * Handle custom domain routing
+ * Route incoming requests from custom domains to the appropriate user/form
+ */
+async function handleCustomDomain(request: NextRequest): Promise<NextResponse | null> {
+  const hostname = request.headers.get('host') || '';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://veilforms.com';
+  const baseDomain = new URL(baseUrl).hostname;
+
+  // Skip if this is the main VeilForms domain
+  if (hostname === baseDomain || hostname.endsWith(`.${baseDomain}`)) {
+    return null;
+  }
+
+  // Skip if localhost/development
+  if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+    return null;
+  }
+
+  // Extract the clean domain (remove port if present)
+  const domain = hostname.split(':')[0];
+
+  // Dynamic import to avoid issues with edge runtime
+  try {
+    const { getUserIdByDomain, isDomainActive } = await import('@/lib/custom-domains');
+
+    // Check if domain is registered and active
+    const isActive = await isDomainActive(domain);
+    if (!isActive) {
+      // Return a helpful error page
+      return new NextResponse(
+        `
+        <!DOCTYPE html>
+        <html>
+          <head><title>Domain Not Configured</title></head>
+          <body style="font-family: system-ui; max-width: 600px; margin: 100px auto; padding: 20px;">
+            <h1>Domain Not Configured</h1>
+            <p>This domain is not yet verified or configured for VeilForms.</p>
+            <p>If you own this domain, please verify it in your VeilForms dashboard.</p>
+          </body>
+        </html>
+        `,
+        {
+          status: 404,
+          headers: { 'Content-Type': 'text/html' },
+        }
+      );
+    }
+
+    // Get user ID for this domain
+    const userId = await getUserIdByDomain(domain);
+    if (!userId) {
+      return new NextResponse('Domain configuration error', { status: 500 });
+    }
+
+    // Add custom domain headers to the request
+    // These can be used by form submission endpoints to identify the domain
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-veilforms-custom-domain', domain);
+    requestHeaders.set('x-veilforms-domain-user', userId);
+
+    // Allow the request to proceed with the custom headers
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  } catch (error) {
+    console.error('Custom domain middleware error:', error);
+    // On error, just pass through
+    return null;
+  }
 }
 
 /**
@@ -118,5 +198,8 @@ function getCorsHeaders(request: NextRequest): Record<string, string> {
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: [
+    // Match all routes for custom domain handling
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
 };
