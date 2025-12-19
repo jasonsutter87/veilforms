@@ -800,3 +800,267 @@ export async function getTeamForms(teamId: string): Promise<Form[]> {
     }
   }, 'getTeamForms');
 }
+
+// === CRM INTEGRATION OPERATIONS ===
+
+const CRM_STORES = {
+  INTEGRATIONS: "vf-crm-integrations",
+  FORM_INTEGRATIONS: "vf-form-integrations",
+};
+
+export interface CRMIntegrationData {
+  id: string;
+  provider: "salesforce" | "hubspot" | "pipedrive";
+  userId: string;
+  accessToken: string; // encrypted
+  refreshToken: string; // encrypted
+  expiresAt: number;
+  instanceUrl?: string;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export interface FormIntegrationData {
+  id: string;
+  formId: string;
+  integrationId: string;
+  enabled: boolean;
+  fieldMappings: Array<{
+    formField: string;
+    crmField: string;
+    transform?: "none" | "uppercase" | "lowercase" | "date";
+  }>;
+  syncOnSubmit: boolean;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+/**
+ * Create a CRM integration
+ */
+export async function createCRMIntegration(
+  integration: Omit<CRMIntegrationData, "id" | "createdAt">
+): Promise<CRMIntegrationData> {
+  const integrations = store(CRM_STORES.INTEGRATIONS);
+  const integrationId =
+    "crm_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+
+  const newIntegration: CRMIntegrationData = {
+    ...integration,
+    id: integrationId,
+    createdAt: Date.now(),
+  };
+
+  await integrations.setJSON(integrationId, newIntegration);
+
+  // Add to user's integration list
+  const userIntegrationsKey = `user_integrations_${integration.userId}`;
+  let userIntegrations: string[] = [];
+  try {
+    userIntegrations =
+      ((await integrations.get(userIntegrationsKey, { type: "json" })) as string[] | null) || [];
+  } catch {
+    userIntegrations = [];
+  }
+  userIntegrations.push(integrationId);
+  await integrations.setJSON(userIntegrationsKey, userIntegrations);
+
+  return newIntegration;
+}
+
+/**
+ * Get CRM integration by ID
+ */
+export async function getCRMIntegration(
+  integrationId: string
+): Promise<CRMIntegrationData | null> {
+  const integrations = store(CRM_STORES.INTEGRATIONS);
+  try {
+    return (await integrations.get(integrationId, { type: "json" })) as CRMIntegrationData | null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get all CRM integrations for a user
+ */
+export async function getUserCRMIntegrations(
+  userId: string
+): Promise<CRMIntegrationData[]> {
+  const integrations = store(CRM_STORES.INTEGRATIONS);
+  const userIntegrationsKey = `user_integrations_${userId}`;
+
+  try {
+    const integrationIds =
+      ((await integrations.get(userIntegrationsKey, { type: "json" })) as string[] | null) || [];
+    const integrationDetails = await Promise.all(
+      integrationIds.map((id) => getCRMIntegration(id))
+    );
+    return integrationDetails.filter((i): i is CRMIntegrationData => i !== null);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Update CRM integration
+ */
+export async function updateCRMIntegration(
+  integrationId: string,
+  updates: Partial<CRMIntegrationData>
+): Promise<CRMIntegrationData | null> {
+  const integrations = store(CRM_STORES.INTEGRATIONS);
+  const integration = await getCRMIntegration(integrationId);
+  if (!integration) return null;
+
+  const updated: CRMIntegrationData = {
+    ...integration,
+    ...updates,
+    updatedAt: Date.now(),
+  };
+  await integrations.setJSON(integrationId, updated);
+
+  return updated;
+}
+
+/**
+ * Delete CRM integration
+ */
+export async function deleteCRMIntegration(
+  integrationId: string,
+  userId: string
+): Promise<boolean> {
+  const integrations = store(CRM_STORES.INTEGRATIONS);
+
+  await integrations.delete(integrationId);
+
+  // Remove from user's integration list
+  const userIntegrationsKey = `user_integrations_${userId}`;
+  let userIntegrations: string[] = [];
+  try {
+    userIntegrations =
+      ((await integrations.get(userIntegrationsKey, { type: "json" })) as string[] | null) || [];
+  } catch {
+    userIntegrations = [];
+  }
+  userIntegrations = userIntegrations.filter((id) => id !== integrationId);
+  await integrations.setJSON(userIntegrationsKey, userIntegrations);
+
+  return true;
+}
+
+/**
+ * Create form integration
+ */
+export async function createFormIntegration(
+  formIntegration: Omit<FormIntegrationData, "id" | "createdAt">
+): Promise<FormIntegrationData> {
+  const formIntegrations = store(CRM_STORES.FORM_INTEGRATIONS);
+  const formIntegrationId =
+    "fint_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+
+  const newFormIntegration: FormIntegrationData = {
+    ...formIntegration,
+    id: formIntegrationId,
+    createdAt: Date.now(),
+  };
+
+  await formIntegrations.setJSON(formIntegrationId, newFormIntegration);
+
+  // Add to form's integration list
+  const formIntegrationsKey = `form_integrations_${formIntegration.formId}`;
+  let formIntegrationIds: string[] = [];
+  try {
+    formIntegrationIds =
+      ((await formIntegrations.get(formIntegrationsKey, { type: "json" })) as string[] | null) || [];
+  } catch {
+    formIntegrationIds = [];
+  }
+  formIntegrationIds.push(formIntegrationId);
+  await formIntegrations.setJSON(formIntegrationsKey, formIntegrationIds);
+
+  return newFormIntegration;
+}
+
+/**
+ * Get form integration by ID
+ */
+export async function getFormIntegration(
+  formIntegrationId: string
+): Promise<FormIntegrationData | null> {
+  const formIntegrations = store(CRM_STORES.FORM_INTEGRATIONS);
+  try {
+    return (await formIntegrations.get(formIntegrationId, { type: "json" })) as FormIntegrationData | null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get all form integrations for a form
+ */
+export async function getFormIntegrations(
+  formId: string
+): Promise<FormIntegrationData[]> {
+  const formIntegrations = store(CRM_STORES.FORM_INTEGRATIONS);
+  const formIntegrationsKey = `form_integrations_${formId}`;
+
+  try {
+    const formIntegrationIds =
+      ((await formIntegrations.get(formIntegrationsKey, { type: "json" })) as string[] | null) || [];
+    const formIntegrationDetails = await Promise.all(
+      formIntegrationIds.map((id) => getFormIntegration(id))
+    );
+    return formIntegrationDetails.filter((i): i is FormIntegrationData => i !== null);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Update form integration
+ */
+export async function updateFormIntegration(
+  formIntegrationId: string,
+  updates: Partial<FormIntegrationData>
+): Promise<FormIntegrationData | null> {
+  const formIntegrations = store(CRM_STORES.FORM_INTEGRATIONS);
+  const formIntegration = await getFormIntegration(formIntegrationId);
+  if (!formIntegration) return null;
+
+  const updated: FormIntegrationData = {
+    ...formIntegration,
+    ...updates,
+    updatedAt: Date.now(),
+  };
+  await formIntegrations.setJSON(formIntegrationId, updated);
+
+  return updated;
+}
+
+/**
+ * Delete form integration
+ */
+export async function deleteFormIntegration(
+  formIntegrationId: string,
+  formId: string
+): Promise<boolean> {
+  const formIntegrations = store(CRM_STORES.FORM_INTEGRATIONS);
+
+  await formIntegrations.delete(formIntegrationId);
+
+  // Remove from form's integration list
+  const formIntegrationsKey = `form_integrations_${formId}`;
+  let formIntegrationIds: string[] = [];
+  try {
+    formIntegrationIds =
+      ((await formIntegrations.get(formIntegrationsKey, { type: "json" })) as string[] | null) || [];
+  } catch {
+    formIntegrationIds = [];
+  }
+  formIntegrationIds = formIntegrationIds.filter((id) => id !== formIntegrationId);
+  await formIntegrations.setJSON(formIntegrationsKey, formIntegrationIds);
+
+  return true;
+}
