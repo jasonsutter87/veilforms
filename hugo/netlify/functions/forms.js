@@ -314,19 +314,69 @@ async function handleUpdateForm(req, formId, form, userId, headers, auditCtx) {
   }
 
   if (settings !== undefined) {
-    updates.settings = {
-      ...form.settings,
-      ...settings
-    };
+    // SECURITY FIX (VULN-005): Validate settings against allowed keys
+    // Prevents prototype pollution and arbitrary property injection
+    const ALLOWED_SETTINGS_KEYS = [
+      'encryption', 'piiStrip', 'webhookUrl', 'webhookSecret',
+      'allowedOrigins', 'branding', 'retention', 'notifications',
+      'spamProtection', 'requireSignature'
+    ];
+
+    // Check for unknown/dangerous keys
+    const settingsKeys = Object.keys(settings);
+    const unknownKeys = settingsKeys.filter(key => !ALLOWED_SETTINGS_KEYS.includes(key));
+    if (unknownKeys.length > 0) {
+      return response.badRequest(`Unknown settings keys: ${unknownKeys.join(', ')}`, headers);
+    }
+
+    // Block prototype pollution attempts
+    if ('__proto__' in settings || 'constructor' in settings || 'prototype' in settings) {
+      console.warn('[SECURITY] Prototype pollution attempt blocked:', { formId });
+      return response.badRequest('Invalid settings format', headers);
+    }
+
+    // Build validated settings object
+    updates.settings = { ...form.settings };
+
+    // Only copy allowed primitive settings
+    if (typeof settings.encryption === 'boolean') updates.settings.encryption = settings.encryption;
+    if (typeof settings.piiStrip === 'boolean') updates.settings.piiStrip = settings.piiStrip;
+    if (typeof settings.requireSignature === 'boolean') updates.settings.requireSignature = settings.requireSignature;
 
     // Validate webhook URL if provided
-    if (settings.webhookUrl && !isValidWebhookUrl(settings.webhookUrl)) {
-      return response.badRequest('Invalid webhook URL', headers);
+    if (settings.webhookUrl !== undefined) {
+      if (settings.webhookUrl !== null && !isValidWebhookUrl(settings.webhookUrl)) {
+        return response.badRequest('Invalid webhook URL. Must be a valid HTTPS URL.', headers);
+      }
+      updates.settings.webhookUrl = settings.webhookUrl;
+    }
+
+    // Validate webhook secret
+    if (settings.webhookSecret !== undefined) {
+      if (settings.webhookSecret !== null && (typeof settings.webhookSecret !== 'string' || settings.webhookSecret.length > 256)) {
+        return response.badRequest('Webhook secret must be a string (max 256 chars)', headers);
+      }
+      updates.settings.webhookSecret = settings.webhookSecret;
     }
 
     // Validate allowed origins
-    if (settings.allowedOrigins && !Array.isArray(settings.allowedOrigins)) {
-      return response.badRequest('allowedOrigins must be an array', headers);
+    if (settings.allowedOrigins !== undefined) {
+      if (!Array.isArray(settings.allowedOrigins)) {
+        return response.badRequest('allowedOrigins must be an array', headers);
+      }
+      if (settings.allowedOrigins.length > 10) {
+        return response.badRequest('Maximum 10 allowed origins', headers);
+      }
+      // Validate each origin
+      for (const origin of settings.allowedOrigins) {
+        if (typeof origin !== 'string' || origin.length > 256) {
+          return response.badRequest('Each origin must be a string (max 256 chars)', headers);
+        }
+        if (origin !== '*' && !/^https?:\/\//i.test(origin)) {
+          return response.badRequest('Origins must be * or start with http:// or https://', headers);
+        }
+      }
+      updates.settings.allowedOrigins = settings.allowedOrigins;
     }
 
     // Validate branding settings
