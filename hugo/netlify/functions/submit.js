@@ -11,6 +11,7 @@ import { checkIdempotencyKey, storeIdempotencyKey, getIdempotencyKeyFromRequest,
 import * as response from './lib/responses.js';
 import { isValidFormId, isValidSubmissionId } from './lib/validation.js';
 import { errorResponse, ErrorCodes } from './lib/errors.js';
+import { verifySubmissionSignature } from './lib/signature.js';
 
 // Subscription limits
 const SUBMISSION_LIMITS = {
@@ -133,10 +134,43 @@ export default async function handler(req, context) {
       });
     }
 
-    // Check origin is allowed
-    if (form.settings?.allowedOrigins && !form.settings.allowedOrigins.includes('*')) {
-      if (!form.settings.allowedOrigins.includes(origin)) {
-        return response.forbidden('Origin not allowed', headers);
+    // SECURITY FIX (VULN-004): Enforce CORS validation BEFORE accepting submission
+    const allowedOrigins = form.settings?.allowedOrigins || [];
+    const isOriginAllowed = allowedOrigins.includes('*') ||
+                           allowedOrigins.includes(origin) ||
+                           allowedOrigins.length === 0; // No restrictions if not configured
+
+    if (origin && origin !== '*' && !isOriginAllowed) {
+      console.warn('[SECURITY] Rejected submission from unauthorized origin:', {
+        formId,
+        origin,
+        allowedOrigins
+      });
+      return response.forbidden('Origin not allowed for this form', headers);
+    }
+
+    // SECURITY FIX (VULN-002): Verify request signature if enabled
+    // Prevents quota exhaustion and spam attacks
+    if (form.settings?.requireSignature === true) {
+      const webhookSecret = form.settings?.webhookSecret || form.id;
+      const signatureCheck = await verifySubmissionSignature(req, rawBody, webhookSecret);
+
+      if (!signatureCheck.valid) {
+        console.warn('[SECURITY] Invalid submission signature:', {
+          formId,
+          reason: signatureCheck.reason,
+          code: signatureCheck.code
+        });
+
+        return response.error(
+          'Invalid request signature',
+          headers,
+          403,
+          {
+            code: signatureCheck.code,
+            hint: 'Ensure you are using the VeilForms SDK to submit data, or disable signature verification in form settings.'
+          }
+        );
       }
     }
 
