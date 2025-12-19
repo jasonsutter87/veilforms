@@ -57,6 +57,15 @@ export const ErrorCodes = {
   SUBSCRIPTION_INACTIVE: "SUBSCRIPTION_INACTIVE",
   PAYMENT_FAILED: "PAYMENT_FAILED",
 
+  // Integration errors (7xxx)
+  INTEGRATION_NOT_CONFIGURED: "INTEGRATION_NOT_CONFIGURED",
+  INTEGRATION_AUTH_FAILED: "INTEGRATION_AUTH_FAILED",
+  INTEGRATION_SYNC_FAILED: "INTEGRATION_SYNC_FAILED",
+
+  // Generic errors (8xxx)
+  NOT_FOUND: "NOT_FOUND",
+  AUTH_TOKEN_MISSING: "AUTH_TOKEN_MISSING",
+
   // Server errors (9xxx)
   SERVER_ERROR: "SERVER_ERROR",
   DATABASE_ERROR: "DATABASE_ERROR",
@@ -266,6 +275,35 @@ const errorDefinitions: Record<ErrorCode, ErrorDefinition> = {
     message: "Payment failed",
     hint: "Unable to process payment. Please check your payment method and try again.",
     statusCode: 402,
+  },
+
+  // Integration errors
+  [ErrorCodes.INTEGRATION_NOT_CONFIGURED]: {
+    message: "Integration not configured",
+    hint: "This integration requires API keys to be configured. Please contact your administrator.",
+    statusCode: 501,
+  },
+  [ErrorCodes.INTEGRATION_AUTH_FAILED]: {
+    message: "Integration authentication failed",
+    hint: "Unable to authenticate with the integration. Please reconnect the integration.",
+    statusCode: 401,
+  },
+  [ErrorCodes.INTEGRATION_SYNC_FAILED]: {
+    message: "Integration sync failed",
+    hint: "Unable to sync data to the integration. Please try again later.",
+    statusCode: 500,
+  },
+
+  // Generic errors
+  [ErrorCodes.NOT_FOUND]: {
+    message: "Not found",
+    hint: "The requested resource could not be found.",
+    statusCode: 404,
+  },
+  [ErrorCodes.AUTH_TOKEN_MISSING]: {
+    message: "Authentication token missing",
+    hint: "Please provide a valid authentication token in the Authorization header.",
+    statusCode: 401,
   },
 
   // Server errors

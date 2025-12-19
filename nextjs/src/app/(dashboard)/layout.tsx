@@ -106,7 +106,7 @@ export default function DashboardLayout({
           <nav className="sidebar-nav">
             <Link
               href="/dashboard"
-              className={`nav-item ${isActive("/dashboard") && !pathname.includes("/settings") && !pathname.includes("/api-keys") && !pathname.includes("/audit-logs") ? "active" : ""}`}
+              className={`nav-item ${isActive("/dashboard") && !pathname.includes("/settings") && !pathname.includes("/api-keys") && !pathname.includes("/audit-logs") && !pathname.includes("/integrations") && !pathname.includes("/team") ? "active" : ""}`}
             >
               <svg
                 className="nav-icon"
@@ -157,6 +157,41 @@ export default function DashboardLayout({
               Audit Logs
             </Link>
             <Link
+              href="/dashboard/integrations"
+              className={`nav-item ${isActive("/dashboard/integrations") ? "active" : ""}`}
+            >
+              <svg
+                className="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                <path d="M2 17l10 5 10-5"></path>
+                <path d="M2 12l10 5 10-5"></path>
+              </svg>
+              Integrations
+            </Link>
+            <Link
+              href="/dashboard/team"
+              className={`nav-item ${isActive("/dashboard/team") ? "active" : ""}`}
+            >
+              <svg
+                className="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              Team
+            </Link>
+            <Link
               href="/dashboard/settings"
               className={`nav-item ${isActive("/dashboard/settings") ? "active" : ""}`}
             >
@@ -203,6 +238,8 @@ export default function DashboardLayout({
               {pathname === "/dashboard/settings" && "Settings"}
               {pathname === "/dashboard/api-keys" && "API Keys"}
               {pathname === "/dashboard/audit-logs" && "Audit Logs"}
+              {pathname === "/dashboard/integrations" && "Integrations"}
+              {pathname === "/dashboard/team" && "Team"}
               {pathname.startsWith("/dashboard/forms/") && "Form Details"}
             </h1>
             <div className="topbar-actions">

@@ -284,3 +284,32 @@ export function generateApiKey(): string {
 export async function revokeToken(token: string) {
   return revokeTokenFromBlocklist(token);
 }
+
+/**
+ * Interface for requireAuth result
+ */
+export interface RequireAuthResult {
+  authenticated: boolean;
+  userId: string;
+  email?: string;
+}
+
+/**
+ * Require authentication - returns userId if authenticated
+ * Use this in API routes for cleaner auth checking
+ */
+export async function requireAuth(
+  req: NextRequest
+): Promise<RequireAuthResult | { authenticated: false }> {
+  const result = await authenticateRequest(req);
+
+  if (result.user) {
+    return {
+      authenticated: true,
+      userId: result.user.userId,
+      email: result.user.email,
+    };
+  }
+
+  return { authenticated: false };
+}

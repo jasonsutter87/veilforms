@@ -228,4 +228,30 @@ ${BASE_URL}
   return { provider: "dev", id: "dev-" + Date.now() };
 }
 
+/**
+ * Generic email sending function
+ */
+export interface SendEmailOptions {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}
+
+export async function sendEmail(options: SendEmailOptions): Promise<EmailResult> {
+  const { to, subject, text, html } = options;
+
+  // TODO: Implement with Resend when API key is configured
+  apiLogger.debug(
+    {
+      to,
+      subject,
+      type: 'generic'
+    },
+    "Would send email (dev mode)"
+  );
+
+  return { provider: "dev", id: "dev-" + Date.now() };
+}
+
 export { FROM_EMAIL, FROM_NAME, BASE_URL };
