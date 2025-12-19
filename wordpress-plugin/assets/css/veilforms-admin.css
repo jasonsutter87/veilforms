@@ -1,0 +1,236 @@
+/**
+ * VeilForms Admin Styles
+ *
+ * @package VeilForms
+ */
+
+/* Admin Wrapper */
+.veilforms-admin-wrap {
+	max-width: 1200px;
+}
+
+/* Admin Header */
+.veilforms-admin-header {
+	background: #fff;
+	padding: 1.5rem;
+	border-left: 4px solid #4a90e2;
+	margin: 1.5rem 0;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.veilforms-admin-header .description {
+	margin: 0;
+	font-size: 1rem;
+	line-height: 1.6;
+}
+
+/* Settings Sections */
+.veilforms-admin-wrap h2 {
+	margin-top: 2rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 2px solid #4a90e2;
+	color: #23282d;
+}
+
+.veilforms-admin-wrap .form-table {
+	margin-top: 1rem;
+}
+
+.veilforms-admin-wrap .form-table th {
+	padding: 1.25rem 0.625rem;
+	font-weight: 600;
+	color: #23282d;
+}
+
+.veilforms-admin-wrap .form-table td {
+	padding: 1.25rem 0.625rem;
+}
+
+/* Input Fields */
+.veilforms-admin-wrap input[type="text"],
+.veilforms-admin-wrap input[type="url"],
+.veilforms-admin-wrap input[type="password"],
+.veilforms-admin-wrap input[type="number"],
+.veilforms-admin-wrap select {
+	padding: 0.5rem;
+	font-size: 14px;
+}
+
+.veilforms-admin-wrap input[type="text"]:focus,
+.veilforms-admin-wrap input[type="url"]:focus,
+.veilforms-admin-wrap input[type="password"]:focus,
+.veilforms-admin-wrap input[type="number"]:focus,
+.veilforms-admin-wrap select:focus {
+	border-color: #4a90e2;
+	box-shadow: 0 0 0 1px #4a90e2;
+}
+
+/* Checkbox/Toggle */
+.veilforms-admin-wrap input[type="checkbox"] {
+	margin-right: 0.5rem;
+}
+
+/* Description Text */
+.veilforms-admin-wrap .description {
+	color: #646970;
+	font-size: 13px;
+	font-style: normal;
+	margin-top: 0.5rem;
+}
+
+/* Submit Button */
+.veilforms-admin-wrap .submit {
+	padding-left: 0;
+}
+
+.veilforms-admin-wrap .submit .button-primary {
+	background: #4a90e2;
+	border-color: #4a90e2;
+	text-shadow: none;
+	box-shadow: none;
+	padding: 0.5rem 1.5rem;
+	height: auto;
+	font-size: 14px;
+}
+
+.veilforms-admin-wrap .submit .button-primary:hover,
+.veilforms-admin-wrap .submit .button-primary:focus {
+	background: #357abd;
+	border-color: #357abd;
+}
+
+/* Admin Footer */
+.veilforms-admin-footer {
+	background: #f8f9fa;
+	padding: 2rem;
+	margin-top: 2rem;
+	border-radius: 4px;
+	border: 1px solid #ddd;
+}
+
+.veilforms-admin-footer h2 {
+	margin-top: 0;
+	border-bottom: none;
+	color: #23282d;
+}
+
+.veilforms-admin-footer h3 {
+	margin-top: 1.5rem;
+	margin-bottom: 0.5rem;
+	color: #23282d;
+	font-size: 1rem;
+}
+
+.veilforms-admin-footer code {
+	display: inline-block;
+	background: #fff;
+	padding: 0.5rem 1rem;
+	margin: 0.5rem 0;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-family: Consolas, Monaco, monospace;
+	font-size: 13px;
+	color: #d63384;
+}
+
+.veilforms-admin-footer p {
+	margin: 0.5rem 0;
+	line-height: 1.6;
+}
+
+/* Settings Updated Notice */
+.veilforms-admin-wrap .notice {
+	margin: 1.5rem 0;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+	.veilforms-admin-wrap .form-table th,
+	.veilforms-admin-wrap .form-table td {
+		padding: 1rem 0;
+	}
+
+	.veilforms-admin-header {
+		padding: 1rem;
+	}
+
+	.veilforms-admin-footer {
+		padding: 1.5rem;
+	}
+}
+
+/* Loading State */
+.veilforms-loading {
+	text-align: center;
+	padding: 2rem;
+	color: #666;
+}
+
+.veilforms-loading::before {
+	content: "";
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	border: 3px solid #f3f3f3;
+	border-top: 3px solid #4a90e2;
+	border-radius: 50%;
+	animation: veilforms-spin 1s linear infinite;
+	margin-right: 0.5rem;
+	vertical-align: middle;
+}
+
+@keyframes veilforms-spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+/* Error Messages */
+.veilforms-error {
+	padding: 1rem;
+	background: #f8d7da;
+	color: #721c24;
+	border: 1px solid #f5c6cb;
+	border-radius: 4px;
+	margin: 1rem 0;
+}
+
+/* Success Messages */
+.veilforms-success {
+	padding: 1rem;
+	background: #d4edda;
+	color: #155724;
+	border: 1px solid #c3e6cb;
+	border-radius: 4px;
+	margin: 1rem 0;
+}
+
+/* Info Box */
+.veilforms-info-box {
+	background: #d1ecf1;
+	border: 1px solid #bee5eb;
+	border-left: 4px solid #17a2b8;
+	padding: 1rem;
+	margin: 1rem 0;
+	border-radius: 4px;
+}
+
+.veilforms-info-box p {
+	margin: 0.5rem 0;
+}
+
+.veilforms-info-box p:first-child {
+	margin-top: 0;
+}
+
+.veilforms-info-box p:last-child {
+	margin-bottom: 0;
+}
+
+/* Block Editor Styles */
+.veilforms-block-preview {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
