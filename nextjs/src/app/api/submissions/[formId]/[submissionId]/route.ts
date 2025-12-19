@@ -15,6 +15,7 @@ import {
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { isValidFormId, isValidSubmissionId } from "@/lib/validation";
 import { errorResponse, ErrorCodes } from "@/lib/errors";
+import { deleteSubmissionFiles } from "@/lib/file-storage";
 
 type RouteParams = { params: Promise<{ formId: string; submissionId: string }> };
 
@@ -139,6 +140,14 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     await deleteSubmission(formId, submissionId);
+
+    // Delete associated files
+    try {
+      await deleteSubmissionFiles(submissionId);
+    } catch (fileError) {
+      // Log but don't fail the deletion if file cleanup fails
+      console.error("Failed to delete submission files:", fileError);
+    }
 
     // Decrement form submission count
     await updateForm(formId, {

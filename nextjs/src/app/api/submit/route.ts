@@ -21,6 +21,8 @@ import { getFormForSubmission } from "@/lib/form-helpers";
 import { getSubmissionLimit } from "@/lib/subscription-limits";
 import { sendSubmissionNotification, sendSubmissionConfirmation, BASE_URL } from "@/lib/email";
 import { checkEmailRateLimit } from "@/lib/email-rate-limit";
+import { storeEncryptedFile, validateFileSize, validateFileType, FILE_STORAGE_CONFIG } from "@/lib/file-storage";
+import type { EncryptedFileMetadata } from "@/lib/file-storage";
 
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
 
@@ -256,7 +258,7 @@ export async function POST(req: NextRequest) {
   try {
     formId = body.formId;
     submissionId = body.submissionId;
-    const { payload, timestamp, meta, spamProtection } = body;
+    const { payload, files, timestamp, meta, spamProtection } = body;
 
     // Validate required fields
     if (!formId || !submissionId || !payload) {
@@ -446,6 +448,53 @@ export async function POST(req: NextRequest) {
     // Store submission
     await store.setJSON(submissionId, submission);
 
+    // Store encrypted files if present
+    if (files && typeof files === 'object') {
+      for (const [fieldId, fieldFiles] of Object.entries(files)) {
+        if (!Array.isArray(fieldFiles)) continue;
+
+        // Find field configuration
+        const field = form.fields?.find((f: { name: string }) => f.name === fieldId);
+        const maxSizeMB = (field?.validation as { maxSize?: number })?.maxSize || FILE_STORAGE_CONFIG.DEFAULT_MAX_SIZE_MB;
+        const allowedTypes = (field?.validation as { allowedTypes?: string[] })?.allowedTypes;
+
+        // Validate and store each file
+        for (let index = 0; index < fieldFiles.length; index++) {
+          const fileMetadata = fieldFiles[index] as EncryptedFileMetadata;
+
+          // Server-side validation
+          const sizeValidation = validateFileSize(fileMetadata.size, maxSizeMB);
+          if (!sizeValidation.valid) {
+            apiLogger.warn(
+              { formId, submissionId, fieldId, filename: fileMetadata.filename },
+              'File size validation failed'
+            );
+            continue; // Skip invalid file
+          }
+
+          const typeValidation = validateFileType(fileMetadata.mimeType, allowedTypes);
+          if (!typeValidation.valid) {
+            apiLogger.warn(
+              { formId, submissionId, fieldId, filename: fileMetadata.filename },
+              'File type validation failed'
+            );
+            continue; // Skip invalid file
+          }
+
+          // Store encrypted file
+          try {
+            await storeEncryptedFile(submissionId, fieldId, fileMetadata, index);
+          } catch (fileError) {
+            apiLogger.error(
+              { formId, submissionId, fieldId, filename: fileMetadata.filename, error: fileError },
+              'Failed to store encrypted file'
+            );
+            // Continue with other files even if one fails
+          }
+        }
+      }
+    }
+
     // Update submission index
     await updateIndex(store, submissionId, submission.timestamp);
 
@@ -463,6 +512,25 @@ export async function POST(req: NextRequest) {
           apiLogger.error({ formId, submissionId, error: err.message }, 'Webhook delivery error');
         }
       );
+    }
+
+    // Fire Zapier webhook if configured (async, don't wait)
+    if (form.settings?.zapier?.enabled && form.settings.zapier.webhookUrl) {
+      const { sendZapierWebhook } = await import("@/lib/zapier");
+      sendZapierWebhook(
+        form.settings.zapier.webhookUrl,
+        {
+          id: form.id,
+          name: form.name,
+          fields: (form as { fields?: Array<{ type: string; name: string; label: string }> }).fields,
+        },
+        submission
+      ).catch((err) => {
+        apiLogger.error(
+          { formId, submissionId, error: err.message || err },
+          'Zapier webhook delivery error'
+        );
+      });
     }
 
     // Send email notifications (async, don't wait)

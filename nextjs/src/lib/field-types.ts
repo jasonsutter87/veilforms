@@ -14,6 +14,7 @@ export type FieldType =
   | "radio"
   | "date"
   | "url"
+  | "file"
   | "hidden"
   | "heading"
   | "paragraph"
@@ -40,6 +41,7 @@ export const FIELD_TYPES = Object.freeze([
   Object.freeze({ type: "radio" as const, label: "Radio", icon: "o" }),
   Object.freeze({ type: "date" as const, label: "Date", icon: "D" }),
   Object.freeze({ type: "url" as const, label: "URL", icon: "/" }),
+  Object.freeze({ type: "file" as const, label: "File Upload", icon: "📎" }),
   Object.freeze({ type: "hidden" as const, label: "Hidden", icon: "-" }),
   Object.freeze({ type: "heading" as const, label: "Heading", icon: "H" }),
   Object.freeze({ type: "paragraph" as const, label: "Paragraph", icon: "=" }),
@@ -84,6 +86,7 @@ export const FIELD_TYPES_WITH_REQUIRED = Object.freeze([
   "radio",
   "date",
   "url",
+  "file",
 ] as const) as readonly FieldType[];
 
 /**
@@ -123,4 +126,20 @@ export function supportsRequired(fieldType: FieldType): boolean {
  */
 export function isNonInteractive(fieldType: FieldType): boolean {
   return FIELD_TYPES_NON_INTERACTIVE.includes(fieldType);
+}
+
+/**
+ * Check if a field type is a file upload field
+ */
+export function isFileField(fieldType: FieldType): boolean {
+  return fieldType === "file";
+}
+
+/**
+ * File field validation properties
+ */
+export interface FileFieldValidation {
+  maxSize?: number;        // Max file size in MB (default: 10)
+  maxFiles?: number;       // Max number of files (default: 1)
+  allowedTypes?: string[]; // MIME types or extensions (default: all)
 }

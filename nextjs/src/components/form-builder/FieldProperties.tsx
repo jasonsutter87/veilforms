@@ -6,9 +6,10 @@
 
 import { useState, memo } from "react";
 import type { FormField } from "@/store/dashboard";
-import { supportsOptions, supportsPlaceholder, supportsRequired, type FieldType } from "@/lib/field-types";
+import { supportsOptions, supportsPlaceholder, supportsRequired, isFileField, type FieldType, type FileFieldValidation } from "@/lib/field-types";
 import { ConditionBuilder } from "./ConditionBuilder";
 import type { ConditionalLogic } from "@/lib/conditional-logic";
+import { FILE_STORAGE_CONFIG } from "@/lib/file-storage";
 
 interface FieldPropertiesProps {
   field: FormField;
@@ -224,6 +225,62 @@ export const FieldProperties = memo(function FieldProperties({ field, allFields 
                     value={(field.validation as Record<string, number>)?.maxLength || ""}
                     onChange={(e) => onUpdate({ validation: { ...field.validation, maxLength: e.target.value ? Number(e.target.value) : undefined } })}
                   />
+                </div>
+              </>
+            )}
+
+            {/* File validation */}
+            {isFileField(field.type as FieldType) && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="prop-maxsize">Max File Size (MB)</label>
+                  <input
+                    type="number"
+                    id="prop-maxsize"
+                    min="1"
+                    max="50"
+                    value={(field.validation as FileFieldValidation)?.maxSize || FILE_STORAGE_CONFIG.DEFAULT_MAX_SIZE_MB}
+                    onChange={(e) => onUpdate({
+                      validation: {
+                        ...field.validation,
+                        maxSize: e.target.value ? Number(e.target.value) : FILE_STORAGE_CONFIG.DEFAULT_MAX_SIZE_MB
+                      }
+                    })}
+                  />
+                  <small>Maximum: 50 MB</small>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="prop-maxfiles">Max Number of Files</label>
+                  <input
+                    type="number"
+                    id="prop-maxfiles"
+                    min="1"
+                    max="10"
+                    value={(field.validation as FileFieldValidation)?.maxFiles || 1}
+                    onChange={(e) => onUpdate({
+                      validation: {
+                        ...field.validation,
+                        maxFiles: e.target.value ? Number(e.target.value) : 1
+                      }
+                    })}
+                  />
+                  <small>Maximum: 10 files</small>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="prop-allowedtypes">Allowed File Types</label>
+                  <input
+                    type="text"
+                    id="prop-allowedtypes"
+                    value={(field.validation as FileFieldValidation)?.allowedTypes?.join(", ") || ""}
+                    onChange={(e) => onUpdate({
+                      validation: {
+                        ...field.validation,
+                        allowedTypes: e.target.value ? e.target.value.split(",").map(t => t.trim()).filter(Boolean) : undefined
+                      }
+                    })}
+                    placeholder="image/*, .pdf, .doc"
+                  />
+                  <small>MIME types or extensions (comma-separated). Leave empty for all types.</small>
                 </div>
               </>
             )}

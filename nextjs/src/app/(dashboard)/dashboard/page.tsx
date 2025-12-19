@@ -7,6 +7,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useDashboardStore, Form } from "@/store/dashboard";
+import { EmptyState } from "@/components/onboarding/EmptyState";
+import { TooltipManager } from "@/components/onboarding/Tooltip";
+import { TOOLTIPS } from "@/lib/onboarding";
 
 // Format relative time
 function formatRelativeTime(dateString: string): string {
@@ -210,8 +213,8 @@ export default function DashboardPage() {
   if (forms.length === 0) {
     return (
       <>
-        <div className="empty-state">
-          <div className="empty-icon">
+        <EmptyState
+          icon={
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -224,16 +227,18 @@ export default function DashboardPage() {
               <line x1="12" y1="8" x2="12" y2="16"></line>
               <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
-          </div>
-          <h2>No forms yet</h2>
-          <p>Create your first privacy-first form to get started.</p>
-          <button
-            className="btn btn-primary"
-            onClick={() => setCreateModalOpen(true)}
-          >
-            Create Form
-          </button>
-        </div>
+          }
+          title="No forms yet"
+          description="Create your first privacy-first form to get started."
+          action={{
+            label: "Create Form",
+            onClick: () => setCreateModalOpen(true),
+          }}
+          secondaryAction={{
+            label: "View Templates",
+            href: "/templates",
+          }}
+        />
 
         {/* Create Form Modal */}
         {createModalOpen && (
@@ -274,6 +279,9 @@ export default function DashboardPage() {
   // Forms grid
   return (
     <>
+      {/* Show tooltips for first-time users */}
+      <TooltipManager tooltips={TOOLTIPS.dashboard} active={forms.length > 0} />
+
       <div className="forms-grid">
         {forms.map((form) => (
           <div key={form.id} className="form-card">

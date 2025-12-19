@@ -91,6 +91,10 @@ export interface FormSettings {
     sendConfirmation: boolean;     // send confirmation to respondent
     recipients: string[];          // additional email addresses to notify
   };
+  zapier?: {
+    enabled: boolean;
+    webhookUrl: string | null;
+  };
   [key: string]: unknown;
 }
 

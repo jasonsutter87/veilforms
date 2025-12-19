@@ -27,6 +27,16 @@ export default function DashboardLayout({
     }
   }, [isAuthenticated, isLoading, router]);
 
+  // Check onboarding status and redirect if not completed
+  useEffect(() => {
+    if (isAuthenticated && user && !user.onboardingCompleted) {
+      // Only redirect from dashboard pages, not from onboarding
+      if (!pathname.startsWith('/onboarding')) {
+        router.push('/onboarding');
+      }
+    }
+  }, [isAuthenticated, user, pathname, router]);
+
   // Update user in dashboard store
   useEffect(() => {
     if (user) {
