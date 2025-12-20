@@ -94,7 +94,7 @@ export default function TeamPage() {
         setSelectedTeam(team);
       }
     } else if (teams.length > 0 && !selectedTeam) {
-      setSelectedTeam(teams[0]);
+      setSelectedTeam(teams[0] ?? null);
     }
   }, [teamIdParam, teams]);
 
