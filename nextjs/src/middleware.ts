@@ -59,7 +59,7 @@ async function handleCustomDomain(request: NextRequest): Promise<NextResponse | 
   }
 
   // Extract the clean domain (remove port if present)
-  const domain = hostname.split(':')[0];
+  const domain = hostname.split(':')[0] ?? hostname;
 
   // Dynamic import to avoid issues with edge runtime
   try {

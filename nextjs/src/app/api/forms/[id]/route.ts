@@ -23,9 +23,9 @@ import { authRoute } from "@/lib/route-handler";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-export const GET = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+export const GET = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     // Validate formId format
     if (!isValidFormId(formId)) {
@@ -40,6 +40,9 @@ export const GET = authRoute(
       const { form, error } = await verifyFormOwnership(formId, user.userId);
       if (error) {
         return error;
+      }
+      if (!form) {
+        return NextResponse.json({ error: "Form not found" }, { status: 404 });
       }
 
       return NextResponse.json({
@@ -63,9 +66,9 @@ export const GET = authRoute(
   { rateLimit: { keyPrefix: "forms-api", maxRequests: 30 } }
 );
 
-export const PUT = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+export const PUT = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     // Validate formId format
     if (!isValidFormId(formId)) {
@@ -80,6 +83,9 @@ export const PUT = authRoute(
       const { form, error } = await verifyFormOwnership(formId, user.userId, 'forms:edit');
       if (error) {
         return error;
+      }
+      if (!form) {
+        return NextResponse.json({ error: "Form not found" }, { status: 404 });
       }
 
       const body = await req.json();
@@ -215,9 +221,9 @@ export const PUT = authRoute(
   { rateLimit: { keyPrefix: "forms-api", maxRequests: 30 }, csrf: true }
 );
 
-export const DELETE = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+export const DELETE = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     // Validate formId format
     if (!isValidFormId(formId)) {

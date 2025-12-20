@@ -117,8 +117,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
  * Generate a preview token for a form (authenticated)
  */
 export const POST = authRoute<RouteParams>(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     // Validate formId format
     if (!isValidFormId(formId)) {

@@ -41,6 +41,8 @@ export function ProductTour({
     if (!isActive || currentStep >= steps.length) return;
 
     const step = steps[currentStep];
+    if (!step) return;
+
     const targetElement = document.querySelector(step.target);
 
     if (!targetElement) {
@@ -112,6 +114,8 @@ export function ProductTour({
   if (!isActive || currentStep >= steps.length) return null;
 
   const step = steps[currentStep];
+  if (!step) return null;
+
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === steps.length - 1;
 

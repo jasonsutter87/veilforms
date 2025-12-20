@@ -28,7 +28,7 @@ export async function GET(
     const webhook = webhooks.find((w) => w.id === webhookId);
 
     if (!webhook) {
-      return errorResponse(ErrorCodes.NOT_FOUND, { resource: "webhook" });
+      return errorResponse(ErrorCodes.NOT_FOUND, { message: "Webhook not found" });
     }
 
     return NextResponse.json({ webhook });
@@ -58,11 +58,16 @@ export async function PATCH(
     const index = webhooks.findIndex((w) => w.id === webhookId);
 
     if (index === -1) {
-      return errorResponse(ErrorCodes.NOT_FOUND, { resource: "webhook" });
+      return errorResponse(ErrorCodes.NOT_FOUND, { message: "Webhook not found" });
+    }
+
+    const existingWebhook = webhooks[index];
+    if (!existingWebhook) {
+      return errorResponse(ErrorCodes.NOT_FOUND, { message: "Webhook not found" });
     }
 
     // Update allowed fields
-    const updated = { ...webhooks[index] };
+    const updated = { ...existingWebhook };
     if (typeof body.enabled === "boolean") {
       updated.enabled = body.enabled;
     }
@@ -111,7 +116,7 @@ export async function DELETE(
     const index = webhooks.findIndex((w) => w.id === webhookId);
 
     if (index === -1) {
-      return errorResponse(ErrorCodes.NOT_FOUND, { resource: "webhook" });
+      return errorResponse(ErrorCodes.NOT_FOUND, { message: "Webhook not found" });
     }
 
     webhooks.splice(index, 1);

@@ -52,12 +52,13 @@ export async function POST(
 
     // Get OAuth URL for CRM integrations
     const provider = id as "salesforce" | "hubspot" | "pipedrive";
-    const authUrl = getOAuthUrl(provider, userId);
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://veilforms.com";
+    const redirectUri = `${baseUrl}/api/integrations/${id}/callback`;
+    const authUrl = getOAuthUrl(provider, redirectUri, userId);
 
     if (!authUrl) {
       return errorResponse(ErrorCodes.INTEGRATION_NOT_CONFIGURED, {
-        provider: id,
-        message: "This integration is not yet configured. Please set up the required API keys.",
+        message: `Integration '${id}' is not yet configured. Please set up the required API keys.`,
       });
     }
 

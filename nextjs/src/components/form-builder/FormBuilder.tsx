@@ -30,32 +30,35 @@ function generateId(): string {
 }
 
 // Default field configurations - frozen to prevent accidental mutation
-const FIELD_DEFAULTS = Object.freeze({
-  text: Object.freeze({ type: "text", label: "Text Field", placeholder: "Enter text..." }),
-  email: Object.freeze({ type: "email", label: "Email", placeholder: "email@example.com" }),
-  textarea: Object.freeze({ type: "textarea", label: "Message", placeholder: "Enter your message..." }),
-  number: Object.freeze({ type: "number", label: "Number", placeholder: "0" }),
-  phone: Object.freeze({ type: "phone", label: "Phone", placeholder: "(555) 555-5555" }),
-  select: Object.freeze({ type: "select", label: "Dropdown", options: Object.freeze(["Option 1", "Option 2", "Option 3"]) }),
-  checkbox: Object.freeze({ type: "checkbox", label: "Checkbox" }),
-  radio: Object.freeze({ type: "radio", label: "Radio Group", options: Object.freeze(["Option 1", "Option 2", "Option 3"]) }),
-  date: Object.freeze({ type: "date", label: "Date" }),
-  url: Object.freeze({ type: "url", label: "Website", placeholder: "https://" }),
-  hidden: Object.freeze({ type: "hidden", label: "Hidden Field", name: "hidden_field" }),
-  heading: Object.freeze({ type: "heading", label: "Section Heading" }),
-  paragraph: Object.freeze({ type: "paragraph", label: "Add description text here..." }),
-  divider: Object.freeze({ type: "divider", label: "" }),
-}) as Readonly<Record<string, Readonly<Partial<FormField>>>>;
+const FIELD_DEFAULTS: Record<string, Partial<FormField>> = {
+  text: { type: "text", label: "Text Field", placeholder: "Enter text..." },
+  email: { type: "email", label: "Email", placeholder: "email@example.com" },
+  textarea: { type: "textarea", label: "Message", placeholder: "Enter your message..." },
+  number: { type: "number", label: "Number", placeholder: "0" },
+  phone: { type: "phone", label: "Phone", placeholder: "(555) 555-5555" },
+  select: { type: "select", label: "Dropdown", options: ["Option 1", "Option 2", "Option 3"] },
+  checkbox: { type: "checkbox", label: "Checkbox" },
+  radio: { type: "radio", label: "Radio Group", options: ["Option 1", "Option 2", "Option 3"] },
+  date: { type: "date", label: "Date" },
+  url: { type: "url", label: "Website", placeholder: "https://" },
+  hidden: { type: "hidden", label: "Hidden Field", name: "hidden_field" },
+  heading: { type: "heading", label: "Section Heading" },
+  paragraph: { type: "paragraph", label: "Add description text here..." },
+  divider: { type: "divider", label: "" },
+};
 
 export function FormBuilder({ formId, formName, initialFields = [], onSave, onBack }: FormBuilderProps) {
   const {
-    state: fields,
+    state: historyState,
     pushState: setFields,
     undo,
     redo,
     canUndo,
     canRedo,
   } = useHistory<FormField[]>(initialFields);
+
+  // Ensure fields is always an array
+  const fields = historyState ?? [];
 
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -96,25 +99,27 @@ export function FormBuilder({ formId, formName, initialFields = [], onSave, onBa
       ...defaults,
     } as FormField;
 
-    setFields(fields => [...fields, newField]);
+    setFields((prevFields: FormField[]) => [...prevFields, newField]);
     setSelectedFieldId(newField.id);
   }, [setFields]);
 
   // Update field - uses functional update to avoid dependency on fields
   const handleUpdateField = useCallback((id: string, updates: Partial<FormField>) => {
-    setFields(fields => {
-      const index = fields.findIndex(f => f.id === id);
-      if (index === -1) return fields;
-      const newFields = [...fields];
-      newFields[index] = { ...fields[index], ...updates };
+    setFields((prevFields: FormField[]) => {
+      const index = prevFields.findIndex((f: FormField) => f.id === id);
+      if (index === -1) return prevFields;
+      const existing = prevFields[index];
+      if (!existing) return prevFields;
+      const newFields = [...prevFields];
+      newFields[index] = { ...existing, ...updates };
       return newFields;
     });
   }, [setFields]);
 
   // Delete field - uses functional update to avoid dependency on fields
   const handleDeleteField = useCallback((id: string) => {
-    setFields(fields => {
-      const filtered = fields.filter((f) => f.id !== id);
+    setFields((prevFields: FormField[]) => {
+      const filtered = prevFields.filter((f: FormField) => f.id !== id);
       // Clean up any conditional logic references to the deleted field
       return cleanupDeletedFieldReferences(filtered, id);
     });
@@ -125,9 +130,9 @@ export function FormBuilder({ formId, formName, initialFields = [], onSave, onBa
 
   // Duplicate field - uses functional update to avoid dependency on fields
   const handleDuplicateField = useCallback((id: string) => {
-    setFields(fields => {
-      const field = fields.find((f) => f.id === id);
-      if (!field) return fields;
+    setFields((prevFields: FormField[]) => {
+      const field = prevFields.find((f: FormField) => f.id === id);
+      if (!field) return prevFields;
 
       const newField: FormField = {
         ...field,
@@ -135,11 +140,11 @@ export function FormBuilder({ formId, formName, initialFields = [], onSave, onBa
         name: `${field.name}_copy`,
         label: `${field.label} (Copy)`,
       };
-      const index = fields.findIndex((f) => f.id === id);
+      const index = prevFields.findIndex((f: FormField) => f.id === id);
       const newFields = [
-        ...fields.slice(0, index + 1),
+        ...prevFields.slice(0, index + 1),
         newField,
-        ...fields.slice(index + 1),
+        ...prevFields.slice(index + 1),
       ];
 
       setSelectedFieldId(newField.id);
@@ -167,10 +172,10 @@ export function FormBuilder({ formId, formName, initialFields = [], onSave, onBa
 
     // Reordering existing fields - uses functional update to avoid dependency on fields
     if (active.id !== over.id) {
-      setFields(fields => {
-        const oldIndex = fields.findIndex((f) => f.id === active.id);
-        const newIndex = fields.findIndex((f) => f.id === over.id);
-        return arrayMove(fields, oldIndex, newIndex);
+      setFields((prevFields: FormField[]) => {
+        const oldIndex = prevFields.findIndex((f: FormField) => f.id === active.id);
+        const newIndex = prevFields.findIndex((f: FormField) => f.id === over.id);
+        return arrayMove(prevFields, oldIndex, newIndex);
       });
     }
   };

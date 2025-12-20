@@ -27,7 +27,9 @@ function calculateEntropy(str: string): number {
   // Calculate entropy
   let entropy = 0;
   for (const char in frequencies) {
-    const p = frequencies[char] / len;
+    const freq = frequencies[char];
+    if (freq === undefined) continue;
+    const p = freq / len;
     entropy -= p * Math.log2(p);
   }
 
@@ -244,7 +246,7 @@ export function getTokenFromHeader(headers: Headers): string | null {
   const parts = auth.split(" ");
   if (parts.length !== 2 || parts[0] !== "Bearer") return null;
 
-  return parts[1];
+  return parts[1] ?? null;
 }
 
 /**

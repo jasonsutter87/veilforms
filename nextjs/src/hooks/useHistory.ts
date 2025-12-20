@@ -17,8 +17,16 @@ export function useHistory<T>(initialState: T, options: UseHistoryOptions<T> = {
 
   const currentState = history[currentIndex];
 
-  const pushState = useCallback((newState: T) => {
+  const pushState = useCallback((newStateOrUpdater: T | ((prev: T) => T)) => {
     setHistory(prev => {
+      // Get current state for functional updates
+      const currentState = prev[currentIndex];
+
+      // Resolve the new state (either direct value or from updater function)
+      const newState = typeof newStateOrUpdater === 'function'
+        ? (newStateOrUpdater as (prev: T) => T)(currentState as T)
+        : newStateOrUpdater;
+
       // Remove any future states (if we undid and then made a new change)
       const newHistory = prev.slice(0, currentIndex + 1);
       newHistory.push(newState);

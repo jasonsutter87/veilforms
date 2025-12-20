@@ -170,7 +170,7 @@ export async function getUser(email: string): Promise<User | null> {
 }
 
 export async function getUserById(userId: string): Promise<User | null> {
-  return retryStorage(async () => {
+  return retryStorage<User | null>(async (): Promise<User | null> => {
     const users = store(STORES.USERS);
     try {
       const mapping = (await users.get(`id_${userId}`, { type: "json" })) as {
@@ -178,7 +178,7 @@ export async function getUserById(userId: string): Promise<User | null> {
       } | null;
       if (mapping?.email) {
         // Use cached version for user lookup
-        return await getCachedUser(mapping.email);
+        return (await getCachedUser(mapping.email)) as User | null;
       }
       storageLogger.debug({ userId, found: false }, 'User lookup by ID');
       return null;

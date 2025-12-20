@@ -44,7 +44,7 @@ export async function incrementFormView(formId: string, metadata: {
   country?: string;
   referrer?: string;
 }): Promise<void> {
-  const date = new Date().toISOString().split('T')[0];
+  const date = new Date().toISOString().slice(0, 10);
   const key = getAnalyticsKey(formId, date);
   const analytics = store();
 
@@ -79,7 +79,7 @@ export async function incrementFormView(formId: string, metadata: {
 }
 
 export async function recordSubmission(formId: string, completionTimeMs: number): Promise<void> {
-  const date = new Date().toISOString().split('T')[0];
+  const date = new Date().toISOString().slice(0, 10);
   const key = getAnalyticsKey(formId, date);
   const analytics = store();
 
@@ -106,7 +106,7 @@ export async function getFormAnalyticsRange(
   const end = new Date(endDate);
 
   for (let date = start; date <= end; date.setDate(date.getDate() + 1)) {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = date.toISOString().slice(0, 10);
     const data = await getFormAnalytics(formId, dateStr);
     if (data) {
       results.push(data);

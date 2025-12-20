@@ -122,7 +122,22 @@ export interface SubscriptionData {
  * Get plan configuration by plan name
  */
 export function getPlanConfig(planName: string): PlanConfig {
-  return PLAN_CONFIG[planName] || PLAN_CONFIG.free;
+  const config = PLAN_CONFIG[planName];
+  const freeConfig = PLAN_CONFIG.free;
+  return config ?? freeConfig ?? {
+    name: "Free",
+    priceId: null,
+    monthlyPrice: 0,
+    limits: {
+      maxForms: 3,
+      submissionsPerMonth: 100,
+      retentionDays: 7,
+      webhooks: false,
+      customBranding: false,
+      apiAccess: false,
+      prioritySupport: false,
+    },
+  };
 }
 
 /**

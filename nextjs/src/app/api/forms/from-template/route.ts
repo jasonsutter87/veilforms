@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import { authRoute } from '@/lib/route-handler';
 import { getTemplateById } from '@/lib/form-templates';
-import { createForm, getUserForms } from '@/lib/storage';
+import { createForm, getUserForms, getUserById } from '@/lib/storage';
 import { generateKeyPair } from '@/lib/encryption';
 import { getFormLimit } from '@/lib/subscription-limits';
 import { logAudit, AuditEvents, getAuditContext } from '@/lib/audit';
@@ -40,7 +40,11 @@ export const POST = authRoute(async (req, { user }) => {
     // Check form limits
     const userForms = await getUserForms(user.userId);
     const activeFormCount = userForms.filter(f => !f.deletedAt && f.status !== 'deleted').length;
-    const formLimit = getFormLimit(user.subscription || 'free');
+
+    // Get full user data for subscription info
+    const userData = await getUserById(user.userId);
+    const userSubscription = (userData as { subscription?: string })?.subscription || 'free';
+    const formLimit = getFormLimit(userSubscription);
 
     if (activeFormCount >= formLimit) {
       return NextResponse.json(
@@ -48,7 +52,7 @@ export const POST = authRoute(async (req, { user }) => {
           error: 'Form creation limit reached',
           limit: formLimit,
           current: activeFormCount,
-          subscription: user.subscription || 'free',
+          subscription: userSubscription,
         },
         { status: 403 }
       );

@@ -29,7 +29,7 @@ export async function POST(
     const webhook = webhooks.find((w) => w.id === webhookId);
 
     if (!webhook) {
-      return errorResponse(ErrorCodes.NOT_FOUND, { resource: "webhook" });
+      return errorResponse(ErrorCodes.NOT_FOUND, { message: "Webhook not found" });
     }
 
     // Create test payload

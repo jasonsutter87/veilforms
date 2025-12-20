@@ -19,9 +19,9 @@ type RouteParams = { params: Promise<{ id: string }> };
  * GET /api/forms/:id/zapier
  * Get Zapier integration settings for a form
  */
-export const GET = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+export const GET = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     if (!isValidFormId(formId)) {
       return NextResponse.json(
@@ -34,6 +34,9 @@ export const GET = authRoute(
       const { form, error } = await verifyFormOwnership(formId, user.userId);
       if (error) {
         return error;
+      }
+      if (!form) {
+        return NextResponse.json({ error: "Form not found" }, { status: 404 });
       }
 
       const zapierSettings = (form.settings as { zapier?: { enabled: boolean; webhookUrl: string | null } }).zapier;
@@ -57,9 +60,9 @@ export const GET = authRoute(
  * PUT /api/forms/:id/zapier
  * Update Zapier integration settings
  */
-export const PUT = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+export const PUT = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     if (!isValidFormId(formId)) {
       return NextResponse.json(
@@ -72,6 +75,9 @@ export const PUT = authRoute(
       const { form, error } = await verifyFormOwnership(formId, user.userId);
       if (error) {
         return error;
+      }
+      if (!form) {
+        return NextResponse.json({ error: "Form not found" }, { status: 404 });
       }
 
       const body = await req.json();
@@ -150,9 +156,9 @@ export const PUT = authRoute(
  * DELETE /api/forms/:id/zapier
  * Disconnect Zapier integration
  */
-export const DELETE = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+export const DELETE = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     if (!isValidFormId(formId)) {
       return NextResponse.json(
@@ -165,6 +171,9 @@ export const DELETE = authRoute(
       const { form, error } = await verifyFormOwnership(formId, user.userId);
       if (error) {
         return error;
+      }
+      if (!form) {
+        return NextResponse.json({ error: "Form not found" }, { status: 404 });
       }
 
       // Disable Zapier integration

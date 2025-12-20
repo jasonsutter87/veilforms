@@ -18,9 +18,9 @@ type RouteParams = { params: Promise<{ id: string }> };
  * POST /api/forms/:id/zapier/test
  * Send a test webhook to verify Zapier connection
  */
-export const POST = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+export const POST = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     if (!isValidFormId(formId)) {
       return NextResponse.json(
@@ -33,6 +33,9 @@ export const POST = authRoute(
       const { form, error } = await verifyFormOwnership(formId, user.userId);
       if (error) {
         return error;
+      }
+      if (!form) {
+        return NextResponse.json({ error: "Form not found" }, { status: 404 });
       }
 
       // Check if Zapier is configured

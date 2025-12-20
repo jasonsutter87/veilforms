@@ -175,14 +175,14 @@ export async function deleteUserData(
   const forms = await getUserForms(userId);
   for (const form of forms) {
     // Delete all submissions for this form
-    const submissions = await getSubmissions(form.id);
-    for (const submission of submissions) {
+    const submissionsResult = await getSubmissions(form.id);
+    for (const submission of submissionsResult.submissions) {
       await deleteSubmission(form.id, submission.id);
       deletedSubmissions++;
     }
 
     // Delete the form
-    await deleteForm(form.id);
+    await deleteForm(form.id, userId);
     deletedForms++;
   }
 
@@ -274,10 +274,10 @@ export async function enforceFormRetention(form: Form): Promise<number> {
   const cutoffTimestamp = cutoffDate.toISOString();
 
   // Get all submissions for this form
-  const submissions = await getSubmissions(form.id);
+  const submissionsResult = await getSubmissions(form.id);
   let deletedCount = 0;
 
-  for (const submission of submissions) {
+  for (const submission of submissionsResult.submissions) {
     if (submission.createdAt < cutoffTimestamp) {
       await deleteSubmission(form.id, submission.id);
       deletedCount++;

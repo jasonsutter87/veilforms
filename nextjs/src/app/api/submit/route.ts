@@ -217,11 +217,17 @@ async function updateABTestMetrics(
     }
 
     // Update metrics
+    const variant = test.variants[variantIndex];
+    if (!variant) {
+      apiLogger.warn({ testId: test.id, variantIndex }, "Variant at index not found");
+      return;
+    }
+
     if (isImpression) {
-      test.variants[variantIndex].impressions += 1;
+      variant.impressions += 1;
     }
     if (isConversion) {
-      test.variants[variantIndex].conversions += 1;
+      variant.conversions += 1;
     }
 
     // Save updated test
@@ -231,8 +237,8 @@ async function updateABTestMetrics(
       {
         testId: test.id,
         variantId,
-        impressions: test.variants[variantIndex].impressions,
-        conversions: test.variants[variantIndex].conversions,
+        impressions: variant.impressions,
+        conversions: variant.conversions,
       },
       "Updated A/B test metrics"
     );
@@ -427,6 +433,11 @@ export async function POST(req: NextRequest) {
     const { form, error } = await getFormForSubmission(formId);
     if (error) {
       return error;
+    }
+    if (!form) {
+      return errorResponse(ErrorCodes.RESOURCE_NOT_FOUND, {
+        message: "Form not found",
+      });
     }
 
     // Check if form is paused (getFormForSubmission already checks for deleted)

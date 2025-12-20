@@ -71,7 +71,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       dayBoundaries.push({
         start: dayStart.getTime(),
         end: dayStart.getTime() + 24 * 60 * 60 * 1000,
-        date: dayStart.toISOString().split("T")[0],
+        date: dayStart.toISOString().slice(0, 10),
       });
     }
 
@@ -100,7 +100,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
       // Daily breakdown - find which day bucket
       for (let i = 0; i < dayBoundaries.length; i++) {
-        if (ts >= dayBoundaries[i].start && ts < dayBoundaries[i].end) {
+        const boundary = dayBoundaries[i];
+        if (boundary && ts >= boundary.start && ts < boundary.end) {
           dailyCounts[i]++;
           break;
         }

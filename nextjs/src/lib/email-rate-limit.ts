@@ -123,9 +123,10 @@ export function getEmailRateLimitHeaders(
   type: "verification" | "passwordReset" | "submissionNotification"
 ): Record<string, string> {
   const limit = LIMITS[type];
+  const maxLimit = limit?.max ?? 3;
 
   return {
-    "X-RateLimit-Limit": limit.max.toString(),
+    "X-RateLimit-Limit": maxLimit.toString(),
     "X-RateLimit-Remaining": result.remaining.toString(),
     "X-RateLimit-Reset": new Date(result.resetAt).toISOString(),
     ...(result.retryAfter && {

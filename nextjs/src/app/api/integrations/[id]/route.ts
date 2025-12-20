@@ -29,7 +29,7 @@ export async function GET(
     const integration = integrations.find((i) => i.integrationId === id);
 
     if (!integration) {
-      return errorResponse(ErrorCodes.NOT_FOUND, { resource: "integration" });
+      return errorResponse(ErrorCodes.NOT_FOUND, { message: "Integration not found" });
     }
 
     // Remove sensitive data
@@ -62,7 +62,7 @@ export async function DELETE(
     const index = integrations.findIndex((i) => i.integrationId === id);
 
     if (index === -1) {
-      return errorResponse(ErrorCodes.NOT_FOUND, { resource: "integration" });
+      return errorResponse(ErrorCodes.NOT_FOUND, { message: "Integration not found" });
     }
 
     // Remove the integration

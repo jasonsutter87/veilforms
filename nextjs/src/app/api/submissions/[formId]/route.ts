@@ -17,9 +17,9 @@ import { verifyFormOwnership } from "@/lib/form-helpers";
 
 type RouteParams = { params: Promise<{ formId: string }> };
 
-export const GET = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { formId } = await params;
+export const GET = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { formId } = await routeCtx!.params;
 
     // Validate formId
     if (!isValidFormId(formId)) {
@@ -77,9 +77,9 @@ export const GET = authRoute(
   { rateLimit: { keyPrefix: "submissions-api", maxRequests: 60 } }
 );
 
-export const DELETE = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { formId } = await params;
+export const DELETE = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { formId } = await routeCtx!.params;
 
     // Validate formId
     if (!isValidFormId(formId)) {

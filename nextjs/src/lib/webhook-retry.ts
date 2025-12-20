@@ -100,7 +100,8 @@ export async function fireWebhookWithRetry(
 
       // If this isn't the last attempt, wait before retry
       if (attempt < MAX_RETRIES) {
-        await sleep(RETRY_DELAYS[attempt]);
+        const delay = RETRY_DELAYS[attempt] ?? 4000;
+        await sleep(delay);
       }
     }
 

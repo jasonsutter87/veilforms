@@ -25,8 +25,8 @@ interface ExportLogRequest {
 }
 
 export const POST = authRoute<RouteParams>(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     // Validate formId
     if (!isValidFormId(formId)) {

@@ -10,10 +10,10 @@ import { authRoute } from "@/lib/route-handler";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-export const GET = authRoute(
-  async (req: NextRequest, { user, rateLimit }, { params }: RouteParams) => {
+export const GET = authRoute<RouteParams>(
+  async (req: NextRequest, { user, rateLimit }, routeCtx) => {
     try {
-      const { id: formId } = await params;
+      const { id: formId } = await routeCtx!.params;
       const { searchParams } = new URL(req.url);
       const token = searchParams.get("token");
 
