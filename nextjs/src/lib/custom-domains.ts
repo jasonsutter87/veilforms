@@ -1,9 +1,9 @@
 /**
- * VeilForms - Custom Domains Library
- * Domain validation, DNS verification, SSL tracking, and domain-to-user mapping
+ * VeilForms - Custom Domains Library (Edge-Compatible)
+ * Domain validation, SSL tracking, and domain-to-user mapping
  *
- * Note: DNS verification uses Node.js dns module which is only available
- * in API routes, not in Edge Runtime (middleware).
+ * Note: DNS verification is in a separate module (dns-verification.ts)
+ * that must only be imported from API routes, not from middleware.
  */
 
 import { getStore } from "@netlify/blobs";
@@ -11,24 +11,6 @@ import { createLogger } from "./logger";
 import { retryStorage } from "./retry";
 
 const domainsLogger = createLogger("domains");
-
-// DNS module is dynamically imported only when needed (not available in Edge Runtime)
-let resolveTxt: ((hostname: string) => Promise<string[][]>) | null = null;
-
-async function getDnsResolver() {
-  if (resolveTxt) return resolveTxt;
-
-  // Dynamic import for Node.js environment only
-  try {
-    const dns = await import("dns");
-    const { promisify } = await import("util");
-    resolveTxt = promisify(dns.resolveTxt);
-    return resolveTxt;
-  } catch {
-    // DNS not available (Edge Runtime)
-    return null;
-  }
-}
 
 // Store name
 const DOMAINS_STORE = "vf-domains";
@@ -65,7 +47,7 @@ export function validateDomain(domain: string): {
   }
 
   // Remove protocol, www, trailing slashes, whitespace
-  let sanitized = domain
+  const sanitized = domain
     .toLowerCase()
     .trim()
     .replace(/^https?:\/\//, "")
@@ -123,54 +105,6 @@ export function generateVerificationToken(): string {
  */
 export function getVerificationRecordName(domain: string): string {
   return `_veilforms-verify.${domain}`;
-}
-
-/**
- * Verify DNS TXT record for domain
- * Note: This function requires Node.js runtime (not available in Edge)
- */
-export async function verifyDnsTxtRecord(
-  domain: string,
-  expectedToken: string
-): Promise<{ verified: boolean; error?: string }> {
-  try {
-    const resolver = await getDnsResolver();
-    if (!resolver) {
-      domainsLogger.warn({ domain }, "DNS verification not available in Edge Runtime");
-      return { verified: false, error: "DNS verification not available in this environment" };
-    }
-
-    const recordName = getVerificationRecordName(domain);
-    domainsLogger.debug({ domain, recordName }, "Checking DNS TXT record");
-
-    const records = await resolver(recordName);
-
-    // Flatten TXT records (they come as arrays of strings)
-    const flatRecords = records.map((r) => r.join(""));
-
-    domainsLogger.debug({ domain, records: flatRecords }, "DNS records found");
-
-    // Check if any record matches the expected token
-    const verified = flatRecords.some((record) => record === expectedToken);
-
-    if (verified) {
-      domainsLogger.info({ domain }, "Domain verification successful");
-      return { verified: true };
-    } else {
-      domainsLogger.warn({ domain, expected: expectedToken, found: flatRecords }, "Verification token mismatch");
-      return { verified: false, error: "Verification token not found in DNS records" };
-    }
-  } catch (error) {
-    // DNS lookup failures are expected when record doesn't exist yet
-    const errorCode = (error as NodeJS.ErrnoException).code;
-    if (errorCode === "ENOTFOUND" || errorCode === "ENODATA") {
-      domainsLogger.debug({ domain, errorCode }, "DNS record not found");
-      return { verified: false, error: "DNS record not found" };
-    }
-
-    domainsLogger.error({ domain, error }, "DNS verification error");
-    return { verified: false, error: "DNS lookup failed" };
-  }
 }
 
 /**
@@ -310,43 +244,6 @@ export async function updateCustomDomain(
   domainsLogger.info({ domain, updates }, "Domain updated");
 
   return updated;
-}
-
-/**
- * Trigger DNS verification for a domain
- */
-export async function triggerDomainVerification(
-  domain: string
-): Promise<{ success: boolean; domain?: CustomDomain; error?: string }> {
-  const domainData = await getCustomDomain(domain);
-  if (!domainData) {
-    return { success: false, error: "Domain not found" };
-  }
-
-  // Mark as verifying
-  await updateCustomDomain(domain, { status: "verifying" });
-
-  // Perform DNS verification
-  const verification = await verifyDnsTxtRecord(domain, domainData.verificationToken);
-
-  if (verification.verified) {
-    // Mark as active
-    const updated = await updateCustomDomain(domain, {
-      status: "active",
-      verifiedAt: Date.now(),
-      sslStatus: "provisioning", // SSL provisioning would be handled by platform
-    });
-
-    return { success: true, domain: updated || domainData };
-  } else {
-    // Mark as failed
-    const updated = await updateCustomDomain(domain, {
-      status: "failed",
-      failureReason: verification.error,
-    });
-
-    return { success: false, error: verification.error, domain: updated || domainData };
-  }
 }
 
 /**

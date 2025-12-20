@@ -280,7 +280,7 @@ export default function DashboardPage() {
   return (
     <>
       {/* Show tooltips for first-time users */}
-      <TooltipManager tooltips={TOOLTIPS.dashboard} active={forms.length > 0} />
+      <TooltipManager tooltips={TOOLTIPS.dashboard ?? []} active={forms.length > 0} />
 
       <div className="forms-grid">
         {forms.map((form) => (

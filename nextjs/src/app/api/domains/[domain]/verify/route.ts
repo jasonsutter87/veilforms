@@ -1,14 +1,20 @@
 /**
  * VeilForms - Domain Verification Endpoint
  * POST /api/domains/[domain]/verify - Trigger DNS verification
+ *
+ * This route uses Node.js runtime for DNS verification.
  */
+
+// Force Node.js runtime (not Edge) for DNS module
+export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { authRoute } from "@/lib/route-handler";
 import {
   getCustomDomain,
-  triggerDomainVerification,
+  updateCustomDomain,
 } from "@/lib/custom-domains";
+import { verifyDnsTxtRecord } from "@/lib/dns-verification";
 import { errorResponse, ErrorCodes } from "@/lib/errors";
 import { logAudit, AuditEvents, getAuditContext } from "@/lib/audit";
 
@@ -50,12 +56,23 @@ export const POST = authRoute<RouteContext>(
         });
       }
 
-      // Trigger verification
-      const result = await triggerDomainVerification(domain);
+      // Mark as verifying
+      await updateCustomDomain(domain, { status: "verifying" });
+
+      // Perform DNS verification
+      const verification = await verifyDnsTxtRecord(domain, domainData.verificationToken);
 
       // Log audit event
       const auditCtx = getAuditContext(req);
-      if (result.success) {
+
+      if (verification.verified) {
+        // Mark as active
+        const updated = await updateCustomDomain(domain, {
+          status: "active",
+          verifiedAt: Date.now(),
+          sslStatus: "provisioning",
+        });
+
         await logAudit(
           user.userId,
           AuditEvents.DOMAIN_VERIFIED,
@@ -64,41 +81,43 @@ export const POST = authRoute<RouteContext>(
           },
           auditCtx
         );
+
+        return NextResponse.json({
+          success: true,
+          message: "Domain verified successfully",
+          domain: {
+            domain: updated?.domain || domain,
+            status: updated?.status || "active",
+            sslStatus: updated?.sslStatus || "provisioning",
+            verifiedAt: updated?.verifiedAt,
+          },
+        });
       } else {
+        // Mark as failed
+        const updated = await updateCustomDomain(domain, {
+          status: "failed",
+          failureReason: verification.error,
+        });
+
         await logAudit(
           user.userId,
           AuditEvents.DOMAIN_VERIFICATION_FAILED,
           {
             domain: domainData.domain,
-            reason: result.error,
+            reason: verification.error,
           },
           auditCtx
         );
-      }
 
-      if (result.success && result.domain) {
-        return NextResponse.json({
-          success: true,
-          message: "Domain verified successfully",
-          domain: {
-            domain: result.domain.domain,
-            status: result.domain.status,
-            sslStatus: result.domain.sslStatus,
-            verifiedAt: result.domain.verifiedAt,
-          },
-        });
-      } else {
         return NextResponse.json(
           {
             success: false,
-            error: result.error || "Verification failed",
-            domain: result.domain
-              ? {
-                  domain: result.domain.domain,
-                  status: result.domain.status,
-                  failureReason: result.domain.failureReason,
-                }
-              : undefined,
+            error: verification.error || "Verification failed",
+            domain: {
+              domain: updated?.domain || domain,
+              status: updated?.status || "failed",
+              failureReason: updated?.failureReason,
+            },
           },
           { status: 400 }
         );
