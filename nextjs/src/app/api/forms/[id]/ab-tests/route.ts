@@ -137,6 +137,10 @@ export const POST = authRoute<RouteParams>(
         return error;
       }
 
+      if (!form) {
+        return NextResponse.json({ error: "Form not found" }, { status: 404 });
+      }
+
       const body = await req.json();
       const { name, description, variants, metrics, trafficAllocation } = body;
 
