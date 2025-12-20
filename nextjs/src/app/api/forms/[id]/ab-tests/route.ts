@@ -77,9 +77,9 @@ async function addTestToFormIndex(formId: string, testId: string): Promise<void>
 /**
  * GET /api/forms/:id/ab-tests - List all A/B tests
  */
-export const GET = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+export const GET = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     if (!isValidFormId(formId)) {
       return NextResponse.json(
@@ -115,9 +115,9 @@ export const GET = authRoute(
 /**
  * POST /api/forms/:id/ab-tests - Create a new A/B test
  */
-export const POST = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId } = await params;
+export const POST = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId } = await routeCtx!.params;
 
     if (!isValidFormId(formId)) {
       return NextResponse.json(

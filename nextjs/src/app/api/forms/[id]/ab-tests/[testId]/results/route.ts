@@ -42,9 +42,9 @@ async function getTest(testId: string): Promise<ABTest | null> {
 /**
  * GET /api/forms/:id/ab-tests/:testId/results - Get test results with stats
  */
-export const GET = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId, testId } = await params;
+export const GET = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId, testId } = await routeCtx!.params;
 
     if (!isValidFormId(formId)) {
       return NextResponse.json(

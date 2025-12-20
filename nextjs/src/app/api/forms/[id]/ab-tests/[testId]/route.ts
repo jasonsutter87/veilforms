@@ -78,9 +78,9 @@ async function removeTestFromFormIndex(formId: string, testId: string): Promise<
 /**
  * GET /api/forms/:id/ab-tests/:testId - Get a specific test
  */
-export const GET = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId, testId } = await params;
+export const GET = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId, testId } = await routeCtx!.params;
 
     if (!isValidFormId(formId)) {
       return NextResponse.json(
@@ -121,9 +121,9 @@ export const GET = authRoute(
 /**
  * PATCH /api/forms/:id/ab-tests/:testId - Update a test
  */
-export const PATCH = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId, testId } = await params;
+export const PATCH = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId, testId } = await routeCtx!.params;
 
     if (!isValidFormId(formId)) {
       return NextResponse.json(
@@ -227,9 +227,9 @@ export const PATCH = authRoute(
 /**
  * DELETE /api/forms/:id/ab-tests/:testId - Delete a test
  */
-export const DELETE = authRoute(
-  async (req: NextRequest, { user }, { params }: RouteParams) => {
-    const { id: formId, testId } = await params;
+export const DELETE = authRoute<RouteParams>(
+  async (req: NextRequest, { user }, routeCtx) => {
+    const { id: formId, testId } = await routeCtx!.params;
 
     if (!isValidFormId(formId)) {
       return NextResponse.json(
