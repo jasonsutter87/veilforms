@@ -1,16 +1,34 @@
 /**
  * VeilForms - Custom Domains Library
  * Domain validation, DNS verification, SSL tracking, and domain-to-user mapping
+ *
+ * Note: DNS verification uses Node.js dns module which is only available
+ * in API routes, not in Edge Runtime (middleware).
  */
 
 import { getStore } from "@netlify/blobs";
 import { createLogger } from "./logger";
 import { retryStorage } from "./retry";
-import dns from "dns";
-import { promisify } from "util";
 
-const resolveTxt = promisify(dns.resolveTxt);
 const domainsLogger = createLogger("domains");
+
+// DNS module is dynamically imported only when needed (not available in Edge Runtime)
+let resolveTxt: ((hostname: string) => Promise<string[][]>) | null = null;
+
+async function getDnsResolver() {
+  if (resolveTxt) return resolveTxt;
+
+  // Dynamic import for Node.js environment only
+  try {
+    const dns = await import("dns");
+    const { promisify } = await import("util");
+    resolveTxt = promisify(dns.resolveTxt);
+    return resolveTxt;
+  } catch {
+    // DNS not available (Edge Runtime)
+    return null;
+  }
+}
 
 // Store name
 const DOMAINS_STORE = "vf-domains";
@@ -109,16 +127,23 @@ export function getVerificationRecordName(domain: string): string {
 
 /**
  * Verify DNS TXT record for domain
+ * Note: This function requires Node.js runtime (not available in Edge)
  */
 export async function verifyDnsTxtRecord(
   domain: string,
   expectedToken: string
 ): Promise<{ verified: boolean; error?: string }> {
   try {
+    const resolver = await getDnsResolver();
+    if (!resolver) {
+      domainsLogger.warn({ domain }, "DNS verification not available in Edge Runtime");
+      return { verified: false, error: "DNS verification not available in this environment" };
+    }
+
     const recordName = getVerificationRecordName(domain);
     domainsLogger.debug({ domain, recordName }, "Checking DNS TXT record");
 
-    const records = await resolveTxt(recordName);
+    const records = await resolver(recordName);
 
     // Flatten TXT records (they come as arrays of strings)
     const flatRecords = records.map((r) => r.join(""));
