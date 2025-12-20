@@ -3,6 +3,8 @@ node_modules/
 
 # Build output
 public/
+!nextjs/public/
+!nextjs/public/sdk/
 dist/
 static/js/*.min.js
 
