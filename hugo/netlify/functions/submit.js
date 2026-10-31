@@ -282,12 +282,15 @@ export default async function handler(req, context) {
       lastSubmissionAt: new Date().toISOString()
     });
 
-    // Fire webhook if configured (async, don't wait)
-    // Uses retry logic with exponential backoff
+    // Fire webhook if configured, without delaying the response
+    // Uses retry logic with exponential backoff. waitUntil keeps the function
+    // alive until delivery finishes; otherwise it can be frozen right after the
+    // response and the webhook silently never sent.
     if (form.settings?.webhookUrl) {
-      fireWebhookWithRetry(form.settings.webhookUrl, submission, form.settings.webhookSecret).catch(err => {
+      const delivery = fireWebhookWithRetry(form.settings.webhookUrl, submission, form.settings.webhookSecret).catch(err => {
         console.error('Webhook delivery error:', err.message);
       });
+      context?.waitUntil?.(delivery);
     }
 
     // Prepare success response
