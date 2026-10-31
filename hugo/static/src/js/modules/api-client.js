@@ -191,7 +191,8 @@ export const formsApi = {
   update: (id, data) => http.put(`/api/forms/${id}`, data),
   delete: (id) => http.delete(`/api/forms/${id}`),
   getStats: (id) => http.get(`/api/forms/${id}/stats`),
-  regenerateKeys: (id) => http.post(`/api/forms/${id}/regenerate-keys`)
+  // publicKey: JWK of a key pair generated in the browser (the private key stays there)
+  regenerateKeys: (id, publicKey) => http.post(`/api/forms/${id}/regenerate-keys`, { publicKey })
 };
 
 /**
