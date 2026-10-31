@@ -19,6 +19,7 @@ export {
   clearAuth,
   isAuthenticated,
   redirectToLogin,
+  takeAuthHandoff,
   STORAGE_KEYS
 } from './api-client.js';
 

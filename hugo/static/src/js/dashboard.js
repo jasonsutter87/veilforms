@@ -9,6 +9,7 @@ import {
   clearAuth,
   isAuthenticated,
   redirectToLogin,
+  takeAuthHandoff,
   formsApi,
   submissionsApi
 } from './modules/index.js';
@@ -63,6 +64,8 @@ const state = {
 
 // Auth Guard
 function checkAuth() {
+  // Arriving from the Gatekeep sign-in: the session is in the URL fragment.
+  takeAuthHandoff();
   if (!isAuthenticated()) {
     redirectToLogin();
     return false;

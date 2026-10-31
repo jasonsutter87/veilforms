@@ -45,6 +45,28 @@ export function setAuth(token, user) {
 }
 
 /**
+ * Take a session handed over by the Gatekeep sign-in callback in the URL fragment
+ * (#auth_token=...&user=...), store it like a password login would, and remove it
+ * from the address bar. Returns true if a session was taken.
+ */
+export function takeAuthHandoff() {
+  if (!window.location.hash.includes('auth_token=')) return false;
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const token = params.get('auth_token');
+  let user = null;
+  try {
+    const b64 = (params.get('user') || '').replace(/-/g, '+').replace(/_/g, '/');
+    user = JSON.parse(decodeURIComponent(escape(atob(b64))));
+  } catch {
+    user = null;
+  }
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+  if (!token || !user) return false;
+  setAuth(token, user);
+  return true;
+}
+
+/**
  * Clear auth data from storage
  */
 export function clearAuth() {
