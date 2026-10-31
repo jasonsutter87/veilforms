@@ -8,6 +8,59 @@ if (!JWT_SECRET) {
   throw new Error('FATAL: JWT_SECRET environment variable is required');
 }
 
+// SECURITY FIX (VULN-006): Validate JWT secret strength
+validateJwtSecret(JWT_SECRET);
+
+/**
+ * Validate JWT secret meets minimum security requirements
+ * Prevents use of weak or example secrets in production
+ */
+function validateJwtSecret(secret) {
+  const MIN_LENGTH = 32; // Minimum 32 characters
+  const MIN_ENTROPY = 3.5; // bits per character
+
+  if (secret.length < MIN_LENGTH) {
+    throw new Error(
+      `FATAL: JWT_SECRET must be at least ${MIN_LENGTH} characters. ` +
+      `Current length: ${secret.length}. ` +
+      `Generate a strong secret with: node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"`
+    );
+  }
+
+  // Calculate entropy (character diversity)
+  const uniqueChars = new Set(secret).size;
+  const entropy = Math.log2(uniqueChars);
+
+  if (entropy < MIN_ENTROPY) {
+    throw new Error(
+      `FATAL: JWT_SECRET has insufficient entropy (${entropy.toFixed(2)} bits/char, minimum: ${MIN_ENTROPY}). ` +
+      `Use a cryptographically random string.`
+    );
+  }
+
+  // Block common weak patterns
+  const weakPatterns = [
+    { pattern: /your-.*-secret/i, name: 'placeholder pattern' },
+    { pattern: /change.*me/i, name: 'change-me pattern' },
+    { pattern: /example/i, name: 'example string' },
+    { pattern: /^test$/i, name: 'test string' },
+    { pattern: /12345/, name: 'sequential numbers' },
+    { pattern: /^password$/i, name: 'password word' },
+    { pattern: /secret.*key.*here/i, name: 'secret-key-here pattern' }
+  ];
+
+  for (const { pattern, name } of weakPatterns) {
+    if (pattern.test(secret)) {
+      throw new Error(
+        `FATAL: JWT_SECRET appears to be a placeholder (contains ${name}). ` +
+        `Generate a strong random secret for production use.`
+      );
+    }
+  }
+
+  return true;
+}
+
 // Reduced from 7d to 24h for better security
 const JWT_EXPIRY = '24h';
 

@@ -49,35 +49,54 @@ export default async function handler(req, context) {
       );
     }
 
-    // Get user
+    // SECURITY FIX (VULN-003): Constant-time authentication
+    // Prevents username enumeration via timing attacks
     const user = await getUser(email);
-    if (!user) {
-      // Record failed attempt (even for non-existent users to prevent enumeration)
-      await recordFailedAttempt(email);
-      return errorResponse(ErrorCodes.AUTH_INVALID_CREDENTIALS, { ...headers, ...getRateLimitHeaders(rateLimit) });
+
+    let isValid = false;
+
+    if (user) {
+      // User exists - verify password (bcrypt takes ~250ms)
+      isValid = await verifyPassword(password, user.passwordHash);
+    } else {
+      // User doesn't exist - perform dummy hash to maintain constant time
+      // Use a known dummy hash to ensure consistent timing
+      const DUMMY_HASH = '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdY5aUFq3n/qXZq';
+      await verifyPassword(password, DUMMY_HASH);
     }
 
-    // Verify password
-    const valid = await verifyPassword(password, user.passwordHash);
-    if (!valid) {
+    // Always record failed attempt (even for non-existent users)
+    if (!isValid) {
       const attempt = await recordFailedAttempt(email);
       const remaining = 5 - attempt.count;
 
-      return errorResponse(ErrorCodes.AUTH_INVALID_CREDENTIALS, { ...headers, ...getRateLimitHeaders(rateLimit) }, {
+      // Generic error - don't reveal if user exists
+      return errorResponse(ErrorCodes.AUTH_INVALID_CREDENTIALS, {
+        ...headers,
+        ...getRateLimitHeaders(rateLimit)
+      }, {
         details: remaining > 0 && remaining <= 3 ? { attemptsRemaining: remaining } : {}
       });
     }
 
-    // Success - clear any failed attempts
+    // Clear failed attempts only on successful login
     await clearFailedAttempts(email);
 
-    // Check email verification status
-    // TODO: Re-enable after setting up RESEND_API_KEY
-    // if (!user.emailVerified) {
-    //   return errorResponse(ErrorCodes.AUTH_EMAIL_NOT_VERIFIED, { ...headers, ...getRateLimitHeaders(rateLimit) }, {
-    //     details: { email: user.email }
-    //   });
-    // }
+    // SECURITY FIX (VULN-007): Enforce email verification
+    // Prevents account takeover and bot registrations. Only once verification
+    // emails can actually be sent (RESEND_API_KEY, as in lib/email.js): without
+    // it nobody could ever verify, so enforcing would lock every account out.
+    if (process.env.RESEND_API_KEY && !user.emailVerified) {
+      return errorResponse(ErrorCodes.AUTH_EMAIL_NOT_VERIFIED, {
+        ...headers,
+        ...getRateLimitHeaders(rateLimit)
+      }, {
+        details: {
+          email: user.email,
+          message: 'Please verify your email address before logging in. Check your inbox for the verification link.'
+        }
+      });
+    }
 
     // Create JWT token
     const token = createToken({ id: user.id, email: user.email });
