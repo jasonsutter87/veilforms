@@ -83,8 +83,10 @@ export default async function handler(req, context) {
     await clearFailedAttempts(email);
 
     // SECURITY FIX (VULN-007): Enforce email verification
-    // Prevents account takeover and bot registrations
-    if (!user.emailVerified) {
+    // Prevents account takeover and bot registrations. Only once verification
+    // emails can actually be sent (RESEND_API_KEY, as in lib/email.js): without
+    // it nobody could ever verify, so enforcing would lock every account out.
+    if (process.env.RESEND_API_KEY && !user.emailVerified) {
       return errorResponse(ErrorCodes.AUTH_EMAIL_NOT_VERIFIED, {
         ...headers,
         ...getRateLimitHeaders(rateLimit)
