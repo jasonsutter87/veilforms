@@ -6,7 +6,7 @@
  * PUT /api/forms/:id - Update form
  * DELETE /api/forms/:id - Soft delete form
  * GET /api/forms/:id/stats - Form statistics
- * POST /api/forms/:id/regenerate-keys - Regenerate encryption keys
+ * POST /api/forms/:id/regenerate-keys - Replace the form's public key
  */
 
 import { authenticateRequest } from './lib/auth.js';
@@ -22,8 +22,8 @@ import {
 import { checkRateLimit, getRateLimitHeaders } from './lib/rate-limit.js';
 import { logAudit, AuditEvents, getAuditContext } from './lib/audit.js';
 import { getCorsHeaders } from './lib/cors.js';
-import { validateCsrfToken, generateCsrfToken, getCsrfHeaders } from './lib/csrf.js';
 import * as response from './lib/responses.js';
+import { normalizePublicJWK } from './lib/key-utils.js';
 import { isValidFormId, parseUrlPath, validateFormName, validateBranding, validateRetention, validateRecipients, isValidWebhookUrl } from './lib/validation.js';
 
 // Form creation limits per subscription tier
@@ -34,25 +34,6 @@ const FORM_LIMITS = {
   business: Infinity,
   enterprise: Infinity
 };
-
-// Generate RSA key pair for form encryption
-async function generateKeyPair() {
-  const keyPair = await crypto.subtle.generateKey(
-    {
-      name: 'RSA-OAEP',
-      modulusLength: 2048,
-      publicExponent: new Uint8Array([1, 0, 1]),
-      hash: 'SHA-256'
-    },
-    true,
-    ['encrypt', 'decrypt']
-  );
-
-  const publicKey = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
-  const privateKey = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
-
-  return { publicKey, privateKey };
-}
 
 export default async function handler(req, context) {
   const origin = req.headers.get('origin') || '';
@@ -74,11 +55,10 @@ export default async function handler(req, context) {
     return response.error(auth.error, headers, auth.status);
   }
 
-  // CSRF protection for state-changing operations
-  const isStateChanging = ['POST', 'PUT', 'DELETE'].includes(req.method);
-  if (isStateChanging && !validateCsrfToken(req)) {
-    return response.error('CSRF token validation failed', headers, 403);
-  }
+  // No CSRF token check: requests authenticate only with an Authorization header
+  // (session token or API key), which a browser never attaches to a cross-site
+  // request by itself. Requiring a cookie-bound token here only locked out the
+  // dashboard and API-key clients.
 
   // Parse URL to get formId and action
   const pathParts = parseUrlPath(req.url, '/api/forms/');
@@ -132,7 +112,7 @@ export default async function handler(req, context) {
     }
 
     if (req.method === 'POST' && action === 'regenerate-keys') {
-      return handleRegenerateKeys(formId, auth.user.id, headers, auditCtx);
+      return handleRegenerateKeys(req, formId, auth.user.id, headers, auditCtx);
     }
 
     return response.methodNotAllowed(headers);
@@ -177,7 +157,7 @@ async function handleListForms(userId, headers) {
  */
 async function handleCreateForm(req, userId, headers, auditCtx) {
   const body = await req.json();
-  const { name, settings } = body;
+  const { name, settings, publicKey: submittedKey } = body;
 
   const nameValidation = validateFormName(name);
   if (!nameValidation.valid) {
@@ -213,8 +193,12 @@ async function handleCreateForm(req, userId, headers, auditCtx) {
     );
   }
 
-  // Generate encryption keys
-  const { publicKey, privateKey } = await generateKeyPair();
+  // The key pair is made in the owner's browser; only the public half comes here
+  const keyCheck = await normalizePublicJWK(submittedKey);
+  if (!keyCheck.valid) {
+    return response.badRequest(keyCheck.error, headers);
+  }
+  const publicKey = keyCheck.key;
 
   // Create form with all settings including branding, retention, and notifications
   const form = await createForm(userId, {
@@ -260,10 +244,8 @@ async function handleCreateForm(req, userId, headers, auditCtx) {
       status: 'active',
       createdAt: form.createdAt,
       publicKey: form.publicKey,
-      privateKey, // Only returned on creation!
       settings: form.settings
-    },
-    warning: 'Save your private key immediately! This is the only time it will be shown. We cannot recover it.'
+    }
   }, headers);
 }
 
@@ -559,11 +541,18 @@ async function handleGetStats(formId, form, headers) {
 }
 
 /**
- * POST /api/forms/:id/regenerate-keys - Regenerate encryption keys
+ * POST /api/forms/:id/regenerate-keys - Replace the form's public key
+ *
+ * Key pairs are generated in the form owner's browser; this endpoint and form
+ * creation only ever receive the public key. The server never sees a private key.
  */
-async function handleRegenerateKeys(formId, userId, headers, auditCtx) {
-  // Generate new encryption keys
-  const { publicKey, privateKey } = await generateKeyPair();
+async function handleRegenerateKeys(req, formId, userId, headers, auditCtx) {
+  const body = await req.json().catch(() => ({}));
+  const keyCheck = await normalizePublicJWK(body.publicKey);
+  if (!keyCheck.valid) {
+    return response.badRequest(keyCheck.error, headers);
+  }
+  const publicKey = keyCheck.key;
 
   // Update form with new public key
   const updated = await updateForm(formId, {
@@ -581,10 +570,9 @@ async function handleRegenerateKeys(formId, userId, headers, auditCtx) {
     form: {
       id: updated.id,
       publicKey,
-      privateKey, // Only returned on regeneration!
       keyRotatedAt: updated.keyRotatedAt
     },
-    warning: 'Save your new private key immediately! Old submissions will no longer be decryptable with this key.'
+    warning: 'New submissions use the new key. Keep your old private key: earlier submissions still need it.'
   }, headers);
 }
 

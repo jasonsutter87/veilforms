@@ -118,17 +118,34 @@ curl https://veilforms.com/api/forms/vf-abc123 \
     <span class="endpoint-path">/api/forms</span>
   </div>
   <div class="endpoint-body">
-    <p>Create a new form. Keys are generated server-side and returned in the response.</p>
+    <p>Create a new form. You generate the form's RSA key pair yourself and send only the public key. VeilForms never creates, receives or stores private keys.</p>
 
 <div class="callout warning">
-<strong>Important:</strong> The response includes the private key. This is the only time it's returned. Save it immediately.
+<strong>Important:</strong> Keep the private key safe before you create the form. Nobody, including VeilForms, can recover it, and without it the form's submissions can't be decrypted.
 </div>
+
+**Generate the key pair** (browser or Node 18+; the same parameters the SDK encrypts with):
+
+```javascript
+const pair = await crypto.subtle.generateKey(
+  { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+  true,
+  ['encrypt', 'decrypt']
+);
+const publicKey = await crypto.subtle.exportKey('jwk', pair.publicKey);   // send this
+const privateKey = await crypto.subtle.exportKey('jwk', pair.privateKey); // keep this
+```
 
 **Request Body:**
 
 ```json
 {
   "name": "Contact Form",
+  "publicKey": {
+    "kty": "RSA",
+    "n": "0vx7agoebG...",
+    "e": "AQAB"
+  },
   "settings": {
     "encryption": true,
     "piiStrip": true,
@@ -143,6 +160,7 @@ curl https://veilforms.com/api/forms/vf-abc123 \
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | Yes | Display name for the form |
+| `publicKey` | object | Yes | RSA public key as a JWK (2048–4096 bits, `e` = `AQAB`). Requests containing private key fields are rejected |
 | `settings.encryption` | boolean | No | Enable encryption (default: true) |
 | `settings.piiStrip` | boolean | No | Strip PII (default: false) |
 | `settings.webhookUrl` | string | No | URL to receive webhook notifications |
@@ -156,6 +174,7 @@ curl -X POST https://veilforms.com/api/forms \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Contact Form",
+    "publicKey": {"kty": "RSA", "n": "0vx7agoebG...", "e": "AQAB"},
     "settings": {
       "encryption": true,
       "piiStrip": true
@@ -174,15 +193,8 @@ curl -X POST https://veilforms.com/api/forms \
     "publicKey": {
       "kty": "RSA",
       "n": "0vx7agoebG...",
-      "e": "AQAB"
-    },
-    "privateKey": {
-      "kty": "RSA",
-      "n": "0vx7agoebG...",
       "e": "AQAB",
-      "d": "X4cTteJY_g...",
-      "p": "83i-7IvMGX...",
-      "q": "3dfOR9cuY..."
+      "alg": "RSA-OAEP-256"
     },
     "settings": {
       "encryption": true,
@@ -298,10 +310,10 @@ curl -X DELETE "https://veilforms.com/api/forms/vf-abc123?confirm=DELETE_FORM" \
 <div class="endpoint-block">
   <div class="endpoint-header">
     <span class="method post">POST</span>
-    <span class="endpoint-path">/api/forms/{formId}/rotate-keys</span>
+    <span class="endpoint-path">/api/forms/{formId}/regenerate-keys</span>
   </div>
   <div class="endpoint-body">
-    <p>Generate new encryption keys for a form. Old submissions remain encrypted with the old key.</p>
+    <p>Replace a form's public key with a new one you generated (same as for Create Form). New submissions use the new key; old submissions stay encrypted with the old one.</p>
 
 <div class="callout info">
 <strong>Keep your old private key.</strong> You'll need it to decrypt submissions made before the rotation.
@@ -310,8 +322,10 @@ curl -X DELETE "https://veilforms.com/api/forms/vf-abc123?confirm=DELETE_FORM" \
 **Example Request:**
 
 ```bash
-curl -X POST https://veilforms.com/api/forms/vf-abc123/rotate-keys \
-  -H "Authorization: Bearer vf_live_xxx"
+curl -X POST https://veilforms.com/api/forms/vf-abc123/regenerate-keys \
+  -H "Authorization: Bearer vf_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"publicKey": {"kty": "RSA", "n": "NEW_KEY...", "e": "AQAB"}}'
 ```
 
 **Response:**
@@ -323,20 +337,12 @@ curl -X POST https://veilforms.com/api/forms/vf-abc123/rotate-keys \
     "publicKey": {
       "kty": "RSA",
       "n": "NEW_KEY...",
-      "e": "AQAB"
-    },
-    "privateKey": {
-      "kty": "RSA",
-      "n": "NEW_KEY...",
       "e": "AQAB",
-      "d": "NEW_PRIVATE...",
-      "p": "...",
-      "q": "..."
+      "alg": "RSA-OAEP-256"
     },
-    "keyVersion": 2,
-    "previousKeyVersion": 1,
-    "rotatedAt": 1699940000000
-  }
+    "keyRotatedAt": "2026-11-01T12:00:00.000Z"
+  },
+  "warning": "New submissions use the new key. Keep your old private key: earlier submissions still need it."
 }
 ```
 
@@ -429,11 +435,11 @@ curl "https://veilforms.com/api/forms/vf-abc123/stats?period=week" \
 After creating a form via API, integrate with the SDK:
 
 ```javascript
-// Response from POST /api/forms
+// privateKey from the key pair you generated before POST /api/forms
 const { form } = response;
 
-// Store private key securely (your server/secrets manager)
-saveToSecretsManager(form.id, form.privateKey);
+// Store the private key securely (your server/secrets manager)
+saveToSecretsManager(form.id, privateKey);
 
 // Generate embed code for client
 const embedCode = `

@@ -40,6 +40,41 @@ export function validateJWK(key) {
   return { valid: true, error: null };
 }
 
+// JWK members that only a private RSA key has
+const PRIVATE_JWK_FIELDS = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'oth'];
+
+/**
+ * Check a form's public key, generated in the form owner's browser, and return
+ * it in the one shape we store. The server never creates or sees private keys.
+ * @param {Object} key - RSA public key as a JWK
+ * @returns {Promise<Object>} - { valid: true, key } or { valid: false, error }
+ */
+export async function normalizePublicJWK(key) {
+  if (!key || typeof key !== 'object' || Array.isArray(key)) {
+    return { valid: false, error: 'publicKey is required: generate the key pair in the browser and send only the public key (JWK)' };
+  }
+  if (PRIVATE_JWK_FIELDS.some((f) => f in key)) {
+    return { valid: false, error: 'That is a private key. Keep it yourself and send only the public key' };
+  }
+  if (key.kty !== 'RSA' || typeof key.n !== 'string' || key.e !== 'AQAB') {
+    return { valid: false, error: 'publicKey must be an RSA key (kty "RSA", e "AQAB")' };
+  }
+  if (!/^[A-Za-z0-9_-]+$/.test(key.n)) {
+    return { valid: false, error: 'publicKey.n must be base64url' };
+  }
+  const bits = Buffer.from(key.n, 'base64url').length * 8;
+  if (bits < 2048 || bits > 4096) {
+    return { valid: false, error: 'publicKey must be 2048 to 4096 bits' };
+  }
+  const jwk = { kty: 'RSA', n: key.n, e: key.e, alg: 'RSA-OAEP-256', ext: true, key_ops: ['encrypt'] };
+  try {
+    await crypto.subtle.importKey('jwk', jwk, { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['encrypt']);
+  } catch {
+    return { valid: false, error: 'publicKey is not a usable RSA-OAEP key' };
+  }
+  return { valid: true, key: jwk };
+}
+
 /**
  * Validate key export password
  * @param {string} password - Password to validate

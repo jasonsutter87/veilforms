@@ -756,11 +756,18 @@ async function createForm() {
     }
   }
 
+  const submitBtn = document.getElementById('submit-create-btn');
+  submitBtn.disabled = true;
   try {
-    const data = await api('/api/forms/', {
+    // The key pair is generated here, in the browser. Only the public key is
+    // sent; the private key never leaves this page unless the user saves it.
+    const keyPair = await generateFormKeyPair();
+
+    await api('/api/forms/', {
       method: 'POST',
       body: JSON.stringify({
         name,
+        publicKey: keyPair.publicKey,
         settings: {
           piiStrip,
           webhookUrl: webhookUrl || null
@@ -772,7 +779,7 @@ async function createForm() {
     hide('create-form-modal');
 
     // Show private key modal
-    document.getElementById('private-key-display').value = JSON.stringify(data.form.privateKey, null, 2);
+    document.getElementById('private-key-display').value = JSON.stringify(keyPair.privateKey, null, 2);
     show('private-key-modal');
 
     // Reset form
@@ -782,7 +789,22 @@ async function createForm() {
     await loadForms();
   } catch (err) {
     alert('Failed to create form: ' + err.message);
+  } finally {
+    submitBtn.disabled = false;
   }
+}
+
+// RSA-OAEP key pair for a form's submissions, as JWKs (same parameters the SDK encrypts with)
+async function generateFormKeyPair() {
+  const pair = await crypto.subtle.generateKey(
+    { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true,
+    ['encrypt', 'decrypt']
+  );
+  return {
+    publicKey: await crypto.subtle.exportKey('jwk', pair.publicKey),
+    privateKey: await crypto.subtle.exportKey('jwk', pair.privateKey)
+  };
 }
 
 // Confirm Delete
