@@ -1,10 +1,10 @@
 /**
  * VeilForms Client SDK
- * Version: 1.0.0
+ * Version: 1.0.1
  * Drop-in privacy-first form handler
  * Encrypts data client-side before submission
  *
- * @version 1.0.0
+ * @version 1.0.1
  * @license MIT
  * @see https://veilforms.com/docs
  */
@@ -17,7 +17,11 @@ const VeilForms = (function() {
   'use strict';
 
   // SDK Version
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
+
+  // Hidden field bots fill in and people never see. Forms have honeypot spam
+  // protection on by default, and the server rejects submissions without it.
+  const HONEYPOT_FIELD = '_vf_hp';
 
   const config = {
     endpoint: null,
@@ -56,9 +60,28 @@ const VeilForms = (function() {
    */
   function bindForms() {
     document.querySelectorAll('form[data-veilform]').forEach(form => {
+      addHoneypot(form);
       form.addEventListener('submit', handleFormSubmit);
       log('Bound form:', form.id || form.name || 'unnamed');
     });
+  }
+
+  /**
+   * Add the honeypot field to a form that doesn't have one yet: off-screen,
+   * skipped by keyboard, screen readers and autofill
+   * @param {HTMLFormElement} form
+   */
+  function addHoneypot(form) {
+    if (form.elements[HONEYPOT_FIELD]) return;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.name = HONEYPOT_FIELD;
+    input.value = '';
+    input.tabIndex = -1;
+    input.autocomplete = 'off';
+    input.setAttribute('aria-hidden', 'true');
+    input.style.cssText = 'position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;';
+    form.appendChild(input);
   }
 
   /**
@@ -70,12 +93,15 @@ const VeilForms = (function() {
     const form = e.target;
 
     try {
-      // Collect form data
+      // Collect form data; the honeypot goes to spam protection, not into the submission
       const formData = collectFormData(form);
+      const honeypot = typeof formData[HONEYPOT_FIELD] === 'string' ? formData[HONEYPOT_FIELD] : '';
+      delete formData[HONEYPOT_FIELD];
 
       // Submit through VeilForms
       const result = await submit(formData, {
         formElement: form,
+        honeypot,
       });
 
       // Trigger success callback
@@ -172,6 +198,10 @@ const VeilForms = (function() {
       submissionId,
       payload,
       timestamp: Date.now(),
+      // Empty unless a bot filled the hidden field
+      spamProtection: {
+        honeypot: typeof options.honeypot === 'string' ? options.honeypot : '',
+      },
       // No PII metadata - just SDK version
       meta: {
         sdk: 'veilforms-js',
