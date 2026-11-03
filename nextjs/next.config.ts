@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Type-check the app, not the tests: Next 16.4+ checks everything tsconfig.json includes,
+  // and the tests are type-checked by vitest's own run.
+  typescript: { tsconfigPath: "tsconfig.build.json" },
+
   // Optimize package imports for better code splitting
   experimental: {
     optimizePackageImports: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
