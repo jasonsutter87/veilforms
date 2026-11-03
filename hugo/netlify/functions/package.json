@@ -16,5 +16,9 @@
   },
   "devDependencies": {
     "jest": "^29.7.0"
+  },
+  "overrides": {
+    "brace-expansion@^2": "^2.1.7",
+    "js-cookie@^3": "^3.0.7"
   }
 }
