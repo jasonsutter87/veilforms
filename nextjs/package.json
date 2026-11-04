@@ -67,6 +67,8 @@
     "ws@^8": "^8.21.0",
     "fast-copy@^4": "^4.1.0",
     "qs@^6": "^6.16.1",
-    "uuid@^13": "^13.0.1"
+    "uuid@^13": "^13.0.1",
+    "@opentelemetry/propagator-jaeger": "^2.9.0",
+    "@opentelemetry/core": "^2.8.0"
   }
 }
